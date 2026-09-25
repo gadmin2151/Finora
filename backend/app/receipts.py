@@ -639,6 +639,14 @@ async def process_receipt(receipt_id: str):
             receipt.source_url,
             receipt.file_names,
         )
+        from_phone = receipt.source == "phone_page"
+        phone_text = (
+            str(receipt.original.get("phone_page_text", receipt.original.get("mev_text", "")))[
+                :50000
+            ]
+            if from_phone
+            else ""
+        )
         categories = list(
             db.scalars(select(m.Category.name).where(m.Category.organization_id == organization_id))
         )
@@ -647,13 +655,15 @@ async def process_receipt(receipt_id: str):
         )
         provider = prefs.provider
         db.commit()
-    raw_text = ""
+    raw_text = phone_text
     ocr_text = ""
     extraction_provider = "mev"
-    result = None
+    result = parse_mev(phone_text) if phone_text else None
     warning = None
-    web_capture = False
-    if url:
+    web_capture = from_phone
+    if from_phone:
+        extraction_provider = "phone_page"
+    if url and not from_phone:
         try:
             mev_url(url)
             known_mev = True
@@ -689,7 +699,8 @@ async def process_receipt(receipt_id: str):
         images = [
             (settings().data_dir / "receipts" / organization_id / f).read_bytes() for f in files
         ]
-        ocr_text = await asyncio.to_thread(local_ocr, images)
+        # Phone pages already carry browser text; avoid spending CPU on a second OCR pass.
+        ocr_text = "" if from_phone and raw_text else await asyncio.to_thread(local_ocr, images)
         if ocr_text:
             candidate = parse_mev(ocr_text)
             if candidate["readable"] or result is None:
@@ -699,9 +710,13 @@ async def process_receipt(receipt_id: str):
         if provider != "disabled":
             extraction_provider = provider
             prepared_images = (
-                await asyncio.to_thread(vision_images, images)
-                if images and (web_capture or not raw_text)
-                else None
+                images
+                if from_phone
+                else (
+                    await asyncio.to_thread(vision_images, images)
+                    if images and (web_capture or not raw_text)
+                    else None
+                )
             )
             try:
                 result, _ = await ai.generate(

@@ -1,14 +1,12 @@
-"""Read public receipt pages through pinned HTTPS requests; render in an isolated browser."""
+"""Render public receipt pages through a bounded, DNS-pinned HTTPS tunnel."""
 
 import asyncio
 import ipaddress
 import re
 import socket
-from contextlib import AsyncExitStack
+from contextlib import suppress
 from dataclasses import dataclass
-from urllib.parse import urljoin, urlsplit, urlunsplit
-
-import httpx
+from urllib.parse import urlsplit, urlunsplit
 
 
 class WebReceiptError(ValueError):
@@ -57,7 +55,6 @@ async def public_ip(host: str) -> str:
     addresses = [ipaddress.ip_address(row[4][0]) for row in entries]
     if not addresses or any(not public_address(address) for address in addresses):
         raise WebReceiptError("Сайт чека указывает на закрытый сетевой адрес")
-    # Connect to this numeric address, never resolve the host a second time.
     return str(sorted(addresses, key=lambda address: address.version)[0])
 
 
@@ -68,80 +65,97 @@ class PageCapture:
     final_url: str
 
 
-class PublicPageFetcher:
+class PublicHttpsProxy:
+    """Tunnel browser TLS unchanged, pinning every CONNECT to a checked numeric IP.
+
+    Browser redirects and requests missed by Playwright interception still pass
+    through this boundary. No HTTP forwarding, TLS interception or trusted CA.
+    """
+
+    max_bytes = 25_000_000
+
     def __init__(self):
-        self.stack = AsyncExitStack()
-        self.clients: dict[str, httpx.AsyncClient] = {}
         self.addresses: dict[str, str] = {}
-        self.bytes_read = 0
-        self.requests = 0
-        self.limit = asyncio.Semaphore(6)
         self.host_lock = asyncio.Lock()
+        self.bytes_read = 0
+        self.tasks: set[asyncio.Task] = set()
+        self.server: asyncio.Server | None = None
+        self.port = 0
+        self.closing = False
 
-    async def fetch(self, value: str, headers: dict[str, str]) -> tuple[int, dict[str, str], bytes]:
-        url = httpx.URL(receipt_link(value))
-        self.requests += 1
-        if self.requests > 80:
-            raise WebReceiptError("На странице слишком много запросов")
-        async with self.limit:
+    async def __aenter__(self):
+        self.server = await asyncio.start_server(self.handle, "127.0.0.1", 0, limit=8192)
+        self.port = self.server.sockets[0].getsockname()[1]
+        return self
+
+    async def __aexit__(self, *args):
+        self.closing = True
+        self.server.close()
+        await self.server.wait_closed()
+        tasks = tuple(self.tasks)
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+
+    async def pump(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
+        while chunk := await reader.read(65536):
+            self.bytes_read += len(chunk)
+            if self.bytes_read > self.max_bytes:
+                raise WebReceiptError("Страница чека слишком большая")
+            writer.write(chunk)
+            await writer.drain()
+
+    async def handle(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
+        task = asyncio.current_task()
+        self.tasks.add(task)
+        remote = None
+        pumps = []
+        try:
+            if self.closing or len(self.tasks) > 40:
+                raise WebReceiptError("Слишком много подключений")
+            header = await asyncio.wait_for(reader.readuntil(b"\r\n\r\n"), 5)
+            first_line = header.split(b"\r\n", 1)[0].decode("ascii")
+            match = re.fullmatch(r"CONNECT ([a-zA-Z0-9.\[\]:-]+):443 HTTP/1\.[01]", first_line)
+            if not match or len(header) > 8192:
+                raise WebReceiptError("Разрешены только HTTPS-подключения")
+            host = urlsplit(receipt_link("https://" + match[1])).hostname
             async with self.host_lock:
-                if url.host not in self.clients:
-                    if len(self.clients) >= 20:
-                        raise WebReceiptError("На странице слишком много внешних ресурсов")
-                    address = await public_ip(url.host)
-                    client = await self.stack.enter_async_context(
-                        httpx.AsyncClient(timeout=12, follow_redirects=False, trust_env=False)
-                    )
-                    self.addresses[url.host], self.clients[url.host] = address, client
-            safe_headers = {
-                key: value
-                for key, value in headers.items()
-                if key.lower()
-                in {"accept", "accept-language", "cookie", "user-agent", "origin", "referer"}
-            }
-            safe_headers["Host"] = url.host
-            client = self.clients[url.host]
-            async with client.stream(
-                "GET",
-                url.copy_with(host=self.addresses[url.host], fragment=None),
-                headers=safe_headers,
-                extensions={"sni_hostname": url.host},
-            ) as response:
-                data = bytearray()
-                async for chunk in response.aiter_bytes():
-                    data.extend(chunk)
-                    self.bytes_read += len(chunk)
-                    if len(data) > 5_000_000 or self.bytes_read > 25_000_000:
-                        raise WebReceiptError("Страница чека слишком большая")
-                result_headers = {
-                    key: value
-                    for key, value in response.headers.items()
-                    if key.lower()
-                    not in {
-                        "content-encoding",
-                        "content-length",
-                        "transfer-encoding",
-                        "connection",
-                        "alt-svc",
-                    }
-                }
-                return response.status_code, result_headers, bytes(data)
-
-    async def follow(self, value: str, headers: dict[str, str]):
-        """Resolve each redirect with the same DNS, TLS and resource limits."""
-        url = receipt_link(value)
-        for _ in range(6):
-            status, response_headers, body = await self.fetch(url, headers)
-            if status not in {301, 302, 303, 307, 308}:
-                return url, status, response_headers, body
-            location = response_headers.get("location")
-            if not location:
-                raise WebReceiptError("Сайт вернул перенаправление без адреса")
-            target = receipt_link(urljoin(url, location))
-            if urlsplit(target).hostname != urlsplit(url).hostname:
-                headers = {key: value for key, value in headers.items() if key.lower() != "cookie"}
-            url = target
-        raise WebReceiptError("Слишком много перенаправлений на странице чека")
+                if host not in self.addresses:
+                    if len(self.addresses) >= 20:
+                        raise WebReceiptError("Слишком много внешних ресурсов")
+                    self.addresses[host] = await public_ip(host)
+                address = self.addresses[host]
+            upstream, remote = await asyncio.wait_for(asyncio.open_connection(address, 443), 8)
+            writer.write(b"HTTP/1.1 200 Connection Established\r\n\r\n")
+            await writer.drain()
+            pumps = [
+                asyncio.create_task(self.pump(reader, remote)),
+                asyncio.create_task(self.pump(upstream, writer)),
+            ]
+            done, _ = await asyncio.wait(pumps, return_when=asyncio.FIRST_COMPLETED)
+            for finished in done:
+                finished.result()
+        except (
+            WebReceiptError,
+            OSError,
+            TimeoutError,
+            UnicodeError,
+            asyncio.IncompleteReadError,
+            asyncio.LimitOverrunError,
+        ):
+            # Close refused/failed tunnels; never reveal addresses or forward an
+            # unvalidated request. Chromium reports the failed navigation normally.
+            pass
+        finally:
+            for pump in pumps:
+                pump.cancel()
+            await asyncio.gather(*pumps, return_exceptions=True)
+            for stream in (writer, remote):
+                if stream is not None:
+                    stream.close()
+                    with suppress(OSError, TimeoutError):
+                        await asyncio.wait_for(stream.wait_closed(), 1)
+            self.tasks.discard(task)
 
 
 async def capture_receipt_page(value: str) -> PageCapture:
@@ -149,27 +163,15 @@ async def capture_receipt_page(value: str) -> PageCapture:
     from playwright.async_api import async_playwright
 
     url = receipt_link(value)
-    fetcher = PublicPageFetcher()
-    failures: list[str] = []
-
-    # All browser traffic must be fulfilled by the guarded fetcher. Any request
-    # missed by interception reaches this closed proxy, never the local network.
-    async def refuse_connection(reader, writer):
-        writer.close()
-        await writer.wait_closed()
-
-    proxy = await asyncio.start_server(refuse_connection, "127.0.0.1", 0)
-    proxy_port = proxy.sockets[0].getsockname()[1]
     try:
-        async with asyncio.timeout(55), async_playwright() as playwright:
-            # Playwright only intercepts the first URL in a browser redirect chain.
-            # Resolve it here and navigate to the real document URL, so relative
-            # scripts/styles use the right origin and no redirect bypasses the guard.
-            url, status, headers, body = await fetcher.follow(url, {})
-            prefetched = {url.split("#", 1)[0]: (status, headers, body)}
+        async with (
+            asyncio.timeout(55),
+            PublicHttpsProxy() as proxy,
+            async_playwright() as playwright,
+        ):
             browser = await playwright.chromium.launch(
                 headless=True,
-                proxy={"server": f"http://127.0.0.1:{proxy_port}"},
+                proxy={"server": f"http://127.0.0.1:{proxy.port}"},
                 args=[
                     "--disable-dev-shm-usage",
                     "--proxy-bypass-list=<-loopback>",
@@ -186,45 +188,61 @@ async def capture_receipt_page(value: str) -> PageCapture:
                     accept_downloads=False,
                 )
                 await context.route_web_socket("**/*", lambda route: route.close())
+                requests = 0
 
                 async def route(request_route):
+                    nonlocal requests
+                    requests += 1
                     request = request_route.request
-                    if request.method not in {"GET", "HEAD"} or request.resource_type in {
-                        "media",
-                        "websocket",
-                    }:
+                    try:
+                        receipt_link(request.url)
+                    except WebReceiptError:
                         await request_route.abort()
                         return
-                    try:
-                        cached = prefetched.pop(request.url.split("#", 1)[0], None)
-                        if cached is not None:
-                            status, headers, body = cached
-                        else:
-                            _, status, headers, body = await fetcher.follow(
-                                request.url, request.headers
-                            )
-                        await request_route.fulfill(status=status, headers=headers, body=body)
-                    except (WebReceiptError, httpx.HTTPError, OSError):
-                        if request.is_navigation_request():
-                            failures.append("Не удалось безопасно загрузить страницу чека")
+                    # Anonymous page scripts may POST a receipt lookup or a site
+                    # challenge to their own origin; never submit navigation forms.
+                    same_origin_lookup = (
+                        request.method == "POST"
+                        and request.resource_type in {"xhr", "fetch"}
+                        and urlsplit(request.url).netloc == urlsplit(page.url).netloc
+                    )
+                    if (
+                        requests > 80
+                        or (request.method not in {"GET", "HEAD"} and not same_origin_lookup)
+                        or request.resource_type in {"media", "websocket"}
+                    ):
                         await request_route.abort()
+                        return
+                    # The CONNECT proxy validates/pins every destination, including
+                    # redirect chains that Playwright does not intercept a second time.
+                    await request_route.continue_()
 
                 await context.route("**/*", route)
                 page = await context.new_page()
                 page.on("popup", lambda popup: popup.close())
-                response = await page.goto(url, wait_until="domcontentloaded", timeout=35_000)
-                if response is None or response.status >= 400:
-                    raise WebReceiptError("Сайт не отдал чек. Попробуйте фотографию.")
-                if "text/html" not in response.headers.get("content-type", ""):
-                    raise WebReceiptError("По ссылке нет HTML-страницы. Загрузите фото чека.")
-                # Let receipt scripts and fonts complete, with a fixed overall deadline.
+                document_response = None
+
+                def response_received(response):
+                    nonlocal document_response
+                    if (
+                        response.request.is_navigation_request()
+                        and response.frame == page.main_frame
+                    ):
+                        document_response = response
+
+                page.on("response", response_received)
+                await page.goto(url, wait_until="domcontentloaded", timeout=35_000)
                 try:
                     await page.wait_for_load_state("networkidle", timeout=8_000)
                 except BrowserError:
-                    pass  # Analytics can keep a page busy; the visible receipt may be complete.
+                    pass  # Analytics can keep a fully visible receipt busy.
                 await page.wait_for_timeout(1000)
-                # Consent banners can cover the receipt in a full-page screenshot.
-                # Decline optional cookies only; never accept consent or submit receipt forms.
+                if proxy.bytes_read > proxy.max_bytes:
+                    raise WebReceiptError("Страница чека слишком большая")
+                if document_response is None or document_response.status >= 400:
+                    raise WebReceiptError("Сайт не отдал чек. Попробуйте фотографию.")
+                if "text/html" not in document_response.headers.get("content-type", ""):
+                    raise WebReceiptError("По ссылке нет HTML-страницы. Загрузите фото чека.")
                 reject_cookies = page.get_by_role(
                     "button",
                     name=re.compile(
@@ -258,11 +276,5 @@ async def capture_receipt_page(value: str) -> PageCapture:
                 return PageCapture(image, text, final_url)
             finally:
                 await browser.close()
-    except (BrowserError, TimeoutError, httpx.HTTPError, OSError) as exc:
-        raise WebReceiptError(
-            failures[-1] if failures else "Сайт не загрузился. Попробуйте фото чека."
-        ) from exc
-    finally:
-        proxy.close()
-        await proxy.wait_closed()
-        await fetcher.stack.aclose()
+    except (BrowserError, TimeoutError, OSError) as exc:
+        raise WebReceiptError("Сайт не загрузился. Попробуйте фото чека.") from exc

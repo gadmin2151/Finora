@@ -104,9 +104,11 @@ def current_organization(
         allowed_write = receipt_add or path in {
             "/api/receipts/{key}/comments",
             "/api/receipts/{key}/accept",
+            "/api/receipts/{key}/review",
         }
         admin_read = path.startswith(("/api/ai/", "/api/audit", "/api/export", "/api/rules"))
         if (writes and not allowed_write) or admin_read:
             raise HTTPException(403, "Это действие доступно администратору организации")
     request.state.membership = membership
+    db.info["membership_role"] = membership.role
     return db.get(m.Organization, membership.organization_id)

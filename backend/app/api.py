@@ -527,6 +527,7 @@ def register_receipt(
     fx_rate: Decimal,
     images: list[bytes],
     review_required: bool = False,
+    page_text: str | None = None,
 ):
     lock_organization(db, organization_id)
     if account_id:
@@ -541,8 +542,19 @@ def register_receipt(
     if prior:
         if prior.deleted_at:
             fail("Этот чек ранее удалён администратором", 409)
-        return {"receipt": receipt_dict(db, prior), "duplicate": True}
-    receipt = m.Receipt(
+        retry_page = (
+            source == "phone_page"
+            and prior.status == "review"
+            and prior.error
+            and not prior.file_names
+            and (
+                prior.created_by == db.info.get("actor_id")
+                or db.info.get("membership_role") == "admin"
+            )
+        )
+        if not retry_page:
+            return {"receipt": receipt_dict(db, prior), "duplicate": True}
+    receipt = prior or m.Receipt(
         organization_id=organization_id,
         source=source,
         source_key=key,
@@ -553,6 +565,15 @@ def register_receipt(
         created_by=db.info.get("actor_id"),
     )
     db.add(receipt)
+    if prior:
+        receipt.source, receipt.source_url = source, url
+        receipt.status, receipt.error = "queued", None
+        receipt.review_required = True
+        receipt.account_id = account_id or receipt.account_id
+        receipt.fx_rate = fx_rate
+        receipt.version += 1
+    if page_text is not None:
+        receipt.original = {"phone_page_text": page_text}
     db.flush()
     files = []
     directory = settings().data_dir / "receipts" / organization_id
@@ -581,6 +602,9 @@ async def upload_receipt(
     account_id: str = Form(""),
     fx_rate: str = Form("1"),
     review_required: bool = Form(False),
+    resolve_qr: bool = Form(True),
+    page_url: str = Form("", max_length=1000),
+    page_text: str = Form("", max_length=50000),
     user: m.Organization = SCOPE,
     db: Session = DB,
 ):
@@ -599,13 +623,23 @@ async def upload_receipt(
     except (ArithmeticError, ValueError):
         fail("Некорректный курс")
     images, url = [], None
+    if page_text and not page_url:
+        fail("Для текста страницы нужна ссылка на чек")
+    if page_url:
+        try:
+            try:
+                url = mev_url(page_url)
+            except ReceiptError:
+                url = receipt_link(page_url)
+        except WebReceiptError as exc:
+            fail(str(exc))
     for upload in files:
         raw = await upload.read(settings().max_upload_mb * 1024 * 1024 + 1)
         import asyncio
 
         content, qr = await asyncio.to_thread(image_bytes, raw)
         images.append(content)
-        if qr:
+        if qr and resolve_qr and not page_url:
             try:
                 candidate = mev_url(qr)
                 if url and candidate != url:
@@ -615,7 +649,16 @@ async def upload_receipt(
                 pass  # unrelated QR codes on receipts are not network targets
     key = hashlib.sha256(url.encode() if url else b"".join(images)).hexdigest()
     return register_receipt(
-        db, user.id, "photo", key, url, account_id or None, rate, images, review_required
+        db,
+        user.id,
+        "phone_page" if page_url else "photo",
+        key,
+        url,
+        account_id or None,
+        rate,
+        images,
+        review_required or bool(page_url),
+        page_text if page_url else None,
     )
 
 
@@ -659,7 +702,7 @@ def accept_receipt(
         fail("Дождитесь распознавания чека", 409)
     details = receipt_dict(db, row)
     if not row.purchased_on or not row.merchant or not row.total_minor or not details["items"]:
-        fail("Не все данные распознаны. Нужна корректировка чека администратором")
+        fail("Не все данные распознаны. Исправьте данные и позиции перед подтверждением")
     payload = s.ReceiptConfirm(
         merchant=row.merchant,
         purchased_on=row.purchased_on,
@@ -681,6 +724,24 @@ def accept_receipt(
         ],
     )
     result = confirm_receipt(db, user.id, row, payload)
+    db.commit()
+    return result
+
+
+@router.post("/receipts/{key}/review")
+def review_receipt(
+    key: str,
+    data: s.ReceiptReview,
+    request: Request,
+    user: m.Organization = SCOPE,
+    db: Session = DB,
+):
+    row = owned(db, m.Receipt, key, user.id, True)
+    if request.state.membership.role != "admin" and row.created_by != db.info.get("actor_id"):
+        fail("Исправить и подтвердить этот чек может его автор или администратор", 403)
+    if row.status not in {"review", "posted"}:
+        fail("Дождитесь распознавания чека", 409)
+    result = confirm_receipt(db, user.id, row, data)
     db.commit()
     return result
 

@@ -208,5 +208,10 @@ class ReceiptAccept(Strict):
     account_id: str
 
 
+class ReceiptReview(ReceiptConfirm):
+    # Members can correct their new receipt, but cannot modify an existing expense.
+    transaction_id: Literal[None] = None
+
+
 class ModelPull(Strict):
     model: Literal["qwen3:0.6b", "qwen3:4b-instruct", "qwen3:4b", "gemma3:4b", "qwen2.5:1.5b"]

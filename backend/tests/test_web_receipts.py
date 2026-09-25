@@ -11,7 +11,7 @@ from app.db import SessionLocal
 from app.receipts import process_receipt
 from app.web_receipts import (
     PageCapture,
-    PublicPageFetcher,
+    PublicHttpsProxy,
     WebReceiptError,
     public_address,
     public_ip,
@@ -61,112 +61,72 @@ def test_dns_rebinding_private_answer_is_rejected(monkeypatch):
     asyncio.run(run())
 
 
-def test_https_transport_pins_checked_ip_and_keeps_tls_hostname(monkeypatch):
-    import httpx
-
-    import app.web_receipts as web
-
-    requests = []
-
-    async def resolved(host):
-        return "93.184.216.34"
-
-    def respond(request):
-        requests.append(request)
-        return httpx.Response(200, text="receipt")
-
-    factory = httpx.AsyncClient
-    monkeypatch.setattr(web, "public_ip", resolved)
-    monkeypatch.setattr(
-        web.httpx,
-        "AsyncClient",
-        lambda **kwargs: factory(**kwargs, transport=httpx.MockTransport(respond)),
-    )
-
-    async def run():
-        fetcher = PublicPageFetcher()
-        try:
-            assert (
-                await fetcher.fetch(
-                    "https://shop.example/receipt?id=1", {"authorization": "must-not-forward"}
-                )
-            )[0] == 200
-        finally:
-            await fetcher.stack.aclose()
-
-    asyncio.run(run())
-    assert requests[0].url.host == "93.184.216.34"
-    assert requests[0].headers["host"] == "shop.example"
-    assert requests[0].extensions["sni_hostname"] == "shop.example"
-    assert "authorization" not in requests[0].headers
-
-
-def test_redirects_are_bounded_and_never_forward_cross_host_cookies(monkeypatch):
-    seen = []
-
-    async def fetch(self, url, headers):
-        seen.append((url, headers))
-        if len(seen) == 1:
-            return 302, {"location": "https://other.example/view"}, b""
-        return 200, {"content-type": "text/html"}, b"receipt"
-
-    monkeypatch.setattr(PublicPageFetcher, "fetch", fetch)
-    result = asyncio.run(
-        PublicPageFetcher().follow("https://shop.example/receipt", {"cookie": "private=1"})
-    )
-    assert result[0] == "https://other.example/view" and result[1] == 200
-    assert "cookie" not in seen[1][1]
-
-    async def redirect_local(self, url, headers):
-        return 302, {"location": "https://127.0.0.1/secret"}, b""
-
-    monkeypatch.setattr(PublicPageFetcher, "fetch", redirect_local)
-    with pytest.raises(WebReceiptError):
-        asyncio.run(PublicPageFetcher().follow("https://shop.example/receipt", {}))
-
-    async def redirect_loop(self, url, headers):
-        return 302, {"location": "/receipt"}, b""
-
-    monkeypatch.setattr(PublicPageFetcher, "fetch", redirect_loop)
-    with pytest.raises(WebReceiptError, match="перенаправлений"):
-        asyncio.run(PublicPageFetcher().follow("https://shop.example/receipt", {}))
-
-
-def test_concurrent_resources_share_one_pinned_connection_pool(monkeypatch):
-    import httpx
-
+def test_https_tunnel_pins_dns_and_preserves_browser_bytes(monkeypatch):
     import app.web_receipts as web
 
     resolutions = []
 
     async def resolve(host):
         resolutions.append(host)
-        await asyncio.sleep(0)
         return "93.184.216.34"
 
-    factory = httpx.AsyncClient
     monkeypatch.setattr(web, "public_ip", resolve)
-    monkeypatch.setattr(
-        web.httpx,
-        "AsyncClient",
-        lambda **kwargs: factory(
-            **kwargs,
-            transport=httpx.MockTransport(lambda request: httpx.Response(200, text="resource")),
-        ),
-    )
 
     async def run():
-        fetcher = PublicPageFetcher()
+        async def echo(reader, writer):
+            try:
+                writer.write(await reader.read(100))
+                await writer.drain()
+            finally:
+                writer.close()
+                await writer.wait_closed()
+
+        server = await asyncio.start_server(echo, "127.0.0.1", 0)
+        port = server.sockets[0].getsockname()[1]
+        connect = asyncio.open_connection
+        destinations = []
+
+        async def pinned(address, port_number):
+            destinations.append((address, port_number))
+            assert (address, port_number) == ("93.184.216.34", 443)
+            return await connect("127.0.0.1", port)
+
+        monkeypatch.setattr(web.asyncio, "open_connection", pinned)
         try:
-            responses = await asyncio.gather(
-                *(fetcher.fetch(f"https://shop.example/{i}", {}) for i in range(6))
-            )
-            assert all(response[0] == 200 for response in responses)
+            async with PublicHttpsProxy() as proxy:
+                for _ in range(2):
+                    reader, writer = await connect("127.0.0.1", proxy.port)
+                    writer.write(
+                        b"CONNECT shop.example:443 HTTP/1.1\r\nHost: shop.example:443\r\n\r\n"
+                    )
+                    await writer.drain()
+                    assert (await reader.readuntil(b"\r\n\r\n")).startswith(b"HTTP/1.1 200")
+                    # TLS remains opaque: no MITM, header rewriting or certificate bypass.
+                    opaque = b"\x16\x03\x01browser-TLS-bytes"
+                    writer.write(opaque)
+                    await writer.drain()
+                    assert await reader.readexactly(len(opaque)) == opaque
+                    writer.close()
+                    await writer.wait_closed()
+                for request in [
+                    b"CONNECT 127.0.0.1:443 HTTP/1.1",
+                    b"CONNECT shop.example:8080 HTTP/1.1",
+                    b"GET http://shop.example/ HTTP/1.1",
+                    b"CONNECT user@shop.example:443 HTTP/1.1",
+                ]:
+                    reader, writer = await connect("127.0.0.1", proxy.port)
+                    writer.write(request + b"\r\n\r\n")
+                    await writer.drain()
+                    assert await reader.read(100) == b""
+                    writer.close()
+                    await writer.wait_closed()
+            assert len(destinations) == 2
+            assert resolutions == ["shop.example"]
         finally:
-            await fetcher.stack.aclose()
+            server.close()
+            await server.wait_closed()
 
     asyncio.run(run())
-    assert resolutions == ["shop.example"]
 
 
 def test_web_capture_requires_review_before_any_expense(client, accounts, owner, monkeypatch):
