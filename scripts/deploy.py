@@ -107,8 +107,9 @@ def deploy() -> None:
             "api",
             "python",
             "-c",
-            "import json,urllib.request; "
-            "r=json.load(urllib.request.urlopen('http://127.0.0.1:8088/api/health',timeout=5)); "
+            "import json,os,urllib.request; "
+            "port=os.environ.get('FINORA_HTTP_PORT','8088'); "
+            "r=json.load(urllib.request.urlopen('http://127.0.0.1:'+port+'/api/health',timeout=5)); "
             "assert r['status']=='ok'; print('Database and API health: OK')",
         )
     except subprocess.CalledProcessError:

@@ -21,11 +21,25 @@ IDENTITY = ROOT / ".secrets" / "backup_identity.txt"
 
 
 def command(args, cwd=ROOT, **kwargs):
+    if args[:2] == ["docker", "run"]:
+        args = [*args[:2], "--network", helper_network(), *args[2:]]
     return subprocess.run(args, cwd=cwd, check=True, **kwargs)
 
 
 def compose(*args, cwd=ROOT, **kwargs):
     return command(["docker", "compose", *args], cwd=cwd, **kwargs)
+
+
+@lru_cache(maxsize=1)
+def helper_network():
+    project = json.loads(
+        compose("config", "--format", "json", capture_output=True, text=True).stdout
+    )
+    # Restricted LXC hosts cannot create Docker network namespaces. Match the
+    # explicitly configured host mode; normal backup helpers need no network.
+    return (
+        "host" if project["services"]["api"].get("network_mode") == "host" else "none"
+    )
 
 
 @lru_cache(maxsize=1)
@@ -257,6 +271,7 @@ def restore(source: Path, identity: Path, target: Path, port: int):
             "compose.yaml",
             "compose.tls.yaml",
             "compose.cloudflare.yaml",
+            "compose.lxc.yaml",
             "Caddyfile",
             "Dockerfile",
             ".dockerignore",
