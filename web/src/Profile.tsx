@@ -95,7 +95,7 @@ export function ProfileSettings() {
             ref={picker}
             type="file"
             accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
-            className="visually-hidden"
+            hidden
             aria-label="Фотография профиля"
             disabled={photo.isPending}
             onChange={(event) => {
