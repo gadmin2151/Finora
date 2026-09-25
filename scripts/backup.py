@@ -256,6 +256,7 @@ def restore(source: Path, identity: Path, target: Path, port: int):
         for filename in [
             "compose.yaml",
             "compose.tls.yaml",
+            "compose.cloudflare.yaml",
             "Caddyfile",
             "Dockerfile",
             ".dockerignore",

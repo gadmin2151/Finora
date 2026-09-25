@@ -1,0 +1,23 @@
+# Linux host: configure the public hostname in Cloudflare to http://localhost:8080
+# (or your APP_PORT). The token stays in a private file outside Git.
+services:
+  cloudflared:
+    image: ${CLOUDFLARED_IMAGE:-cloudflare/cloudflared:latest}
+    restart: unless-stopped
+    network_mode: host
+    user: "65532:65532"
+    command: [tunnel, --no-autoupdate, --metrics, "127.0.0.1:20241", run, --token-file, /run/secrets/cloudflare_tunnel_token]
+    secrets:
+      - cloudflare_tunnel_token
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 256m
+    pids_limit: 128
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: "3"}
+
+secrets:
+  cloudflare_tunnel_token:
+    file: ./.secrets/cloudflare_tunnel_token

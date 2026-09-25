@@ -109,6 +109,7 @@ class DeploymentTests(unittest.TestCase):
         self.installed = True
         self.existing_db = True
         self.failure = None
+        self.enabled_services = "db\ninit\napi\nworker\n"
         self.project = {
             "services": {
                 "api": {
@@ -133,7 +134,7 @@ class DeploymentTests(unittest.TestCase):
         elif args[0] == "exec" and args[3] == "psql":
             output = "t\n" if self.installed else "f\n"
         elif args == ("config", "--services"):
-            output = "db\ninit\napi\nworker\n"
+            output = self.enabled_services
         return subprocess.CompletedProcess(args, 0, stdout=output)
 
     def test_existing_installation_backed_up_before_migration(self):
@@ -154,6 +155,13 @@ class DeploymentTests(unittest.TestCase):
         with self.assertRaises(subprocess.CalledProcessError):
             deployment.deploy()
         self.assertEqual([event[0] for event in self.events], ["pull"])
+
+    def test_cloudflare_overlay_starts_tunnel_without_local_ai(self):
+        self.enabled_services += "cloudflared\n"
+        deployment.deploy()
+        start = next(event for event in self.events if event[0] == "up")
+        self.assertIn("cloudflared", start)
+        self.assertNotIn("ollama", start)
 
     def test_backup_failure_prevents_migration(self):
         with (

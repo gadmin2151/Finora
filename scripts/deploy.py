@@ -88,7 +88,9 @@ def deploy() -> None:
         compose("run", "--rm", "--no-deps", "init")
         services = ["api", "worker"]
         enabled = set(compose("config", "--services", capture=True).stdout.splitlines())
-        services.extend(name for name in ["ollama", "caddy"] if name in enabled)
+        services.extend(
+            name for name in ["ollama", "caddy", "cloudflared"] if name in enabled
+        )
         compose(
             "up",
             "-d",
