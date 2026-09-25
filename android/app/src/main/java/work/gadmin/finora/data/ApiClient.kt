@@ -259,6 +259,45 @@ class ApiClient(val server: String, savedCookie: String? = null) {
     suspend fun insights(org: String, month: String): List<Insight> =
         get("/api/insights?month=$month", org)
 
+    suspend fun chat(org: String, before: String? = null): List<ChatMessage> {
+        val url =
+            origin
+                .newBuilder()
+                .encodedPath("/api/chat")
+                .apply {
+                    before?.let { addQueryParameter("before", it) }
+                }
+                .build()
+        return get(url.encodedPath + (url.encodedQuery?.let { "?$it" } ?: ""), org)
+    }
+
+    suspend fun chatJobs(org: String): List<ChatJob> = get("/api/jobs", org)
+
+    suspend fun sendChat(
+        org: String,
+        text: String,
+        month: String,
+        requestKey: String,
+        report: String? = null,
+    ): ChatResult =
+        json.decodeFromString(
+            execute(
+                request(
+                    "/api/chat",
+                    org,
+                    "POST",
+                    jsonBody(
+                        buildJsonObject {
+                            put("text", text)
+                            put("month", month)
+                            put("request_key", requestKey)
+                            report?.let { put("report", it) }
+                        }
+                    ),
+                )
+            )
+        )
+
     suspend fun retry(org: String, id: String) {
         execute(request("/api/receipts/$id/retry", org, "POST", jsonBody(buildJsonObject {})))
     }

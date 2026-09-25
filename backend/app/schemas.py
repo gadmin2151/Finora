@@ -197,6 +197,8 @@ class PreferencesInput(Strict):
 class ChatInput(Strict):
     text: str = Field(min_length=1, max_length=3000)
     month: str = Field(pattern=r"^\d{4}-(0[1-9]|1[0-2])$")
+    report: Literal["summary", "categories", "merchants", "trend", "prices"] | None = None
+    request_key: str | None = Field(default=None, min_length=16, max_length=100)
 
 
 class ReceiptLineInput(Strict):

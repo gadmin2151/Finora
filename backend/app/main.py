@@ -13,6 +13,7 @@ from .api import router
 from .config import settings
 from .feature_api import router as feature_router
 from .organizations import router as organization_router
+from .request_limits import RequestBodyLimit
 from .users import router as user_router
 
 logging.basicConfig(level=logging.INFO)
@@ -22,6 +23,7 @@ app.include_router(router)
 app.include_router(organization_router)
 app.include_router(feature_router)
 app.include_router(user_router)
+app.add_middleware(RequestBodyLimit)
 
 
 @app.exception_handler(RequestValidationError)
@@ -46,26 +48,6 @@ async def guard(request: Request, call_next):
         origin = request.headers.get("origin")
         if origin and origin.rstrip("/") != settings().app_url.rstrip("/"):
             return JSONResponse({"detail": "Недопустимый адрес приложения"}, status_code=403)
-        try:
-            if (
-                request.method == "POST"
-                and request.url.path in {"/api/receipts/upload", "/api/auth/avatar"}
-                and "content-length" not in request.headers
-            ):
-                return JSONResponse(
-                    {"detail": "Для загрузки требуется размер файла"}, status_code=411
-                )
-            if int(request.headers.get("content-length", "0")) > 62 * 1024 * 1024:
-                return JSONResponse({"detail": "Слишком большой запрос"}, status_code=413)
-            if (
-                request.url.path == "/api/auth/avatar"
-                and int(request.headers.get("content-length", "0")) > 5 * 1024 * 1024 + 65536
-            ):
-                return JSONResponse(
-                    {"detail": "Выберите фотографию размером до 5 МБ"}, status_code=413
-                )
-        except ValueError:
-            return JSONResponse({"detail": "Некорректный запрос"}, status_code=400)
     started = time.monotonic()
     try:
         response = await call_next(request)

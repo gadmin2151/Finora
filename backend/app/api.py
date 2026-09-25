@@ -48,6 +48,8 @@ from .security import (
     encrypt,
     hasher,
     issue_session,
+    lock_login_attempts,
+    lock_user_credentials,
     verify_password,
 )
 from .web_receipts import WebReceiptError, receipt_link
@@ -92,6 +94,7 @@ def login(data: s.Login, request: Request, response: Response, db: Session = DB)
         hashlib.sha256(v.encode()).hexdigest()
         for v in ["ip:" + ip, "user:" + data.username.casefold()]
     ]
+    lock_login_attempts(db, keys)
     cutoff = m.now() - timedelta(minutes=15)
     db.execute(delete(m.LoginAttempt).where(m.LoginAttempt.created_at < cutoff))
     count = db.scalar(
@@ -100,8 +103,11 @@ def login(data: s.Login, request: Request, response: Response, db: Session = DB)
     if count >= 16:
         fail("Слишком много попыток входа. Повторите через 15 минут", 429)
     user = db.scalar(select(m.User).where(m.User.username == data.username))
-    valid = verify_password(data.password, user.password_hash if user else dummy_hash)
-    if not valid or not user or not user.is_active:
+    verified_hash = user.password_hash if user else dummy_hash
+    valid = verify_password(data.password, verified_hash)
+    if valid and user:
+        user = lock_user_credentials(db, user.id)
+    if not valid or not user or not user.is_active or user.password_hash != verified_hash:
         db.add_all([m.LoginAttempt(key=key) for key in keys])
         db.commit()
         fail("Неверный логин или пароль", 401)
@@ -132,6 +138,17 @@ def logout(request: Request, response: Response, user: m.User = ACTOR, db: Sessi
 
 @router.post("/auth/password")
 def password(data: s.PasswordChange, request: Request, user: m.User = ACTOR, db: Session = DB):
+    user = lock_user_credentials(db, user.id)
+    if (
+        not user
+        or not user.is_active
+        or not db.scalar(
+            select(m.Session.id).where(
+                m.Session.id == request.state.session.id, m.Session.expires_at > m.now()
+            )
+        )
+    ):
+        fail("Войдите в свой аккаунт", 401)
     if not verify_password(data.current_password, user.password_hash):
         fail("Текущий пароль неверен")
     user.password_hash = hasher.hash(data.new_password)
@@ -789,8 +806,15 @@ def chat(before: str | None = None, user: m.Organization = SCOPE, db: Session = 
     query = select(m.Message).where(m.Message.organization_id == user.id)
     if before:
         original = owned(db, m.Message, before, user.id)
-        query = query.where(m.Message.created_at < original.created_at)
-    rows = list(db.scalars(query.order_by(m.Message.created_at.desc()).limit(60)))
+        query = query.where(
+            or_(
+                m.Message.created_at < original.created_at,
+                (m.Message.created_at == original.created_at) & (m.Message.id < original.id),
+            )
+        )
+    rows = list(
+        db.scalars(query.order_by(m.Message.created_at.desc(), m.Message.id.desc()).limit(60))
+    )
     return [
         {
             "id": r.id,
@@ -799,7 +823,7 @@ def chat(before: str | None = None, user: m.Organization = SCOPE, db: Session = 
             "receipt_id": r.receipt_id,
             "created_at": r.created_at,
             "details": r.details,
-            "actor_id": r.actor_id,
+            "actor_id": r.details.get("actor_id"),
         }
         for r in reversed(rows)
     ]
@@ -808,13 +832,38 @@ def chat(before: str | None = None, user: m.Organization = SCOPE, db: Session = 
 @router.post("/chat")
 def send_message(data: s.ChatInput, user: m.Organization = SCOPE, db: Session = DB):
     month_range(data.month)
+    lock_organization(db, user.id)
+    if data.request_key:
+        prior = db.scalar(
+            select(m.Job).where(
+                m.Job.organization_id == user.id,
+                m.Job.kind == "chat",
+                m.Job.payload["request_key"].as_string() == data.request_key,
+            )
+        )
+        if prior:
+            if any(prior.payload.get(key) != value for key, value in data.model_dump().items()):
+                fail("Повторный запрос содержит другое сообщение", 409)
+            return {"job_id": prior.id}
     prefs = db.scalar(select(m.Preferences).where(m.Preferences.organization_id == user.id))
-    if prefs.provider == "disabled":
+    if prefs.provider == "disabled" and not data.report:
         fail(
             "Включите локальный AI или OpenAI в настройках. Базовая аналитика уже доступна в разделе «Анализ»"
         )
-    db.add(m.Message(organization_id=user.id, role="user", text=data.text))
-    job = enqueue(db, user.id, "chat", data.model_dump())
+    message = m.Message(
+        organization_id=user.id,
+        role="user",
+        text=data.text,
+        details={"actor_id": db.info.get("actor_id")},
+    )
+    db.add(message)
+    db.flush()
+    job = enqueue(
+        db,
+        user.id,
+        "chat",
+        {**data.model_dump(), "message_id": message.id, "actor_id": db.info.get("actor_id")},
+    )
     db.commit()
     return {"job_id": job.id}
 

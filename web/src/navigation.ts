@@ -91,12 +91,12 @@ export const navigationGroups: NavigationGroup[] = [
     memberDescription: "Где можно сэкономить",
     icon: ChartNoAxesCombined,
     items: [
+      { id: "reports", label: "Подробные отчёты", icon: ChartNoAxesCombined },
       { id: "insights", label: "Анализ и экономия", icon: ChartNoAxesCombined },
       {
         id: "assistant",
         label: "AI-помощник",
         icon: Sparkles,
-        adminOnly: true,
       },
     ],
   },

@@ -49,6 +49,7 @@ import { canAccessRoute, navigationItems } from "./navigation";
 import { ReceiptEditor, UploadReceipt } from "./ReceiptDialogs";
 const Income = lazy(() => import("./pages/Income"));
 const Purchases = lazy(() => import("./pages/Purchases"));
+const Reports = lazy(() => import("./pages/Reports"));
 const Users = lazy(() => import("./pages/Users"));
 const Organizations = lazy(() => import("./pages/Organizations"));
 const Overview = lazy(() => import("./pages/Overview"));
@@ -387,6 +388,7 @@ function Workspace({
   const pages = {
     income: Income,
     purchases: Purchases,
+    reports: Reports,
     organizations: Organizations,
     users: Users,
     overview: Overview,

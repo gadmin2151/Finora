@@ -8,6 +8,7 @@ import "./responsive.css";
 import "./features.css";
 import "./navigation.css";
 import "./theme.css";
+import "./reports.css";
 
 class ErrorBoundary extends Component<
   { children: ReactNode },

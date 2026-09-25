@@ -11,6 +11,7 @@ import {
   Loading,
   PageHeading,
   amount,
+  counted,
   dateLabel,
 } from "../ui";
 
@@ -391,8 +392,9 @@ export default function Purchases() {
                         {dateLabel(item.best_on)}
                       </p>
                       <small>
-                        {item.receipt_count} чека · разница при минимальной
-                        цене: {amount(item.potential_minor, item.currency)}
+                        {counted(item.receipt_count, ["чек", "чека", "чеков"])}{" "}
+                        · разница при минимальной цене:{" "}
+                        {amount(item.potential_minor, item.currency)}
                       </small>
                     </article>
                   ))}

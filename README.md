@@ -1,113 +1,65 @@
-# 27G Finora · Personal Finance
+<p align="center">
+  <img src="web/public/finora-icon.png" alt="Finora origami wallet" width="112" />
+</p>
+<h1 align="center">27G Finora · Personal Finance</h1>
+<p align="center"><strong>Your receipts. Your money. Your server.</strong></p>
+<p align="center">A self-hosted finance workspace with a native Android receipt scanner and an AI assistant grounded in your own records.</p>
+<p align="center">
+  <a href="https://github.com/gadmin2151/Finora/actions/workflows/ci.yml"><img src="https://github.com/gadmin2151/Finora/actions/workflows/ci.yml/badge.svg" alt="Server CI" /></a>
+  <a href="https://github.com/gadmin2151/Finora/actions/workflows/android.yml"><img src="https://github.com/gadmin2151/Finora/actions/workflows/android.yml/badge.svg" alt="Android CI" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-8edbb7" alt="MIT license" /></a>
+</p>
+<p align="center"><a href="#get-started">Get started</a> · <a href="android/README.md">Android</a> · <a href="README.ru.md">Русская инструкция</a> · <a href="docs/ASSISTANT.md">AI & reports</a> · <a href="SECURITY.md">Security</a></p>
 
-[![CI and container images](https://github.com/gadmin2151/Finora/actions/workflows/ci.yml/badge.svg)](https://github.com/gadmin2151/Finora/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+![Finora dashboard with fictional demonstration data](docs/assets/overview.png)
 
-**Финансы, чеки и понятная аналитика на вашем сервере.** Finora объединяет расходы, доходы, счета, долги, бюджеты и товары из чеков. Веб-интерфейс работает на компьютере и телефоне. Данные общие внутри организации; один пользователь может работать в нескольких организациях.
+## A clear picture of everyday money
 
-FastAPI · React / TypeScript · PostgreSQL 17 · Docker Compose · локальный OCR · Ollama / OpenAI.
+- **One workspace per organization.** Share finances with your household or team. Switch organizations before adding a receipt. Administrators manage money and people; members add receipts, comment and explore statistics.
+- **Income, expenses and obligations.** Track accounts, transfers, refunds, recurring and occasional income, monthly budgets, scheduled bills and partial debt repayments.
+- **Receipts you can inspect.** Scan a QR, take up to four photos of one receipt, or upload images. Review the merchant, date, currency, items, categories and total before confirming a mobile import.
+- **Useful product history.** Filter by product, category, merchant, date, account, currency or unit. Compare prices actually paid across different receipts, including line discounts.
+- **Ask your finances a question.** “Compare groceries in August and September.” “Find my LAPTE purchases.” “Where was it cheaper?” The assistant uses validated, read-only reports and keeps conversation context.
+- **Your choice of AI.** OpenAI with a server-side API key, optional Ollama on CPU/RAM, or no AI. Manual finance and preset reports work without an AI provider.
 
-- [Установка на Debian](#установка-на-debian)
-- [Локальный запуск](#локальный-запуск-из-исходников)
-- [Cloudflare Tunnel](#cloudflare-tunnel)
-- [Организации и права](#организации-и-права-доступа)
-- [Обновление](#обновление)
-- [Резервное копирование](#резервное-копирование-и-восстановление)
-- [CI/CD и образы](#cicd-и-образы)
-- [Разработка](#разработка-и-проверки)
-- [Приложение Android](android/README.md)
+The interface is currently **Russian**; receipt recognition supports Romanian and Russian. Financial reports use **MDL** with the exchange rate stored on each transaction. MDL, EUR, USD and RON accounts are supported. This is an actively developed product, not a bank connection or accounting certification service.
 
-## Обновление 1.4.0
+## What's new in 1.5
 
-- Цельная палитра 27G Finora: графит, мягкий светлый текст и мятные акценты. Объёмный кошелёк-оригами с золотой монетой — новый знак приложения, загрузки и веб-версии.
-- В Android потяните экран вниз: обновятся данные текущего раздела или открытого чека. Анимированный индикатор 27G показывает загрузку; после ответа появляется время обновления. Повторные жесты объединяются, запрос ограничен 30 секундами; при ошибке прежние данные и черновик остаются.
-- **Управление → Пользователи** для владельца сервера: создание аккаунтов, поиск и фильтр статуса, изменение имени, включение/блокировка, сброс пароля, назначение нескольких организаций и ролей. Пароль задаётся от 12 символов. Сброс и блокировка отзывают все сеансы пользователя; заблокированные аккаунты сохраняют финансовую историю.
-- **Настройки → Мой профиль** и профиль Android: загрузка/замена/удаление фотографии. JPEG, PNG, WebP, HEIC до 5 МБ; квадрат по центру, нормализация до 512×512, удаление метаданных. Фото доступно самому пользователю, участникам общих организаций и владельцу сервера.
+| Area | Improvement |
+|---|---|
+| AI assistant | Web and native Android chat, follow-up questions, purchase search, source receipt links and exact report cards |
+| Reports | Six report types with date ranges, category, merchant, currency and product filters; text export |
+| Recognition | Explicit printed-total detection, a bounded total reread, verified discount allocation and preserved uncertainty |
+| Reliability | Worker heartbeats and attempt checks prevent stale jobs from overwriting newer results |
+| Security | Streaming request limits, concurrent login throttling, password-reset race protection and dependency audit gates |
+| Mobile UX | A dedicated assistant tab, visible refresh/loading, retained drafts and a keyboard-aware composer |
 
-Миграция `7c9120efab34` добавляет статус аккаунта, владельца сервера, аватар и журнал изменений пользователей. Существующий владелец определяется однократно по `ADMIN_USERNAME`; проверьте это значение перед обновлением. Остальные администраторы управляют только своими организациями и не могут сбрасывать общий пароль чужого аккаунта. Владелец не получает членство в чужих организациях автоматически. Последнего активного администратора организации нельзя исключить или заблокировать. Финансовая схема и API чеков совместимы с предыдущим Android.
+See the [manual audit and verification record](docs/AUDIT-2026-09.md) and [market research](docs/MARKET.md).
 
-## Обновление 1.3.0
+## Get started
 
-Единый тёмный интерфейс веба и Android: мятные акценты Finora, полупрозрачные панели, сгруппированное меню и плавные переходы. Учитывается системное уменьшение анимации. Название приложения — **27G Finora · Personal Finance**; application ID и ключ подписи сохранены, обновление устанавливается поверх предыдущего APK.
+### Debian 12 server
 
-Для фото AI получает полный снимок вместе с увеличенными фрагментами: сумма справа от `TOTAL` больше не исключается обрезкой. Если итог не прочитан или отличается от суммы строк, выполняется не более одного дополнительного AI-запроса для чтения напечатанного итога. Он учитывается в лимите запросов организации. Сумма не вычисляется вместо отсутствующего `TOTAL`; внесённые наличные, сдача, налоги и скидки не подменяют итог. Неоднозначные данные остаются на проверку пользователю. Сайты чеков по-прежнему открывает телефон.
-
-## Приложение Android
-
-Нативный клиент для Android 8+: HTTPS-вход на свой сервер, выбор организации, QR электронных чеков, съёмка одного чека несколькими фотографиями, сохранение черновика, история и месячная статистика. После распознавания приложение показывает магазин, дату, позиции с количеством и ценами, категории и итог. Страницы чеков открывает телефон через своё соединение и передаёт текст и полный снимок серверу с общим AI-ключом. Перед подтверждением можно исправить все данные и позиции. Расход создаётся только после подтверждения. Исходники, подписанный APK и проверки — в [android/README.md](android/README.md). Дополнительный AI на телефоне не требуется.
-
-## Установка на Debian
-
-Поддерживаются **Debian 12 и 13**, архитектуры **AMD64 и ARM64**, сервер с systemd. Нужны доступ к интернету, права sudo, свободное место для PostgreSQL и фотографий. Для сервиса без AI ориентир — от 2 ГБ RAM; для локальных моделей 4B — 12–16 ГБ RAM на сервере и дополнительное место для моделей.
+Use a dedicated server with Docker support, Git and Python 3.11+. The installer can install Docker Engine and Compose from Docker's official repository.
 
 ```bash
-sudo apt-get update
-sudo apt-get install -y git
-sudo git clone https://github.com/gadmin2151/Finora.git /opt/finora
+git clone https://github.com/gadmin2151/Finora.git /opt/finora
 cd /opt/finora
 sudo ./scripts/install-debian.sh --domain finance.example.com
 ```
 
-Замените домен своим и заранее направьте его DNS на сервер. Для автоматического HTTPS через Caddy должны быть доступны порты **80 и 443**. API остаётся на loopback, PostgreSQL и Ollama не публикуют порты наружу.
+Replace the example domain with your own. For automatic HTTPS through Caddy, point DNS to the server and allow ports 80/443. The API stays on loopback; PostgreSQL is not exposed publicly.
 
-Установщик устанавливает Docker Engine и Compose plugin через [официальный APT-репозиторий Docker](https://docs.docker.com/engine/install/debian/), если Docker ещё отсутствует; существующий контейнерный runtime автоматически не удаляет. Затем создаёт уникальные секреты, скачивает готовый образ, применяет миграции и ждёт готовности API и БД. Установка выполняется в текущем клоне; не удаляйте его `.env` и `.secrets`.
-
-Первый вход: **`admin`**. Посмотреть случайный начальный пароль:
+The first account is `admin`. Read its **random initial password** on the server:
 
 ```bash
 sudo cat /opt/finora/.secrets/admin_password
 ```
 
-После входа измените пароль в «Настройки → Безопасность». Файл содержит только первоначальный пароль и после смены не обновляется. Дополнительные аккаунты создаются администратором организации. Публичной регистрации и общего встроенного пароля нет.
+Change it in **Настройки → Безопасность**. The initial-password file is not updated when you change your password. There is no public registration or shared default password.
 
-Варианты первого запуска:
-
-```bash
-# Без домена: доступ только на самом сервере или через SSH-туннель.
-sudo ./scripts/install-debian.sh
-
-# HTTPS и локальный AI на CPU/RAM; модель выбирается и скачивается в интерфейсе.
-sudo ./scripts/install-debian.sh --domain finance.example.com --local-ai
-
-# Собрать образ из исходников вместо скачивания из GHCR.
-sudo ./scripts/install-debian.sh --domain finance.example.com --build
-
-# Использовать конкретный опубликованный образ.
-sudo ./scripts/install-debian.sh --image ghcr.io/gadmin2151/finora:sha-<12-символов-коммита>
-```
-
-Последний пример содержит placeholder: подставьте реальный тег из GitHub Actions. Без домена адрес — `http://localhost:8088`; для удалённого доступа создайте на своём компьютере туннель `ssh -L 8088:127.0.0.1:8088 user@server`.
-
-Параметры `--domain`, `--port`, `--image`, `--local-ai` настраивают **новую установку**. Повторный запуск сохраняет существующие `.env`, пароли и данные, а перед обновлением создаёт резервную копию. Для изменения действующей конфигурации отредактируйте `.env` и выполните `sudo python3 scripts/deploy.py`.
-
-Если GHCR возвращает `denied`, образ может ещё собираться или пакет закрыт: см. [CI/CD и образы](#cicd-и-образы). Для первого запуска без доступа к registry используйте `--build` в новой установке либо `FINORA_IMAGE=finora:local` в существующей `.env`.
-
-## Cloudflare Tunnel
-
-На Linux можно использовать [`compose.cloudflare.yaml`](compose.cloudflare.yaml) вместо Caddy. Входящие порты 80/443 не требуются. Сначала установите сервис с `sudo ./scripts/install-debian.sh --port 8080`, затем задайте в `.env`:
-
-```dotenv
-COMPOSE_FILE=compose.yaml:compose.cloudflare.yaml
-COMPOSE_PROFILES=
-APP_PORT=8080
-BIND_ADDRESS=127.0.0.1
-APP_URL=https://finance.example.com
-COOKIE_SECURE=true
-```
-
-Сохраните токен туннеля в `.secrets/cloudflare_tunnel_token` без кавычек. Файл должен принадлежать UID/GID `65532:65532` и иметь права `0400`; каталог `.secrets` остаётся `0700`. Токен передаётся через [token-file](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/configure-tunnels/run-parameters/#token-file), а не в аргументах процесса или переменных окружения.
-
-В Cloudflare настройте публичный hostname `finance.example.com` с сервисом `http://localhost:8080`. Контейнер туннеля использует сеть Linux-хоста, поэтому этот адрес совпадает с портом Finora. Затем выполните `sudo python3 scripts/deploy.py`. Проверка соединения: `curl --fail http://127.0.0.1:20241/ready` и вход через публичный HTTPS-домен. Для фиксации версии образа можно задать `CLOUDFLARED_IMAGE=cloudflare/cloudflared@sha256:...`.
-
-Приложение и туннель автоматически запускаются Docker после перезагрузки. Резервная копия содержит данные и ключ шифрования Finora; токен Cloudflare храните отдельно. При восстановлении туннель отключён до повторной настройки, чтобы две установки не обслуживали один домен.
-
-### Ограниченные LXC-контейнеры
-
-Если Docker внутри LXC получает `permission denied` при обращении к `net.ipv4.ip_unprivileged_port_start`, предпочтительно исправить конфигурацию/обновить LXC на гипервизоре. Для выделенного Linux-контейнера Finora предусмотрен [`compose.lxc.yaml`](compose.lxc.yaml): добавьте его последним в `COMPOSE_FILE=compose.yaml:compose.cloudflare.yaml:compose.lxc.yaml`. Используется сеть хоста, PostgreSQL слушает только `127.0.0.1:5432`, API — только `127.0.0.1:APP_PORT`; наружу доступ предоставляет туннель. Порт 5432 должен быть свободен. Контейнеры сохраняют обычные ограничения прав, без privileged-режима. На одном таком хосте допускается одна установка с этой конфигурацией; проверку восстановления в отдельный проект выполняйте на другом Docker-хосте/VM с поддержкой сетевых namespace. Не отключайте защиту и не понижайте версию runtime ради запуска.
-
-## Локальный запуск из исходников
-
-Docker Engine / Docker Desktop с Compose plugin, Python **3.11+** для управляющих скриптов. Сервер внутри образа использует Python 3.12; Node.js и Python-зависимости на хост для запуска не нужны.
+### Local Docker installation
 
 ```bash
 git clone https://github.com/gadmin2151/Finora.git
@@ -116,232 +68,80 @@ python3 scripts/init.py
 python3 scripts/deploy.py
 ```
 
-Откройте [localhost:8088](http://localhost:8088). Скрипт соберёт `finora:local`, выполнит миграции и запустит приложение. Для базового первого запуска также подходит `docker compose up -d --build --wait`; для **обновлений** используйте `scripts/deploy.py`, который каждый раз явно запускает миграции и делает копию.
+Open [localhost:8088](http://localhost:8088). The scripts build the application, initialize secrets, apply migrations and wait for readiness. Docker Desktop works for local development; Android connections require a valid HTTPS endpoint.
 
-## Сервисы и конфигурация
+### Cloudflare Tunnel
 
-Основной файл — [`compose.yaml`](compose.yaml); HTTPS добавляется файлом [`compose.tls.yaml`](compose.tls.yaml). Docker Compose автоматически читает `COMPOSE_FILE` и `COMPOSE_PROFILES` из сгенерированной `.env`.
+For a server without inbound ports, install with `--port 8080`, then follow the [Cloudflare setup](README.ru.md#cloudflare-tunnel). A token file is mounted into `cloudflared`; tokens do not belong in Compose files, process arguments, screenshots or Git. Keep `APP_URL` equal to your public HTTPS origin and `COOKIE_SECURE=true`.
 
-| Сервис | Назначение | Хранение / сеть |
-|---|---|---|
-| `api` | Веб-интерфейс, API, авторизация | `receipt_data`; `127.0.0.1:8088` |
-| `worker` | OCR, MEV, очередь распознавания | Общий `receipt_data`; без внешнего порта |
-| `init` | Alembic и первый администратор | Одноразовый контейнер |
-| `db` | PostgreSQL 17 | `postgres_data`; только внутренняя сеть |
-| `ollama` | Необязательный локальный AI | Профиль `local-ai`, том `model_data` |
-| `caddy` | HTTPS и reverse proxy | HTTPS overlay; 80/443, `caddy_data` и `caddy_config` |
+The [LXC overlay](README.ru.md#ограниченные-lxc-контейнеры) is available for restricted Linux containers. It uses host networking with loopback-only API and PostgreSQL listeners; do not use it as a general Docker default.
 
-Веб-сервер и worker работают от UID **10001**, без root. Инициализация читает файл первого пароля от root. У контейнеров заданы лимиты памяти, ротация логов, restart policy; у API и PostgreSQL — healthcheck.
+## Android: capture, review, confirm
 
-[`.env.example`](.env.example) — справочник параметров, без действующих секретов. Настоящий файл создаёт `scripts/init.py` с правами 0600.
+1. Install the signed APK from your deployment or the [Android download page](android/README.md).
+2. Enter your server's **HTTPS** address, username and password.
+3. Choose an organization, scan a QR or photograph a receipt.
+4. Review the returned draft, correct anything necessary, then confirm.
 
-| Параметр | Назначение |
-|---|---|
-| `FINORA_IMAGE` | `finora:local` для локальной сборки либо тег/digest GHCR; одинаковый для API, worker и init |
-| `COMPOSE_PROJECT_NAME` | Пространство имён контейнеров и томов; не меняйте у действующей установки |
-| `COMPOSE_FILE` | `compose.yaml` или `compose.yaml:compose.tls.yaml` |
-| `COMPOSE_PROFILES` | Пусто или `local-ai` |
-| `APP_PORT`, `BIND_ADDRESS` | HTTP-порт хоста и привязка; по умолчанию 8088 и 127.0.0.1 |
-| `APP_URL` | Точный адрес браузера для проверки Origin, например `https://finance.example.com` |
-| `DOMAIN`, `COOKIE_SECURE` | Домен Caddy; для HTTPS `COOKIE_SECURE=true` |
-| `POSTGRES_PASSWORD` | Случайный пароль БД; изменение `.env` само по себе не меняет пароль в существующей БД |
-| `SECRET_KEY` | Шифрование сохранённых API-ключей; потеря или замена нарушает их расшифровку |
-| `OLLAMA_URL` | Адрес Ollama, по умолчанию `http://ollama:11434` |
-| `AI_TIMEOUT`, `AI_CPU_THREADS` | Таймаут и CPU-потоки AI; 480 секунд и 4 потока по умолчанию |
-| `OLLAMA_MEMORY_LIMIT`, `OLLAMA_CPUS` | Лимиты Ollama; по умолчанию 6g и 4 CPU |
+Receipt websites are opened **from the phone's network**. The phone sends page text and captures to Finora for processing; this helps when a fiscal website cannot be reached from your server's country. The server retains the OpenAI key. The application never bypasses certificate errors or website challenges.
 
-`APP_URL` должен совпадать с адресом открытого приложения, включая схему и порт. Иначе сервер отклоняет запись. Файлы `.env`, `.secrets`, резервные копии и локальные данные исключены из Git и контекста Docker build.
+Android 8+ is supported. Web administration provides the complete finance-management interface; native Android focuses on receipt capture/review, history, overview, profile and AI chat. Unsupported management screens open the web interface.
 
-## Что работает
+## AI with evidence
 
-- Счета в MDL, EUR, USD и RON, начальные остатки, архивирование, переименование.
-- Доходы, расходы, переводы, частичные возвраты покупок, редактирование обычных операций, отмена с журналом. Разделение расхода по категориям.
-- Обзор месяца, график, сравнение с предыдущим периодом, фильтры и поиск по всей истории, бюджеты категорий.
-- Долги в обе стороны: новый заём с движением денег или ранее возникший долг без повторного движения; частичные возвраты; сроки и закрытые долги.
-- Регулярные и разовые обязательства: еженедельно, ежемесячно, ежеквартально, ежегодно. План и фактическая оплата разделены; пропуск и остановка шаблона.
-- Чат внутри приложения: фото одного чека (до четырёх частей), камера телефона, QR на фото или HTTPS-ссылка электронного чека; история сообщений и карточки товаров.
-- Сохранение оригинала фото, локальный OCR (румынский, русский, английский), распознавание магазина, даты, товаров, количества и цен, категории строк. Если простой формат не прочитан, подключается выбранная AI-модель. Проверка сумм, защита от повторного файла/QR, проверка похожих расходов.
-- Автоматическое добавление полностью проверенных чеков или ручное подтверждение; исправление черновика и привязка к уже внесённой покупке.
-- Правила категорий по словам в товаре/магазине; они имеют приоритет над AI. Неопределённые товары требуют проверки.
-- Анализ превышений бюджета и изменений расходов, сценарии сокращения трат, сравнение наблюдавшихся цен одинаковых товаров. AI объясняет факты и предлагает бытовые замены с обозначением предположений.
-- Выбор локального AI / OpenAI / работы без AI, отдельная модель для фотографий, загрузка моделей и статус задач, лимит запросов, учёт токенов.
-- Смена пароля, управление сеансами, CSRF и Origin-проверки, Argon2, ограничение попыток входа, журнал, CSV и JSON, зашифрованные резервные копии.
+![Period and category reports with fictional data](docs/assets/reports.png)
 
-Сервис **учитывает** деньги; банковские переводы и платежи он не выполняет. Доходы минус расходы — денежный результат периода, а не бухгалтерская прибыль. Выдача/получение/возврат долга и переводы между своими счетами не входят в доходы/расходы. Возврат покупки уменьшает расходы в месяце возврата.
+The assistant selects up to three typed reports, each within a bounded period. The backend validates filters and organization access, calculates the numbers, and returns the exact report alongside the explanation. It cannot run SQL, post expenses, delete records, move money or browse arbitrary sites through chat.
 
-## Организации и права доступа
+Preset **Summary / Categories / My prices** reports also work with AI disabled. With AI enabled, a free question normally uses one planning request and one explanation request; preset reports use at most one explanation request. A provider failure after calculation still returns the reports.
 
-В боковом меню разделы собраны в пять раскрывающихся групп: «Деньги», «Чеки и покупки», «Планирование», «Аналитика» и «Управление». Текущий раздел выделен; при переходе по ссылке его группа открывается автоматически. «Товары и цены» — фильтрация покупок и сравнение цен. Недоступные роли пункты не отображаются.
+OpenAI is optional. Configure it in **Настройки → AI**, select models and set the monthly request cap. Data needed for recognition or an answer is sent to the selected provider. Keys are encrypted at rest using your server's `SECRET_KEY`; financial records are not end-to-end encrypted. Read [data handling and limitations](docs/ASSISTANT.md).
 
-Нажмите карточку организации над меню, чтобы открыть список организаций с вашими ролями; при количестве больше пяти доступен поиск. Ссылка «Организации и участники» ведёт к управлению составом. На телефоне меню открывается кнопкой в верхней панели; его можно закрыть крестиком, нажатием вне панели или Escape. Фокус клавиатуры остаётся внутри открытого меню и возвращается к кнопке после закрытия.
+## Architecture
 
-После входа выберите организацию. Переключатель в меню меняет общую историю, счета, категории, доходы, покупки и настройки AI. Один логин может состоять в нескольких организациях с разными ролями. При переключении локальный кэш предыдущей организации очищается, незавершённые ответы старого контекста отбрасываются. При отправке чека организация явно указана в окне загрузки; задача распознавания сохраняет её идентификатор.
-
-В «Управление → Организации и люди» администратор создаёт организацию, меняет её название, добавляет существующих участников по логину или создаёт новые аккаунты с паролем от 12 символов. Участнику можно изменить роль или закрыть доступ к одной организации. Последнего администратора удалить или понизить нельзя. Самостоятельной регистрации нет.
-
-| Возможность | Администратор | Пользователь |
-|---|---|---|
-| Просмотр общей статистики, покупок и чеков | Да | Да |
-| Добавление фото/ссылки чека, комментарии | Да | Да |
-| Подтверждение распознанных данных без изменения цен | Любой чек организации | Только свой чек |
-| Подтверждение и исправление спорных чеков | Да | Нет |
-| Доходы, ручные операции, планы, счета и категории | Управление | Просмотр статистики |
-| Удаление чека и товара, настройки AI, экспорт, участники | Да | Нет |
-| Свой пароль и собственные сеансы | Да | Да |
-
-Проверенный чек пользователя может автоматически попасть в учёт по настройкам организации. Спорный результат подтверждает администратор. В карточке чека доступны комментарии с автором и временем. Удаление всего чека отменяет связанный расход; удаление товара пересчитывает сумму, проводку и категории. Оригинальная фотография и аудит сохраняются. Последний товар требует удаления чека целиком; при связанных возвратах сначала отмените возвраты. Во время распознавания удаление заблокировано.
-
-## QR-ссылки и подтверждение на телефоне
-
-В Android 1.2 страницу из QR открывает **сам телефон** через своё интернет-соединение. Он передаёт серверу видимый текст и полный снимок страницы, при необходимости разбитый на четыре части. Сервер распознаёт переданные данные общим ключом OpenAI организации и возвращает черновик. Для такого источника сервер никогда не открывает ссылку, включая повторную обработку. Фото из мобильного приложения также отправляются с `resolve_qr=false`. Это позволяет размещать сервер за пределами Молдовы, где сайт чека может быть недоступен.
-
-На телефоне можно сверить и исправить магазин, дату, валюту, счёт, курс, названия товаров, количество, единицы, цены, суммы строк, категории и итог. Все мобильные чеки имеют `review_required=true`; финансовый расход создаётся только после подтверждения. Сумма строк должна совпадать с итогом, скидки сохраняются в суммах строк. Автор может исправить свой черновик; администратор — любой черновик организации. Повторное подтверждение не создаёт дубль.
-
-`POST /api/receipts/upload` принимает `files`, `review_required`, `resolve_qr`; для страницы с телефона — `page_url` и `page_text` (до 50 000 символов). `POST /api/receipts/{id}/accept` подтверждает неизменённое распознавание с `version` и `account_id`. `POST /api/receipts/{id}/review` принимает исправленную форму; не позволяет участнику привязывать произвольный существующий расход. Миграция `f30a8210de91` сохраняет существующие чеки и пользователей. Обновите сервер через `scripts/deploy.py` перед установкой Android 1.2. Старые клиенты и административный `/confirm` совместимы.
-
-Для QR-ссылок, добавленных **в веб-интерфейсе**, сохраняется серверная загрузка: MEV/SIFT нормализуются, другие публичные HTTPS-страницы открываются в изолированном Chromium через DNS-проверяемый HTTPS-туннель, без отключения проверки TLS. Локальные адреса запрещены; время, число запросов и объём страницы ограничены. Если сайт недоступен из страны сервера, используйте Android или фотографии. Страницы с обязательным входом, CAPTCHA или PDF могут потребовать бумажного фото.
-
-## Доходы и аналитика товаров
-
-Вкладка «Доходы» разделяет полученные регулярные/разовые поступления и ожидаемые суммы. Источнику задаются счёт, сумма, дата и периодичность. План не меняет остаток: нажмите «Получено» и укажите фактическую сумму/дату либо привяжите ранее внесённый доход. Повторное подтверждение не создаёт дубль. Источник можно редактировать, приостанавливать и возобновлять, отдельное поступление — пропускать. После первого подтверждения изменение периодичности требует нового источника, чтобы сохранить историю расписания. Счета в иностранной валюте требуют курс к MDL.
-
-В «Чеки и покупки → Товары и цены» фильтруйте товары по названию (без учёта регистра и диакритики), категории, магазину, периоду, счёту, валюте и единице. Итоги охватывают всю отфильтрованную выборку, список разбит на страницы. Сравнение цен использует одинаковое нормализованное название, валюту и единицу в двух и более разных чеках. Эффективная цена учитывает скидку строки. Минимум относится к истории покупок, а не к текущим предложениям магазина. Возвраты входят в общий финансовый отчёт, но не распределены по отдельным товарам.
-
-## Локальный AI на CPU/RAM
-
-```sh
-docker compose --profile local-ai up -d ollama
+```mermaid
+flowchart LR
+  Web[React web app] -->|HTTPS| API[FastAPI]
+  Phone[Android / Compose] -->|HTTPS| API
+  Phone -->|Receipt URL| Receipt[Receipt website]
+  API --> DB[(PostgreSQL)]
+  API --> Files[Private receipt storage]
+  Worker[Durable job worker] --> DB
+  Worker --> Files
+  Worker --> AI[Optional OpenAI or Ollama]
 ```
 
-В «Настройки → AI и распознавание» скачайте модель и сохраните провайдер «Локальный AI». По умолчанию предложены [`qwen3:4b-instruct`](https://ollama.com/library/qwen3:4b-instruct) для анализа и `gemma3:4b` для фото. Модели сначала занимают место на диске, затем загружаются в RAM. GPU не требуется: запросы явно используют `num_gpu: 0`; одновременно загружена одна модель. Модель и её лицензия доступны в [библиотеке Ollama](https://ollama.com/library).
+FastAPI · SQLAlchemy · Alembic · PostgreSQL 17 · React / TypeScript · Kotlin / Jetpack Compose · CameraX / ML Kit · Docker Compose.
 
-Для базового сервиса достаточно примерно 2 ГБ RAM. Для моделей 4B ориентир — сервер с **12–16 ГБ общей памяти**; модели потребляют несколько гигабайт дополнительно к ОС, PostgreSQL и обработке изображений. CPU может распознавать чек несколько минут. Компактные 0.6B/1.5B подходят для проверки или простых текстов, качество ниже; они не распознают изображения.
+| Component | Responsibility |
+|---|---|
+| `backend/app/finance.py` | Ledger, amounts, account balances and budgets |
+| `backend/app/receipts.py` | Extraction, validation, editable review and confirmation |
+| `backend/app/analytics.py` | Deterministic, organization-scoped reports |
+| `backend/app/assistant.py` | Read-only query planning and grounded explanations |
+| `backend/app/worker.py` | Durable jobs, recovery and active-attempt fencing |
+| `web/` / `android/` | Responsive web interface and native Android client |
+| `scripts/` | Installation, upgrade, encrypted backup and isolated restore |
 
-Настройки в `.env`: `OLLAMA_MEMORY_LIMIT=6g`, `OLLAMA_CPUS=4`, `AI_CPU_THREADS=4`, `AI_TIMEOUT=480` (максимум 600 секунд). Для длинных чеков можно увеличить память и таймаут; не выделяйте контейнерам больше памяти, чем доступно Docker. После изменения окружения пересоздайте `api`, `worker` и при необходимости `ollama`. Число потоков модели желательно согласовать с выделенными CPU, чтобы не замедлять вычисления конкурирующими потоками.
+## Updates and recovery
 
-Можно использовать существующий Ollama: задайте `OLLAMA_URL` в окружении сервера. На Docker Desktop это обычно `http://host.docker.internal:11434`, если Ollama разрешает такое подключение. Из веб-интерфейса произвольный адрес сервера AI не задаётся. Порт Ollama в нашей конфигурации наружу не опубликован.
-
-Локальная обработка не отправляет фотографии или историю в OpenAI. Интернет требуется при скачивании моделей и получении чеков MEV. Автоматического переключения с локального провайдера на облачный нет.
-
-## OpenAI
-
-Выберите OpenAI, укажите доступные вашему API-проекту модели и API-ключ, сохраните и нажмите «Проверить сохранённое подключение». Для фото требуется модель с поддержкой изображений. Для недорогого распознавания и анализа подходит [`gpt-5.4-mini`](https://developers.openai.com/api/docs/models/gpt-5.4-mini); более экономичный вариант для текста и категорий — [`gpt-5.4-nano`](https://developers.openai.com/api/docs/models/gpt-5.4-nano). Модели задаются отдельно для текста и фотографий и меняются без изменения кода. Используется [Responses API](https://developers.openai.com/api/docs/guides/structured-outputs) с проверяемой JSON-схемой для чеков и `store: false`.
-
-Ключ шифруется на сервере с использованием `SECRET_KEY`. Не теряйте этот секрет: без него сохранённый ключ не расшифровать. API-ключ не возвращается в браузер. Подписка ChatGPT и оплачиваемый API — отдельные продукты. При облачном распознавании фото передаётся OpenAI, если локальный OCR не справился; для классификации неизвестных товаров передаются их названия и магазин; при анализе передаются только выбранный месяц, агрегаты категорий и ограниченный набор товарных покупок. Имена должников, пароли и названия счетов в запрос анализа не включаются. Текст вопроса пользователя также передаётся выбранному провайдеру. `store:false` не является обещанием нулевого хранения на стороне провайдера: действуют его [условия обработки данных](https://developers.openai.com/api/docs/guides/your-data).
-
-Лимит в интерфейсе ограничивает **число запросов**, включая неудачные попытки. Это не денежный лимит OpenAI. Отдельные ограничения расходов можно настроить в собственном API-проекте.
-
-## Молдавские чеки
-
-Поддерживаются HTTPS-ссылки конкретного документа `mev.sfs.md/.../receipt-verifier/<идентификатор>`. QR декодируется локально из фотографии. Сначала пробуется HTTP, затем обычный Chromium; CAPTCHA и ограничения доступа не обходятся. Сервер браузера может обращаться только к разрешённому домену MEV.
-
-MEV не предоставляет подтверждённого стабильного публичного API для этого сценария. Неизвестный QR, изменившаяся разметка, недоступная страница или неполный чек переводят обработку к фото/проверке. На этапе разработки успешно разобран один публичный чек из исследовательского плана; это не гарантия поддержки всех магазинов и вариантов печати.
-
-Перед сохранением сервер проверяет дату, сумму строк, владение счётом и категориями, валюту, уникальность источника. Если расход с той же датой/суммой уже есть, автоматическая запись отключается: пользователь может выбрать существующую покупку. Совпадение только суммы и даты не приводит к автоматическому удалению другой покупки.
-
-Данные AI не являются достоверными только потому, что суммы сошлись. В настройках можно отключить автоматическое добавление и подтверждать каждый чек. Для плохо читаемой целой штуки OCR может предложить количество по точному отношению суммы строки к цене; такая подсказка всегда помечается и запрещает автоматическую запись. Весовые товары сохраняют количество и единицу кг. Информационная строка о скидке внизу чека не вычитается повторно. При действительно общей нераспределённой скидке итог каждой строки нужно привести к реально оплаченной сумме. Возврат ранее купленного товара оформляется через исходную операцию; фото отрицательных чеков остаётся на ручной проверке.
-
-Если обычное чтение не даёт согласованного результата, OCR пробует второй способ разметки румынского текста. Для сложного фото при подключённом AI выделяется колонка текста длинного чека и подготавливаются части для vision-модели; сохранённое фото остаётся доступным полностью. Неполные результаты OCR сохраняются в черновике даже при недоступной AI-модели.
-
-Цены сравниваются только среди **собственных подтверждённых чеков**, при совпадении нормализованного наименования и единицы. Это прошлые наблюдения, не актуальный каталог магазинов. AI не получает права создавать/удалять операции из произвольного текстового ответа.
-
-
-## Обновление
+Back up **both** the database/receipt files and the recovery identity. Keep `.env`, `.secrets` and named volumes; a new `SECRET_KEY` cannot decrypt your existing AI keys.
 
 ```bash
-cd /opt/finora
-sudo git pull --ff-only
+git pull --ff-only
 sudo python3 scripts/deploy.py
 ```
 
-Порядок: скачать/собрать образ → проверить БД → создать зашифрованную копию существующей установки → остановить API и worker → явно применить миграции → запустить сервисы → проверить готовность. При недоступности registry действующее приложение продолжает работать. Ошибка копирования блокирует миграции; ошибка миграции не запускает новый API. Одновременные обновления и резервное копирование защищены файловой блокировкой.
+The deploy script creates an encrypted backup before an update, runs migrations and verifies readiness. It does not automatically select a different image tag. For controlled deployments set `FINORA_IMAGE` to a reviewed immutable GHCR digest in `.env`; use the same image for API, worker and init.
 
-`latest` следует за успешными сборками `main`. Для контролируемых обновлений укажите в `.env` неизменяемый digest `ghcr.io/gadmin2151/finora@sha256:…` или конкретный тег `sha-…`. Скрипт не выполняет `git pull` сам и не меняет выбранный тег. Обновление основной версии PostgreSQL требует отдельной процедуры; скрипт не выполняет её автоматически.
+See [backup and isolated restore instructions](README.ru.md#резервное-копирование-и-восстановление). Rehearse restoration on a separate installation before relying on a backup. Backups contain sensitive data; publish neither archives nor recovery keys.
 
-При проблеме после миграции используйте копию и соответствующую версию образа в **отдельном** экземпляре. Автоматического отката базы нет: запуск старого образа поверх новой схемы не считается безопасным восстановлением. Не используйте `docker compose down -v` на действующем сервисе.
+## Builds and contribution
 
-## Резервное копирование и восстановление
+Server CI runs PostgreSQL integration tests, migration checks, lint/format checks, installer tests, dependency audits and the web build. Both **amd64 and arm64** images are booted and tested through authenticated API calls before a multi-platform tag is published. Android CI checks formatting, unit tests, release lint and an R8 release build. Signing requires the repository's configured signing secrets; an unsigned CI APK is not an installable release.
 
-```bash
-cd /opt/finora
-sudo python3 scripts/backup.py create
-```
+[Developer guide](CONTRIBUTING.md) · [configuration reference](.env.example) · [security policy](SECURITY.md) · [Android verification](android/VERIFICATION.md)
 
-Создаётся согласованный архив `pg_dump`, фотографий, `.env` и начального пароля. На время снимка API и worker останавливаются; после снимка запускаются прежние контейнеры. Архив шифруется **age**. Локальные модели не включаются — их можно скачать заново.
+## License
 
-Ключ `.secrets/backup_identity.txt` создаётся один раз и **не входит** в архив. Сохраните его отдельную защищённую копию, а архивы переносите на другой носитель/сервер. Без ключа восстановление невозможно. Самостоятельная установка не является сквозным шифрованием: защитите диск и доступ к хосту.
-
-Восстановление разрешено только в новую пустую папку, с отдельным именем Compose-проекта, томами и loopback-портом:
-
-```bash
-sudo python3 scripts/backup.py restore backups/finora-YYYYMMDD-HHMMSS.tar.gz.age \
-  --identity .secrets/backup_identity.txt \
-  --target /opt/finora-restored --port 8089
-```
-
-Подставьте имя существующего архива. У registry-установки в архив записывается digest образа для восстановления. Для локальной сборки сохраните соответствующий Git commit и образ `finora:local` отдельно. Восстановление требует доступного образа с age; перенесённая на чистый хост копия проекта должна сначала скачать/собрать свой настроенный образ.
-
-HTTPS и локальный AI в восстановленном экземпляре выключены, чтобы не занимать порты и ресурсы основного. Проверьте вход, остатки, операции и фотографии на новом порту; затем настройте домен и переводите пользователей. Оригинальная установка не перезаписывается.
-
-## CI/CD и образы
-
-[`CI and container images`](.github/workflows/ci.yml) выполняется для `main`, pull request, тегов `v*` и по кнопке **Run workflow**.
-
-1. Python lint/format, backend-тесты на отдельной PostgreSQL, Alembic upgrade/check, тесты скриптов на Python 3.11/3.13, ShellCheck, проверка Compose.
-2. ESLint, TypeScript, production build React.
-3. После успешных проверок — отдельные нативные сборки **linux/amd64** и **linux/arm64**.
-4. Каждая архитектура запускает опубликованный образ, создаёт чистую БД и проверяет веб, вход, доступ к счетам организации и выход.
-5. Только после обоих smoke-тестов публикуется общий multi-platform manifest в **`ghcr.io/gadmin2151/finora`**.
-
-| Тег | Когда появляется |
-|---|---|
-| `latest` | Успешный push в `main` |
-| `sha-<12 символов>` | Конкретный проверенный commit |
-| `1.2.3`, `1.2` | Push соответствующего Git-тега `v1.2.3` |
-
-В pull request образы не публикуются. Actions закреплены по commit SHA; права публикации ограничены `packages: write`. Используется автоматически выдаваемый `GITHUB_TOKEN` — отдельный пароль registry в репозитории не нужен. Сборки включают SBOM и provenance. Для установки предпочтителен digest или полный patch-тег; короткие version-теги и `latest` перемещаются.
-
-**Первое включение GHCR:** у нового пакета GitHub по умолчанию private visibility. Для анонимного скачивания владелец может выбрать Public в настройках пакета `finora`. Если пакет остаётся приватным, выполните на сервере `sudo docker login ghcr.io -u YOUR_GITHUB_LOGIN` с PAT, имеющим `read:packages`; пароль вводится интерактивно. Подробности — в [документации GitHub Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry).
-
-CI/CD доставляет проверенные образы в registry. Обновление конкретного Debian-сервера запускается оператором через `scripts/deploy.py`: адрес сервера и SSH-секреты в workflow не зашиты.
-
-## Разработка и проверки
-
-Backend: Python 3.12; frontend: Node.js 24 и pnpm 11.25.0. Версии Python-пакетов фиксированы в `backend/requirements.txt`, JS — в `web/pnpm-lock.yaml`.
-
-```bash
-python3.12 -m venv .venv
-.venv/bin/pip install -r backend/requirements.txt
-.venv/bin/ruff check backend scripts
-.venv/bin/ruff format --check backend scripts
-.venv/bin/pytest -q backend/tests scripts/tests
-shellcheck scripts/install-debian.sh
-
-cd web
-corepack enable
-corepack prepare pnpm@11.25.0 --activate
-pnpm install --frozen-lockfile
-pnpm lint
-pnpm typecheck
-pnpm build
-```
-
-По умолчанию backend-тесты используют временную SQLite. PostgreSQL-проверки, включая блокировки, требуют `TEST_DATABASE_URL` с отдельной БД, имя которой оканчивается **`_test`**. Никогда не передавайте адрес основной БД. Перед очисткой проверяются реальное подключение и временный каталог файлов.
-
-API и веб находятся в одном Docker-образе; worker использует тот же код. Доменные расчёты — `backend/app/finance.py`, `ledger.py`, `income.py`; чеки — `receipts.py`, `worker.py`; права — `security.py`, `organizations.py`; схема — `models.py` и Alembic. Фронтенд — `web/src`, навигация — `Sidebar.tsx` и `navigation.ts`.
-
-Для мобильного клиента организация передаётся заголовком `X-Organization-ID`; он обязателен при добавлении чеков. JSON-экспорт — `finora-export-v2`. Основные маршруты: `/api/auth/*`, `/api/organizations`, `/api/accounts`, `/api/transactions`, `/api/income`, `/api/purchases`, `/api/receipts/*`. Логи не содержат тел финансовых операций, паролей или API-ключей.
-
-История технических проверок: [VERIFICATION_RU.md](VERIFICATION_RU.md). Исходное исследование и план развития: [FINANCE_PLAN_RU.md](FINANCE_PLAN_RU.md).
-
-## Ограничения
-
-Android-клиент доступен; iOS-клиента пока нет. Нет банковской синхронизации, полноценного офлайн-режима, 2FA, автоматических курсов валют или текущих каталогов цен магазинов. Число организаций и администраторов не ограничено моделью «один владелец»; роли действуют отдельно в каждой организации.
-
-AI-рекомендации вероятностные; учётные суммы вычисляет сервер. Поддержка одного образца MEV не гарантирует совместимость со всеми форматами чеков. Неполные или противоречивые результаты требуют ручной проверки. Без сети доступны уже загруженные данные, но сохранение требует соединения.
-
-Фото — до 15 МБ, до четырёх частей и до 200 строк на чек. Лимиты очереди и таймауты ограничивают нагрузку. Локальное vision-распознавание длинного чека может быть медленным; OCR обычно легче. TLS-сертификат выдаётся только при корректном публичном DNS.
-
-## Лицензия
-
-[MIT](LICENSE), © 2026 Gheorghe Plesca. У моделей AI и внешних компонентов есть собственные лицензии.
+[MIT](LICENSE). Screenshots in this README use fictional demonstration data. Finora is independent of fiscal providers and the products discussed in the market research.

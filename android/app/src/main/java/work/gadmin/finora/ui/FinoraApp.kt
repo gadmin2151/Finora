@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -101,122 +102,132 @@ fun FinoraApp(vm: FinoraViewModel) {
             )
         state.editingReceipt && state.detail != null -> ReceiptEditor(state, vm)
         else -> {
+            val composingChat =
+                state.page == Page.CHAT &&
+                    state.detailId == null &&
+                    WindowInsets.ime.getBottom(LocalDensity.current) > 0
             BackHandler(state.detailId != null) { if (!state.busy) vm.closeDetail() }
             Scaffold(
                 containerColor = Paper,
                 snackbarHost = { SnackbarHost(snackbars) },
                 topBar = {
-                    Column(Modifier.statusBarsPadding()) {
-                        Row(
-                            Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            if (state.detailId != null)
-                                IconButton(vm::closeDetail, enabled = !state.busy) {
-                                    LineIcon(Glyph.BACK, "Назад к чекам")
-                                }
-                            Surface(
-                                onClick = { vm.chooseOrganization() },
-                                enabled = !state.busy,
-                                color = Color.Transparent,
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(16.dp),
+                    if (composingChat) Spacer(Modifier.statusBarsPadding())
+                    else
+                        Column(Modifier.statusBarsPadding()) {
+                            Row(
+                                Modifier.fillMaxWidth()
+                                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Row(
-                                    Modifier.padding(vertical = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                if (state.detailId != null)
+                                    IconButton(vm::closeDetail, enabled = !state.busy) {
+                                        LineIcon(Glyph.BACK, "Назад к чекам")
+                                    }
+                                Surface(
+                                    onClick = { vm.chooseOrganization() },
+                                    enabled = !state.busy,
+                                    color = Color.Transparent,
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(16.dp),
                                 ) {
-                                    Surface(color = SoftGreen, shape = RoundedCornerShape(13.dp)) {
-                                        Box(Modifier.padding(10.dp)) {
-                                            LineIcon(Glyph.HOME, size = 20.dp)
+                                    Row(
+                                        Modifier.padding(vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    ) {
+                                        Surface(
+                                            color = SoftGreen,
+                                            shape = RoundedCornerShape(13.dp),
+                                        ) {
+                                            Box(Modifier.padding(10.dp)) {
+                                                LineIcon(Glyph.HOME, size = 20.dp)
+                                            }
+                                        }
+                                        Column(Modifier.weight(1f)) {
+                                            Text(
+                                                "ОРГАНИЗАЦИЯ",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = Muted,
+                                            )
+                                            Text(
+                                                requireNotNull(state.organization).name,
+                                                fontWeight = FontWeight.SemiBold,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
+                                        }
+                                        LineIcon(Glyph.DOWN, "Выбрать организацию", size = 18.dp)
+                                    }
+                                }
+                                Spacer(Modifier.width(18.dp))
+                                Surface(
+                                    onClick = { vm.navigate(Page.PROFILE) },
+                                    color = Forest,
+                                    shape = CircleShape,
+                                    enabled = !state.busy,
+                                ) {
+                                    ProfileAvatar(state.user, vm)
+                                }
+                            }
+                            Row(
+                                Modifier.fillMaxWidth().padding(start = 24.dp, end = 14.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                val updated = state.lastRefreshedAt
+                                Text(
+                                    if (updated == null) "Потяните вниз, чтобы обновить"
+                                    else
+                                        "Обновлено в " +
+                                            Instant.ofEpochMilli(updated)
+                                                .atZone(ZoneId.systemDefault())
+                                                .format(DateTimeFormatter.ofPattern("HH:mm:ss")),
+                                    Modifier.weight(1f).semantics {
+                                        contentDescription =
+                                            if (updated == null) "Обновление жестом сверху вниз"
+                                            else "Данные обновлены"
+                                    },
+                                    color = if (updated == null) Muted else Green,
+                                    style = MaterialTheme.typography.labelSmall,
+                                )
+                                IconButton(
+                                    vm::refreshCurrent,
+                                    enabled =
+                                        !state.busy && !state.refreshing && !state.workspaceLoading,
+                                    modifier = Modifier.size(48.dp),
+                                ) {
+                                    LineIcon(Glyph.REFRESH, "Обновить данные", size = 18.dp)
+                                }
+                            }
+                            state.error?.let { message ->
+                                Surface(
+                                    color = MaterialTheme.colorScheme.errorContainer,
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Row(
+                                        Modifier.padding(start = 20.dp, top = 6.dp, bottom = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Text(
+                                            message,
+                                            Modifier.weight(1f),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onErrorContainer,
+                                        )
+                                        IconButton(vm::dismissError) {
+                                            LineIcon(
+                                                Glyph.CLOSE,
+                                                "Скрыть сообщение",
+                                                tint = MaterialTheme.colorScheme.onErrorContainer,
+                                                size = 18.dp,
+                                            )
                                         }
                                     }
-                                    Column(Modifier.weight(1f)) {
-                                        Text(
-                                            "ОРГАНИЗАЦИЯ",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = Muted,
-                                        )
-                                        Text(
-                                            requireNotNull(state.organization).name,
-                                            fontWeight = FontWeight.SemiBold,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                        )
-                                    }
-                                    LineIcon(Glyph.DOWN, "Выбрать организацию", size = 18.dp)
-                                }
-                            }
-                            Spacer(Modifier.width(18.dp))
-                            Surface(
-                                onClick = { vm.navigate(Page.PROFILE) },
-                                color = Forest,
-                                shape = CircleShape,
-                                enabled = !state.busy,
-                            ) {
-                                ProfileAvatar(state.user, vm)
-                            }
-                        }
-                        Row(
-                            Modifier.fillMaxWidth().padding(start = 24.dp, end = 14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            val updated = state.lastRefreshedAt
-                            Text(
-                                if (updated == null) "Потяните вниз, чтобы обновить"
-                                else
-                                    "Обновлено в " +
-                                        Instant.ofEpochMilli(updated)
-                                            .atZone(ZoneId.systemDefault())
-                                            .format(DateTimeFormatter.ofPattern("HH:mm:ss")),
-                                Modifier.weight(1f).semantics {
-                                    contentDescription =
-                                        if (updated == null) "Обновление жестом сверху вниз"
-                                        else "Данные обновлены"
-                                },
-                                color = if (updated == null) Muted else Green,
-                                style = MaterialTheme.typography.labelSmall,
-                            )
-                            IconButton(
-                                vm::refreshCurrent,
-                                enabled =
-                                    !state.busy && !state.refreshing && !state.workspaceLoading,
-                                modifier = Modifier.size(48.dp),
-                            ) {
-                                LineIcon(Glyph.REFRESH, "Обновить данные", size = 18.dp)
-                            }
-                        }
-                        state.error?.let { message ->
-                            Surface(
-                                color = MaterialTheme.colorScheme.errorContainer,
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Row(
-                                    Modifier.padding(start = 20.dp, top = 6.dp, bottom = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Text(
-                                        message,
-                                        Modifier.weight(1f),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onErrorContainer,
-                                    )
-                                    IconButton(vm::dismissError) {
-                                        LineIcon(
-                                            Glyph.CLOSE,
-                                            "Скрыть сообщение",
-                                            tint = MaterialTheme.colorScheme.onErrorContainer,
-                                            size = 18.dp,
-                                        )
-                                    }
                                 }
                             }
                         }
-                    }
                 },
                 bottomBar = {
-                    if (state.detailId == null)
+                    if (state.detailId == null && !composingChat)
                         Surface(
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                             color = SurfaceColor,
@@ -231,6 +242,7 @@ fun FinoraApp(vm: FinoraViewModel) {
                                         Triple(Page.CAPTURE, "Добавить", Glyph.SCAN),
                                         Triple(Page.RECEIPTS, "Чеки", Glyph.RECEIPT),
                                         Triple(Page.OVERVIEW, "Обзор", Glyph.CHART),
+                                        Triple(Page.CHAT, "Помощник", Glyph.SPARK),
                                         Triple(Page.PROFILE, "Профиль", Glyph.USER),
                                     )
                                     .forEach { (page, label, glyph) ->
@@ -282,6 +294,7 @@ fun FinoraApp(vm: FinoraViewModel) {
                                     Page.CAPTURE -> CaptureScreen(state, vm)
                                     Page.RECEIPTS -> ReceiptsScreen(state, vm)
                                     Page.OVERVIEW -> OverviewScreen(state, vm)
+                                    Page.CHAT -> ChatScreen(state, vm)
                                     Page.PROFILE -> ProfileScreen(state, vm)
                                 }
                             }

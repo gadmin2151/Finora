@@ -17,6 +17,7 @@ enum class Page {
     CAPTURE,
     RECEIPTS,
     OVERVIEW,
+    CHAT,
     PROFILE,
 }
 
@@ -57,6 +58,12 @@ data class AppState(
     val insights: List<Insight> = emptyList(),
     val dashboardLoading: Boolean = false,
     val month: String = YearMonth.now().toString(),
+    val chat: List<ChatMessage> = emptyList(),
+    val chatJobs: List<ChatJob> = emptyList(),
+    val chatDraft: String = "",
+    val chatLoading: Boolean = false,
+    val chatHasOlder: Boolean = true,
+    val chatSyncError: String? = null,
 )
 
 class FinoraViewModel(application: Application) : AndroidViewModel(application) {
@@ -72,6 +79,8 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
     private var receiptsJob: Job? = null
     private var detailJob: Job? = null
     private var dashboardJob: Job? = null
+    private var chatJob: Job? = null
+    private var chatRequest: Pair<String, String>? = null
     private var avatarCache: Pair<String, ByteArray>? = null
     private val refresh =
         RefreshController(
@@ -185,6 +194,8 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
         receiptsJob?.cancel()
         detailJob?.cancel()
         dashboardJob?.cancel()
+        chatJob?.cancel()
+        chatRequest = null
     }
 
     fun selectOrganization(org: Organization) {
@@ -231,6 +242,7 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
         when (page) {
             Page.RECEIPTS -> loadReceipts()
             Page.OVERVIEW -> loadDashboard()
+            Page.CHAT -> loadChat()
             else -> Unit
         }
     }
@@ -563,16 +575,18 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun month(delta: Long) {
+        val next = YearMonth.parse(mutable.value.month).plusMonths(delta)
+        if (next.year !in 1990..2100 || mutable.value.busy) return
         refresh.cancel()
         mutable.update {
             it.copy(
-                month = YearMonth.parse(it.month).plusMonths(delta).toString(),
+                month = next.toString(),
                 dashboard = null,
                 insights = emptyList(),
                 lastRefreshedAt = null,
             )
         }
-        loadDashboard()
+        if (mutable.value.page == Page.OVERVIEW) loadDashboard()
     }
 
     fun loadDashboard() {
@@ -602,6 +616,8 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
                 current.receiptPageUrl != null
         )
             return
+        if (current.page == Page.CHAT && current.detailId == null && !current.chatLoading)
+            loadChat(background = true)
         if (current.detail?.isProcessing == true && !current.detailLoading)
             openReceipt(requireNotNull(current.detailId))
         else if (
@@ -623,6 +639,7 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
             current.detailId != null -> detailJob?.cancel()
             current.page == Page.RECEIPTS -> receiptsJob?.cancel()
             current.page == Page.OVERVIEW -> dashboardJob?.cancel()
+            current.page == Page.CHAT -> chatJob?.cancel()
         }
         mutable.update {
             it.copy(
@@ -632,6 +649,7 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
                 dashboardLoading =
                     if (current.page == Page.OVERVIEW) false else it.dashboardLoading,
                 detailLoading = false,
+                chatLoading = false,
             )
         }
         refresh.launch(
@@ -642,6 +660,7 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
                 current.page == Page.RECEIPTS -> fetchReceipts(current)
                 current.page == Page.OVERVIEW -> fetchDashboard(current)
                 current.page == Page.CAPTURE -> fetchWorkspace(org.id)
+                current.page == Page.CHAT -> fetchChat(current)
                 else -> {
                     val user = requireNotNull(api).me()
                     persist(user)
@@ -667,6 +686,84 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
         val resultCategories = categories.await()
         ensureActive()
         mutable.update { it.copy(accounts = resultAccounts, categories = resultCategories) }
+    }
+
+    fun chatDraft(text: String) = mutable.update { it.copy(chatDraft = text.take(3000)) }
+
+    fun sendChat(report: String? = null) = writeAction {
+        val current = mutable.value
+        val org = requireNotNull(current.organization).id
+        val text =
+            when (report) {
+                "summary" -> "Покажи финансовую сводку"
+                "categories" -> "Покажи расходы по категориям"
+                "prices" -> "Сравни цены в моих чеках"
+                null -> current.chatDraft.trim()
+                else -> throw IllegalArgumentException("Неизвестный отчёт")
+            }
+        require(text.isNotBlank()) { "Напишите вопрос" }
+        val signature = "$org:${current.month}:$report:$text"
+        val key =
+            chatRequest?.takeIf { it.first == signature }?.second
+                ?: java.util.UUID.randomUUID().toString()
+        chatRequest = signature to key
+        requireNotNull(api).sendChat(org, text, current.month, key, report)
+        chatRequest = null
+        mutable.update {
+            it.copy(chatDraft = if (it.chatDraft.trim() == text) "" else it.chatDraft)
+        }
+        fetchChat(current)
+    }
+
+    fun loadChat(older: Boolean = false, background: Boolean = false) {
+        val current = mutable.value
+        current.organization ?: return
+        if (current.chatLoading || (older && !current.chatHasOlder)) return
+        chatJob?.cancel()
+        chatJob = viewModelScope.launch {
+            mutable.update { it.copy(chatLoading = true) }
+            try {
+                fetchChat(current, older)
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                if (!background || error is ApiException && error.code in setOf(401, 403))
+                    handleError(error)
+                else
+                    mutable.update {
+                        it.copy(
+                            chatSyncError = "Нет связи. Показаны последние загруженные сообщения."
+                        )
+                    }
+            } finally {
+                if (currentCoroutineContext().isActive)
+                    mutable.update { it.copy(chatLoading = false) }
+            }
+        }
+    }
+
+    private suspend fun fetchChat(current: AppState, older: Boolean = false) = coroutineScope {
+        val org = requireNotNull(current.organization).id
+        val client = requireNotNull(api)
+        val messages = async {
+            client.chat(org, if (older) current.chat.firstOrNull()?.id else null)
+        }
+        val jobs = async { client.chatJobs(org) }
+        val result = messages.await()
+        val resultJobs = jobs.await()
+        ensureActive()
+        mutable.update {
+            if (it.organization?.id != org) it
+            else
+                it.copy(
+                    chat = mergeChatMessages(it.chat, result),
+                    chatJobs = resultJobs,
+                    chatSyncError = null,
+                    chatHasOlder =
+                        if (older || it.chat.isEmpty())
+                            result.size == 60 && it.chat.size + result.size < 600
+                        else it.chatHasOlder,
+                )
+        }
     }
 
     private suspend fun fetchReceipts(current: AppState, more: Boolean = false) {

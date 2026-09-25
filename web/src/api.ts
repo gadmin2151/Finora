@@ -45,8 +45,12 @@ export async function api<T>(
 ): Promise<T> {
   const isForm = options.body instanceof FormData;
   const generation = scopeGeneration;
+  const deadline = AbortSignal.timeout(isForm ? 180_000 : 45_000);
   const response = await fetch(`/api${path}`, {
     ...options,
+    signal: options.signal
+      ? AbortSignal.any([options.signal, deadline])
+      : deadline,
     credentials: "same-origin",
     headers: {
       ...(isForm ? {} : { "Content-Type": "application/json" }),
@@ -55,6 +59,13 @@ export async function api<T>(
       ...(organization ? { "X-Organization-ID": organization } : {}),
       ...options.headers,
     },
+  }).catch((error: unknown) => {
+    if (error instanceof DOMException && error.name === "TimeoutError")
+      throw new ApiError(
+        "Сервер не успел ответить. Проверьте соединение и повторите.",
+        0,
+      );
+    throw error;
   });
   if (generation !== scopeGeneration && !path.startsWith("/auth/"))
     throw new DOMException("Организация изменена", "AbortError");
@@ -69,7 +80,10 @@ export async function api<T>(
       response.status,
     );
   }
-  return response.json() as Promise<T>;
+  const body: T = await response.json();
+  if (generation !== scopeGeneration && !path.startsWith("/auth/"))
+    throw new DOMException("Организация изменена", "AbortError");
+  return body;
 }
 export function send<T = unknown>(
   path: string,

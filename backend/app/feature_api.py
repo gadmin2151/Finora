@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from . import income, moderation
 from . import models as m
 from . import schemas as s
+from .analytics import ReportQuery, report
 from .db import get_db
 from .finance import audit, fail, lock_organization, owned, transaction_dict
 from .purchases import PurchaseFilters, history
@@ -16,6 +17,13 @@ from .security import current_organization, current_user
 router = APIRouter(prefix="/api")
 DB = Depends(get_db)
 SCOPE = Depends(current_organization)
+
+
+@router.get("/reports")
+def analytics_report(
+    query: Annotated[ReportQuery, Query()], org: m.Organization = SCOPE, db: Session = DB
+):
+    return report(db, org.id, query)
 
 
 @router.get("/purchases")

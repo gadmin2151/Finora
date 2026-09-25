@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from . import models as m
 from . import schemas as s
 from .finance import audit, fail, lock_organization
-from .security import hasher
+from .security import hasher, lock_user_credentials
 
 
 def account_audit(db: Session, actor: m.User, user: m.User, action: str, details=None):
@@ -88,6 +88,9 @@ def create_account(db: Session, actor: m.User, data: s.UserCreate) -> m.User:
 
 def edit_account(db: Session, actor: m.User, user: m.User, data: s.UserEdit):
     lock_accounts(db, actor)
+    user = lock_user_credentials(db, user.id)
+    if user is None:
+        fail("Пользователь не найден", 404)
     if user.is_server_admin and not data.is_active:
         fail("Владельца сервера нельзя заблокировать", 409)
     set_memberships(db, user, data.memberships, data.is_active)
@@ -110,6 +113,9 @@ def edit_account(db: Session, actor: m.User, user: m.User, data: s.UserEdit):
 
 def reset_password(db: Session, actor: m.User, user: m.User, password: str):
     lock_accounts(db, actor)
+    user = lock_user_credentials(db, user.id)
+    if user is None:
+        fail("Пользователь не найден", 404)
     if user.id == actor.id:
         fail("Свой пароль измените в настройках профиля", 409)
     user.password_hash = hasher.hash(password)

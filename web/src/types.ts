@@ -143,7 +143,36 @@ export type Message = {
   text: string;
   receipt_id: string | null;
   created_at: string;
-  details: { provider?: string; error?: boolean; month?: string };
+  details: {
+    provider?: string;
+    error?: boolean;
+    month?: string;
+    reports?: AnalyticsReport[];
+    job_id?: string;
+  };
+};
+export type ReportKind =
+  "summary" | "categories" | "merchants" | "trend" | "purchases" | "prices";
+export type AnalyticsReport = {
+  query: {
+    kind: ReportKind;
+    date_from: string;
+    date_to: string;
+    search: string;
+    merchant: string;
+    category_id: string;
+    currency: string | null;
+  };
+  title: string;
+  metrics: { label: string; value: string }[];
+  rows: {
+    label: string;
+    value: string;
+    detail: string;
+    receipt_id: string | null;
+  }[];
+  total_rows: number;
+  notices: string[];
 };
 export type Job = {
   id: string;
@@ -182,5 +211,6 @@ export type Route =
   | "bills"
   | "debts"
   | "insights"
+  | "reports"
   | "accounts"
   | "settings";

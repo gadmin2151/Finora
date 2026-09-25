@@ -7,7 +7,7 @@ from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerificationError
 from cryptography.fernet import Fernet
 from fastapi import Depends, HTTPException, Request, Response
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from . import models as m
@@ -33,6 +33,27 @@ def verify_password(password: str, hashed: str) -> bool:
         return hasher.verify(hashed, password)
     except (VerificationError, InvalidHashError):
         return False
+
+
+def lock_login_attempts(db: Session, keys: list[str]) -> None:
+    """Serialize overlapping admission checks across API processes, before Argon2."""
+    if db.bind.dialect.name == "postgresql":
+        for key in sorted(keys):
+            lock_id = int.from_bytes(
+                hashlib.sha256(("finora-login:" + key).encode()).digest()[:8], signed=True
+            )
+            db.execute(select(func.pg_advisory_xact_lock(lock_id)))
+    # SQLite's following DELETE acquires the database write lock before the count.
+
+
+def lock_user_credentials(db: Session, user_id: str) -> m.User | None:
+    # NO KEY UPDATE does not block concurrent foreign-key references (memberships).
+    return db.scalar(
+        select(m.User)
+        .where(m.User.id == user_id)
+        .with_for_update(key_share=True)
+        .execution_options(populate_existing=True)
+    )
 
 
 def issue_session(db: Session, user: m.User, request: Request, response: Response):
@@ -108,6 +129,7 @@ def current_organization(
         raise HTTPException(409, "Перед добавлением чека выберите организацию")
     if membership.role != "admin":
         allowed_write = receipt_add or path in {
+            "/api/chat",
             "/api/receipts/{key}/comments",
             "/api/receipts/{key}/accept",
             "/api/receipts/{key}/review",

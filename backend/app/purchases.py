@@ -159,7 +159,7 @@ def history(db, organization_id: str, filters: PurchaseFilters):
     )
     potential = prices.c.spent - prices.c.minimum * prices.c.quantity
     comparison = (
-        select(prices, ranked.c.merchant, ranked.c.purchased_on)
+        select(prices, ranked.c.merchant, ranked.c.purchased_on, ranked.c.receipt_id)
         .join(
             ranked,
             (ranked.c.normalized_name == prices.c.normalized_name)
@@ -184,6 +184,7 @@ def history(db, organization_id: str, filters: PurchaseFilters):
                 "receipt_count": row["receipt_count"],
                 "best_merchant": row["merchant"],
                 "best_on": row["purchased_on"],
+                "best_receipt_id": row["receipt_id"],
                 "potential_minor": int(
                     (Decimal(row["spent"]) - row["minimum"] * row["quantity"]).quantize(
                         Decimal(1), rounding=ROUND_HALF_UP

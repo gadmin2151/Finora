@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
   Camera,
@@ -11,7 +11,8 @@ import {
   Send,
   Sparkles,
 } from "lucide-react";
-import { api, send, useAction } from "../api";
+import { api, queryClient, send, useAction } from "../api";
+import { ReportCard } from "../ReportCard";
 import { useApp } from "../context";
 import type { Insight, Job, Message, Receipt } from "../types";
 import {
@@ -34,26 +35,50 @@ function useJobs() {
 }
 
 export function Assistant() {
-  const { month, prefs, open, navigate } = useApp();
+  const { month, prefs, open, navigate, isAdmin } = useApp();
   const messages = useQuery({
     queryKey: ["chat"],
-    queryFn: () => api<Message[]>("/chat"),
+    queryFn: ({ signal }) => api<Message[]>("/chat", { signal }),
     refetchInterval: 3000,
   });
   const jobs = useJobs();
   const [text, setText] = useState("");
   const [older, setOlder] = useState<Message[]>([]);
   const [hasOlder, setHasOlder] = useState(true);
-  const end = useRef<HTMLDivElement>(null);
+  const body = useRef<HTMLDivElement>(null);
+  const followLatest = useRef(true);
   const pending = jobs.data?.some(
     (j) =>
       ["chat", "analysis", "receipt"].includes(j.kind) &&
       ["queued", "running"].includes(j.status),
   );
-  const action = useAction(
-    (message: string) => send("/chat", { text: message, month }),
-    () => setText(""),
-  );
+  const draftRequest = useRef({ signature: "", key: "" });
+  type QuickReport = "summary" | "categories" | "prices";
+  const action = useMutation({
+    mutationFn: (value: {
+      text: string;
+      report?: QuickReport;
+      request_key: string;
+    }) => send("/chat", { ...value, month }),
+    onSuccess: async (_, value) => {
+      setText((current) => (current === value.text ? "" : current));
+      draftRequest.current = { signature: "", key: "" };
+      await queryClient.invalidateQueries({ queryKey: ["chat"] });
+      await queryClient.invalidateQueries({ queryKey: ["jobs"] });
+    },
+  });
+  function submit(message = text, report?: QuickReport) {
+    if (!message.trim() || action.isPending) return;
+    followLatest.current = true;
+    const signature = JSON.stringify([message.trim(), report, month]);
+    if (draftRequest.current.signature !== signature)
+      draftRequest.current = { signature, key: crypto.randomUUID() };
+    action.mutate({
+      text: message.trim(),
+      report,
+      request_key: draftRequest.current.key,
+    });
+  }
   const more = useAction(async () => {
     const first = older[0] ?? messages.data?.[0];
     if (!first) return;
@@ -66,14 +91,21 @@ export function Assistant() {
     open({ type: "receipt", receipt });
   });
   useEffect(() => {
-    end.current?.scrollIntoView({ block: "end", behavior: "smooth" });
-  }, [messages.data?.length, pending]);
+    const element = body.current;
+    if (element && followLatest.current)
+      element.scrollTo({
+        top: element.scrollHeight,
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "instant"
+          : "smooth",
+      });
+  }, [messages.data?.at(-1)?.id, pending]);
   return (
     <>
       <PageHeading
         eyebrow="ЛИЧНЫЙ ПОМОЩНИК"
         title="Поговорим о ваших деньгах"
-        text="Отправьте чек, разберите расходы и найдите идеи для экономии."
+        text="Спросите о любом периоде, найдите покупку и сравните свои цены. Общий чат выбранной организации."
         actions={
           <Badge status={prefs?.provider === "disabled" ? "skipped" : "posted"}>
             {prefs?.provider === "ollama"
@@ -85,7 +117,19 @@ export function Assistant() {
         }
       />
       <section className="panel chat-panel">
-        <div className="chat-body">
+        <div
+          className="chat-body"
+          ref={body}
+          onScroll={() => {
+            const element = body.current;
+            if (element)
+              followLatest.current =
+                element.scrollHeight -
+                  element.scrollTop -
+                  element.clientHeight <
+                120;
+          }}
+        >
           {messages.isPending ? (
             <Loading />
           ) : !messages.data?.length ? (
@@ -97,7 +141,8 @@ export function Assistant() {
               <p>
                 Я помогу разобрать покупки и увидеть привычки.
                 <br />
-                Начните с фото чека или вопроса о расходах.
+                Спросите «Сколько ушло на продукты в августе?» или «Найди
+                LAPTE».
               </p>
               <div className="prompt-grid">
                 <button onClick={() => open({ type: "upload" })}>
@@ -119,13 +164,13 @@ export function Assistant() {
                 <button
                   onClick={() =>
                     setText(
-                      "Какие покупки можно заменить более дешёвыми вариантами?",
+                      "Найди мои покупки LAPTE за последние 3 месяца и сравни цены",
                     )
                   }
                 >
                   <ScanLine size={22} />
-                  <strong>Подобрать замену</strong>
-                  <span>Идеи для повседневных покупок</span>
+                  <strong>Найти покупку</strong>
+                  <span>Товары, суммы и исходные чеки</span>
                   <ArrowRight size={17} />
                 </button>
               </div>
@@ -174,6 +219,9 @@ export function Assistant() {
                             ),
                           )}
                       </div>
+                      {message.details.reports?.map((report, index) => (
+                        <ReportCard key={index} report={report} compact />
+                      ))}
                       {message.receipt_id && (
                         <button
                           className="chat-receipt"
@@ -197,7 +245,7 @@ export function Assistant() {
                           minute: "2-digit",
                         }).format(new Date(message.created_at))}
                         {message.details.provider
-                          ? ` · ${message.details.provider === "ollama" ? "Локальная модель" : "OpenAI"}`
+                          ? ` · ${message.details.provider === "reports" ? "Расчёт Finora" : message.details.provider === "ollama" ? "Локальная модель" : "OpenAI"}`
                           : ""}
                       </small>
                     </div>
@@ -210,12 +258,42 @@ export function Assistant() {
               <span />
               <span />
               <span />
-              Обрабатываю запрос. На CPU это может занять несколько минут.
+              {jobs.data?.find((j) => ["queued", "running"].includes(j.status))
+                ?.progress || "Подготавливаю ответ…"}
             </div>
           )}
-          <div ref={end} />
         </div>
         <div className="chat-bottom">
+          <div
+            className="chat-quick-reports"
+            role="group"
+            aria-label="Быстрые отчёты"
+          >
+            <span>За выбранный месяц</span>
+            <button
+              type="button"
+              disabled={action.isPending}
+              onClick={() => submit("Покажи финансовую сводку", "summary")}
+            >
+              Сводка
+            </button>
+            <button
+              type="button"
+              disabled={action.isPending}
+              onClick={() =>
+                submit("Покажи расходы по категориям", "categories")
+              }
+            >
+              Категории
+            </button>
+            <button
+              type="button"
+              disabled={action.isPending}
+              onClick={() => submit("Сравни цены в моих чеках", "prices")}
+            >
+              Мои цены
+            </button>
+          </div>
           <ErrorBox
             error={
               action.error ??
@@ -226,21 +304,25 @@ export function Assistant() {
           />
           {prefs?.provider === "disabled" && (
             <div className="chat-notice">
-              Для ответов и распознавания фото{" "}
-              <button
-                className="text-button"
-                onClick={() => navigate("settings")}
-              >
-                подключите AI
-                <ArrowRight size={14} />
-              </button>
+              Быстрые отчёты работают без AI. Для свободных вопросов{" "}
+              {isAdmin ? (
+                <button
+                  className="text-button"
+                  onClick={() => navigate("settings")}
+                >
+                  подключите AI
+                  <ArrowRight size={14} />
+                </button>
+              ) : (
+                "попросите администратора подключить AI."
+              )}
             </div>
           )}
           <form
             className="composer"
             onSubmit={(e) => {
               e.preventDefault();
-              if (text.trim()) action.mutate(text);
+              submit();
             }}
           >
             <button
@@ -259,9 +341,13 @@ export function Assistant() {
               value={text}
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
+                if (
+                  e.key === "Enter" &&
+                  !e.shiftKey &&
+                  !e.nativeEvent.isComposing
+                ) {
                   e.preventDefault();
-                  if (text.trim() && !action.isPending) action.mutate(text);
+                  submit();
                 }
               }}
             />

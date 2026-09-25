@@ -706,39 +706,24 @@ def recommendations(db: Session, organization_id: str, month: str):
                 }
             )
     start, end = month_range(month)
-    prices = db.execute(
-        select(m.ReceiptItem, m.Receipt.merchant, m.Receipt.purchased_on)
-        .join(m.Receipt)
-        .join(m.Transaction, m.Transaction.receipt_id == m.Receipt.id)
-        .where(
-            m.Receipt.organization_id == organization_id,
-            m.Receipt.currency == "MDL",
-            ~m.Transaction.voided,
-            m.Receipt.purchased_on.between(start - timedelta(days=90), end),
-        )
-        .order_by(m.Receipt.purchased_on.desc())
-        .limit(1000)
-    ).all()
-    groups = defaultdict(list)
-    for item, merchant, purchased in prices:
-        if item.quantity > 0:
-            groups[(item.normalized_name, item.unit)].append(
-                (Decimal(item.total_minor) / item.quantity, item, merchant, purchased)
-            )
-    for values in groups.values():
-        if len(values) < 2:
-            continue
-        low = min(values, key=lambda x: x[0])
-        high = max(values, key=lambda x: x[0])
-        if low[0] > 0 and high[0] > low[0] * Decimal("1.15"):
+    from .purchases import PurchaseFilters, history
+
+    comparisons = history(
+        db,
+        organization_id,
+        PurchaseFilters(date_from=start - timedelta(days=90), date_to=end, currency="MDL"),
+    )["comparisons"]
+    for index, price in enumerate(comparisons):
+        low, high = Decimal(price["min_unit_minor"]), Decimal(price["max_unit_minor"])
+        if low > 0 and high > low * Decimal("1.15"):
             cards.append(
                 {
-                    "id": "price-" + high[1].id,
+                    "id": f"price-{price['best_receipt_id']}-{index}",
                     "kind": "price",
-                    "title": f"Сравните цену: {high[1].name}",
-                    "text": f"В ваших чеках: {money(int(low[0]))} MDL/{low[1].unit} в «{low[2]}» ({low[3]}) и {money(int(high[0]))} MDL/{high[1].unit} в «{high[2]}». Проверьте совпадение товара и актуальную цену перед покупкой.",
+                    "title": f"Сравните цену: {price['name']}",
+                    "text": f"В ваших чеках цена менялась от {money(int(low.quantize(Decimal(1), rounding=ROUND_HALF_UP)))} до {money(int(high.quantize(Decimal(1), rounding=ROUND_HALF_UP)))} MDL/{price['unit']}. Минимум: «{price['best_merchant']}» ({price['best_on']}). Проверьте совпадение товара и актуальную цену перед покупкой.",
                     "saving_minor": 0,
-                    "basis": "Наблюдавшиеся цены ваших покупок; это не текущая цена магазина",
+                    "basis": f"Одинаковое название и единица, {price['receipt_count']} разных чеков. Прошлая цена не гарантирует сегодняшнюю.",
                 }
             )
     if not cards:

@@ -239,7 +239,9 @@ def test_income_edit_pause_and_link_existing(client, accounts):
 
 
 def test_purchase_filters_totals_comparisons(client, accounts, categories, owner):
-    receipt(client, accounts, categories, owner, name="Lápte", total="20", merchant="Cheap")
+    cheapest = receipt(
+        client, accounts, categories, owner, name="Lápte", total="20", merchant="Cheap"
+    )
     receipt(client, accounts, categories, owner, name="LAPTE", total="30", merchant="Other")
     receipt(client, accounts, categories, owner, name="LAPTE", total="40", unit="buc", second=False)
     response = client.get("/api/purchases", params={"search": "lapte", "unit": "л", "limit": 1})
@@ -249,6 +251,7 @@ def test_purchase_filters_totals_comparisons(client, accounts, categories, owner
     assert data["totals"] == [{"currency": "MDL", "total_minor": 5000}]
     assert float(data["comparisons"][0]["min_unit_minor"]) == 1000
     assert data["comparisons"][0]["best_merchant"] == "Cheap"
+    assert data["comparisons"][0]["best_receipt_id"] == cheapest["id"]
     assert data["comparisons"][0]["potential_minor"] == 1000
     assert (
         client.get(
@@ -259,6 +262,12 @@ def test_purchase_filters_totals_comparisons(client, accounts, categories, owner
     assert client.get("/api/purchases?date_from=2025-03-01").json()["total"] == 0
     assert client.get("/api/purchases?search=%25").json()["total"] == 0
     assert client.get("/api/purchases?date_from=2025-03-01&date_to=2025-02-01").status_code == 422
+    reports = client.get("/api/reports?kind=prices&date_from=2025-02-01&date_to=2025-02-28").json()
+    assert reports["rows"][0]["receipt_id"] == cheapest["id"]
+    insight = next(
+        card for card in client.get("/api/insights?month=2025-02").json() if card["kind"] == "price"
+    )
+    assert "Cheap" in insight["text"] and "2 разных чеков" in insight["basis"]
 
 
 def test_receipt_delete_item_and_whole_recalculate(client, accounts, categories, owner):
@@ -332,7 +341,6 @@ def test_shared_receipts_comments_and_isolated_organizations(
         ("POST", "/bills"),
         ("POST", "/debts"),
         ("PUT", "/budgets"),
-        ("POST", "/chat"),
         ("POST", "/income/templates"),
         ("POST", "/receipts/fake/confirm"),
         ("POST", "/receipts/fake/retry"),
@@ -346,6 +354,22 @@ def test_shared_receipts_comments_and_isolated_organizations(
 )
 def test_member_privileges_enforced_on_server(member, method, path):
     assert member.request(method, "/api" + path).status_code == 403
+
+
+def test_member_can_request_read_only_assistant_reports(member):
+    response = member.post(
+        "/api/chat", json={"text": "Покажи категории", "month": "2025-02", "report": "categories"}
+    )
+    assert response.status_code == 200
+    assert member.get("/api/chat").status_code == 200
+    assert (
+        member.get(
+            "/api/reports",
+            params={"kind": "summary", "date_from": "2025-02-01", "date_to": "2025-02-28"},
+        ).status_code
+        == 200
+    )
+    assert member.post("/api/transactions", json={}).status_code == 403
 
 
 def test_receipt_upload_requires_explicit_organization_and_member_can_add(member):
