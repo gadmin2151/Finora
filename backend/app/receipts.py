@@ -36,6 +36,7 @@ from .finance import (
     today,
 )
 from .schemas import ReceiptConfirm, SplitInput, TransactionInput
+from .web_receipts import WebReceiptError, capture_receipt_page, receipt_link
 
 pillow_heif.register_heif_opener()
 Image.MAX_IMAGE_PIXELS = 32_000_000
@@ -121,14 +122,17 @@ def mev_url(value: str) -> str:
         raise ReceiptError("Некорректная ссылка чека") from exc
     if (
         parsed.scheme != "https"
-        or parsed.hostname != "mev.sfs.md"
+        or parsed.hostname not in {"mev.sfs.md", "sift-mev.sfs.md"}
         or port not in {None, 443}
         or parsed.username
         or parsed.password
     ):
         raise ReceiptError("Нужна HTTPS-ссылка чека с mev.sfs.md")
     match = re.fullmatch(
-        r"/(?:ro/|ru/|en/)?receipt-verifier/([A-Za-z0-9_-]{16,128})/?", parsed.path
+        r"/receipt/([A-Fa-f0-9]{32})/?"
+        if parsed.hostname == "sift-mev.sfs.md"
+        else r"/(?:ro/|ru/|en/)?receipt-verifier/([A-Za-z0-9_-]{16,128})/?",
+        parsed.path,
     )
     if not match or parsed.query or parsed.fragment:
         raise ReceiptError(
@@ -478,6 +482,8 @@ def receipt_dict(db, receipt: m.Receipt, preloaded=None):
         "id": receipt.id,
         "source": receipt.source,
         "source_url": receipt.source_url,
+        "review_required": receipt.review_required,
+        "created_by": receipt.created_by,
         "merchant": receipt.merchant,
         "purchased_on": receipt.purchased_on.isoformat() if receipt.purchased_on else None,
         "currency": receipt.currency,
@@ -646,11 +652,37 @@ async def process_receipt(receipt_id: str):
     extraction_provider = "mev"
     result = None
     warning = None
+    web_capture = False
     if url:
         try:
-            raw_text = await fetch_mev(url)
-            result = parse_mev(raw_text)
-        except (ReceiptError, httpx.HTTPError) as exc:
+            mev_url(url)
+            known_mev = True
+        except ReceiptError:
+            known_mev = False
+        try:
+            if known_mev:
+                raw_text = await fetch_mev(url)
+                result = parse_mev(raw_text)
+            else:
+                page = await capture_receipt_page(receipt_link(url))
+                raw_text = page.text
+                filename = receipt_id + "-web.jpg"
+                directory = settings().data_dir / "receipts" / organization_id
+                directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+                await asyncio.to_thread((directory / filename).write_bytes, page.image)
+                files = [filename]
+                web_capture = True
+                with SessionLocal() as db:
+                    current = db.get(m.Receipt, receipt_id)
+                    if current is None or current.deleted_at or current.status == "posted":
+                        return
+                    current.file_names = files
+                    current.review_required = True
+                    db.commit()
+                warning = "Чек получен со страницы по QR. Сверьте товары и итог со снимком перед подтверждением."
+        except (ReceiptError, WebReceiptError, httpx.HTTPError) as exc:
+            if not known_mev:
+                raise ReceiptError(str(exc)) from exc
             warning = str(exc) if isinstance(exc, ReceiptError) else "MEV временно недоступен"
     images = []
     if (result is None or not result["readable"]) and files:
@@ -667,7 +699,9 @@ async def process_receipt(receipt_id: str):
         if provider != "disabled":
             extraction_provider = provider
             prepared_images = (
-                await asyncio.to_thread(vision_images, images) if images and not raw_text else None
+                await asyncio.to_thread(vision_images, images)
+                if images and (web_capture or not raw_text)
+                else None
             )
             try:
                 result, _ = await ai.generate(
@@ -845,7 +879,7 @@ async def process_receipt(receipt_id: str):
         prefs = db.scalar(
             select(m.Preferences).where(m.Preferences.organization_id == organization_id)
         )
-        if valid and prefs.auto_post and receipt.account_id:
+        if valid and prefs.auto_post and receipt.account_id and not receipt.review_required:
             confirm_receipt(
                 db,
                 organization_id,

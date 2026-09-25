@@ -2,9 +2,10 @@ package work.gadmin.finora
 
 import android.Manifest
 import android.graphics.BitmapFactory
+import androidx.activity.compose.setContent
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.*
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import java.io.File
@@ -17,7 +18,7 @@ import work.gadmin.finora.ui.FinoraTheme
 
 @RunWith(AndroidJUnit4::class)
 class CameraAcceptanceTest {
-    @get:Rule val rule = createComposeRule()
+    @get:Rule val rule = createAndroidComposeRule<MainActivity>()
 
     @Test
     fun cameraBindsCapturesAndProducesReadablePhoto() {
@@ -28,20 +29,29 @@ class CameraAcceptanceTest {
         )
         val captured = mutableStateOf<File?>(null)
         val error = mutableStateOf<String?>(null)
-        rule.setContent {
-            FinoraTheme {
-                CameraScreen(
-                    CameraMode.PHOTO,
-                    false,
-                    0,
-                    {},
-                    { captured.value = it },
-                    {},
-                    error.value,
-                    { error.value = it },
-                )
+        val mode = mutableStateOf(CameraMode.QR)
+        rule.runOnUiThread {
+            rule.activity.setContent {
+                FinoraTheme {
+                    CameraScreen(
+                        mode.value,
+                        false,
+                        0,
+                        {},
+                        { captured.value = it },
+                        {},
+                        error.value,
+                        { error.value = it },
+                    )
+                }
             }
         }
+        rule.waitUntil(30_000) {
+            error.value != null ||
+                rule.onAllNodes(hasText("QR-код чека")).fetchSemanticsNodes().isNotEmpty()
+        }
+        assertNull(error.value)
+        rule.runOnIdle { mode.value = CameraMode.PHOTO }
         rule.waitUntil(30_000) {
             error.value != null ||
                 rule

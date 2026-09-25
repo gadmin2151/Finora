@@ -249,8 +249,9 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
         require(mutable.value.draft.photos.isEmpty()) {
             "В черновике уже есть фотографии. Отправьте или очистите его перед сканированием другого чека."
         }
-        saveDraft(mutable.value.draft.copy(qr = mevLink(value)))
+        saveDraft(mutable.value.draft.copy(qr = receiptLink(value)))
         mutable.update { it.copy(camera = null) }
+        submitDraft()
     }
 
     fun setAccount(id: String?) = writeAction {
@@ -305,7 +306,9 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
         mutable.update { it.copy(draft = Draft()) }
     }
 
-    fun sendDraft() = writeAction {
+    fun sendDraft() = writeAction { submitDraft() }
+
+    private suspend fun submitDraft() {
         val current = mutable.value
         val org = requireNotNull(current.organization)
         require(current.draft.hasContent) { "Добавьте QR-код или фотографию" }
@@ -327,12 +330,28 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
                 page = Page.RECEIPTS,
                 notice =
                     if (result.duplicate) "Этот чек уже есть в истории"
-                    else "Чек отправлен. Распознавание продолжится на сервере.",
+                    else "Распознаём черновик. Проверьте товары и сумму перед подтверждением.",
             )
         }
         loadReceipts()
         loadDashboard()
         openReceipt(result.receipt.id)
+    }
+
+    fun acceptReceipt(accountId: String) = writeAction {
+        val current = mutable.value
+        val receipt = requireNotNull(current.detail)
+        val confirmed =
+            requireNotNull(api)
+                .acceptReceipt(
+                    requireNotNull(current.organization).id,
+                    receipt.id,
+                    receipt.version,
+                    accountId,
+                )
+        mutable.update { it.copy(detail = confirmed, notice = "Чек подтверждён. Расход добавлен.") }
+        loadReceipts()
+        loadDashboard()
     }
 
     fun search(value: String) {

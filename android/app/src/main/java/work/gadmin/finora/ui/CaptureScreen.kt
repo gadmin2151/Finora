@@ -87,7 +87,7 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
                         }
                         if (state.draft.qr.isNotBlank())
                             InfoCard(
-                                "QR-код MEV найден. Товары и сумму получим из электронного чека.",
+                                "Ссылка на чек найдена. Сервер распознает товары и сумму для проверки.",
                                 Glyph.SCAN,
                             )
                         state.draft.photos.forEachIndexed { index, name ->
@@ -193,7 +193,7 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
                             )
                         }
                         PrimaryButton(
-                            if (state.busy) "Обрабатываем…" else "Отправить чек",
+                            if (state.busy) "Обрабатываем…" else "Распознать чек",
                             vm::sendDraft,
                             Modifier.fillMaxWidth(),
                             available,
@@ -246,7 +246,7 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
                         Spacer(Modifier.height(7.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                "Наведите на код\nвнизу чека MEV",
+                                "Наведите на код\nвнизу бумажного чека",
                                 color = Mint.copy(alpha = .85f),
                                 modifier = Modifier.weight(1f),
                             )
@@ -292,7 +292,7 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
                 TextButton({ manualQr = true }, Modifier.fillMaxWidth(), enabled = available) {
                     LineIcon(Glyph.LINK, size = 18.dp)
                     Spacer(Modifier.width(8.dp))
-                    Text("Вставить ссылку MEV")
+                    Text("Вставить ссылку на чек")
                 }
                 Spacer(Modifier.height(8.dp))
                 InfoCard(
@@ -313,12 +313,12 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
     if (manualQr)
         AlertDialog(
             onDismissRequest = { manualQr = false },
-            title = { Text("Ссылка на чек MEV") },
+            title = { Text("Ссылка на электронный чек") },
             text = {
                 OutlinedTextField(
                     qrText,
                     { qrText = it.take(1000) },
-                    label = { Text("https://mev.sfs.md/…") },
+                    label = { Text("https://…") },
                     minLines = 3,
                 )
             },

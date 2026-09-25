@@ -51,6 +51,8 @@ data class Receipt(
     val id: String,
     val source: String,
     val source_url: String? = null,
+    val review_required: Boolean = false,
+    val created_by: String? = null,
     val merchant: String = "",
     val purchased_on: String? = null,
     val currency: String = "MDL",

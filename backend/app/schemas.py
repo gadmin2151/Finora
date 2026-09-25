@@ -200,6 +200,12 @@ class ReceiptLink(Strict):
     url: str = Field(min_length=10, max_length=1000)
     account_id: str | None = None
     fx_rate: Decimal | None = Field(default=None, gt=0, le=100000)
+    review_required: bool = False
+
+
+class ReceiptAccept(Strict):
+    version: int = Field(ge=1)
+    account_id: str
 
 
 class ModelPull(Strict):

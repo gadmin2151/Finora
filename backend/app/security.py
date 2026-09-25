@@ -101,7 +101,10 @@ def current_organization(
     if receipt_add and not key:
         raise HTTPException(409, "Перед добавлением чека выберите организацию")
     if membership.role != "admin":
-        allowed_write = receipt_add or path == "/api/receipts/{key}/comments"
+        allowed_write = receipt_add or path in {
+            "/api/receipts/{key}/comments",
+            "/api/receipts/{key}/accept",
+        }
         admin_read = path.startswith(("/api/ai/", "/api/audit", "/api/export", "/api/rules"))
         if (writes and not allowed_write) or admin_read:
             raise HTTPException(403, "Это действие доступно администратору организации")

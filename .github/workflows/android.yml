@@ -3,9 +3,9 @@ name: Android APK
 on:
   push:
     branches: [main]
-    paths: ['android/**', 'scripts/build-android.py', '.github/workflows/android.yml']
+    paths: ['android/**', 'scripts/*android*.py', '.github/workflows/android.yml']
   pull_request:
-    paths: ['android/**', 'scripts/build-android.py', '.github/workflows/android.yml']
+    paths: ['android/**', 'scripts/*android*.py', '.github/workflows/android.yml']
   workflow_dispatch:
 
 permissions:
@@ -44,6 +44,7 @@ jobs:
             chmod 600 "$FINORA_KEYSTORE"
           fi
           ./gradlew --no-daemon --console=plain checkKotlinFormat :app:testDebugUnitTest :app:lintRelease :app:assembleRelease
+          python3 ../scripts/check-android-release.py
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: finora-android

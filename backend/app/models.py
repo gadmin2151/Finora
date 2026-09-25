@@ -147,6 +147,8 @@ class Occurrence(Owned, Base):
 
 class Receipt(Owned, Base):
     __tablename__ = "receipts"
+    review_required: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    created_by: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     source: Mapped[str] = mapped_column(String(16))
     source_key: Mapped[str] = mapped_column(String(64))
     source_url: Mapped[str | None] = mapped_column(Text)

@@ -11,15 +11,19 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ExperimentalGetImage
+import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
+import androidx.camera.core.resolutionselector.ResolutionSelector
+import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -32,6 +36,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -41,13 +46,15 @@ import androidx.core.net.toUri
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
+import com.google.mlkit.vision.barcode.ZoomSuggestionOptions
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import java.io.File
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import work.gadmin.finora.CameraMode
-import work.gadmin.finora.data.mevLink
+import work.gadmin.finora.data.receiptLink
 
 @androidx.annotation.OptIn(ExperimentalGetImage::class)
 @Composable
@@ -126,10 +133,41 @@ fun CameraScreen(
     DisposableEffect(owner, mode) {
         val future = ProcessCameraProvider.getInstance(context)
         val executor = Executors.newSingleThreadExecutor()
+        // Photo capture must not depend on the QR library being available.
         val scanner =
-            BarcodeScanning.getClient(
-                BarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_QR_CODE).build()
-            )
+            if (mode == CameraMode.QR)
+                try {
+                    BarcodeScanning.getClient(
+                        BarcodeScannerOptions.Builder()
+                            .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
+                            .enableAllPotentialBarcodes()
+                            .setZoomSuggestionOptions(
+                                ZoomSuggestionOptions.Builder { suggested ->
+                                        val active = camera
+                                        val limits = active?.cameraInfo?.zoomState?.value
+                                        if (active == null || limits == null) false
+                                        else {
+                                            active.cameraControl.setZoomRatio(
+                                                suggested.coerceIn(
+                                                    limits.minZoomRatio,
+                                                    minOf(4f, limits.maxZoomRatio),
+                                                )
+                                            )
+                                            true
+                                        }
+                                    }
+                                    .setMaxSupportedZoomRatio(4f)
+                                    .build()
+                            )
+                            .build()
+                    )
+                } catch (_: Exception) {
+                    errorCallback(
+                        "Не удалось запустить QR-сканер. Сфотографируйте чек или вставьте ссылку на чек."
+                    )
+                    null
+                }
+            else null
         val mainExecutor = ContextCompat.getMainExecutor(context)
         val disposed = AtomicBoolean(false)
         val found = AtomicBoolean(false)
@@ -138,9 +176,19 @@ fun CameraScreen(
         val preview = Preview.Builder().build().also { it.surfaceProvider = view.surfaceProvider }
         val analysis =
             ImageAnalysis.Builder()
+                .setResolutionSelector(
+                    ResolutionSelector.Builder()
+                        .setResolutionStrategy(
+                            ResolutionStrategy(
+                                android.util.Size(1920, 1080),
+                                ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER,
+                            )
+                        )
+                        .build()
+                )
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .build()
-        if (mode == CameraMode.QR)
+        if (scanner != null)
             analysis.setAnalyzer(executor) { frame ->
                 val media = frame.image
                 if (disposed.get() || found.get() || media == null) frame.close()
@@ -154,7 +202,7 @@ fun CameraScreen(
                                     ?.rawValue
                                     ?.let { raw ->
                                         try {
-                                            val link = mevLink(raw)
+                                            val link = receiptLink(raw)
                                             if (found.compareAndSet(false, true)) {
                                                 view.performHapticFeedback(
                                                     if (android.os.Build.VERSION.SDK_INT >= 30)
@@ -167,7 +215,8 @@ fun CameraScreen(
                                             if (System.currentTimeMillis() - lastInvalid > 3000) {
                                                 lastInvalid = System.currentTimeMillis()
                                                 errorCallback(
-                                                    invalid.message ?: "Нужен QR-код чека MEV"
+                                                    invalid.message
+                                                        ?: "Нужна ссылка на электронный чек"
                                                 )
                                             }
                                         }
@@ -214,12 +263,26 @@ fun CameraScreen(
             disposed.set(true)
             analysis.clearAnalyzer()
             provider?.unbind(preview, analysis, capture)
-            scanner.close()
+            scanner?.close()
             executor.shutdown()
         }
     }
     Box(Modifier.fillMaxSize().background(Color.Black)) {
-        AndroidView({ view }, Modifier.fillMaxSize())
+        AndroidView(
+            { view },
+            Modifier.fillMaxSize().pointerInput(camera) {
+                detectTapGestures { point ->
+                    val metering = view.meteringPointFactory.createPoint(point.x, point.y)
+                    camera
+                        ?.cameraControl
+                        ?.startFocusAndMetering(
+                            FocusMeteringAction.Builder(metering)
+                                .setAutoCancelDuration(3, TimeUnit.SECONDS)
+                                .build()
+                        )
+                }
+            },
+        )
         Canvas(Modifier.fillMaxSize()) {
             val width = size.width * .79f
             val height = if (mode == CameraMode.QR) width else size.height * .52f
@@ -288,7 +351,7 @@ fun CameraScreen(
             Spacer(Modifier.height(22.dp))
             Text(
                 if (mode == CameraMode.QR)
-                    "Наведите на QR внизу чека.\nРаспознавание начнётся автоматически."
+                    "Наведите на QR внизу чека.\nКоснитесь кода для фокусировки."
                 else
                     "Держите телефон параллельно чеку.\nДля длинного чека снимите несколько частей.",
                 color = Color.White,
@@ -353,8 +416,7 @@ fun CameraScreen(
                         else LineIcon(Glyph.CAMERA, "Снять чек", tint = Forest, size = 30.dp)
                     }
                 }
-            } else
-                Text("Только чеки MEV · Молдова", color = Mint, modifier = Modifier.padding(20.dp))
+            } else Text("QR электронного чека", color = Mint, modifier = Modifier.padding(20.dp))
             Spacer(Modifier.height(14.dp))
         }
     }

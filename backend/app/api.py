@@ -50,6 +50,7 @@ from .security import (
     issue_session,
     verify_password,
 )
+from .web_receipts import WebReceiptError, receipt_link
 
 router = APIRouter(prefix="/api")
 DB = Depends(get_db)
@@ -525,6 +526,7 @@ def register_receipt(
     account_id: str | None,
     fx_rate: Decimal,
     images: list[bytes],
+    review_required: bool = False,
 ):
     lock_organization(db, organization_id)
     if account_id:
@@ -547,6 +549,8 @@ def register_receipt(
         source_url=url,
         account_id=account_id,
         fx_rate=fx_rate,
+        review_required=review_required,
+        created_by=db.info.get("actor_id"),
     )
     db.add(receipt)
     db.flush()
@@ -562,7 +566,7 @@ def register_receipt(
         m.Message(
             organization_id=organization_id,
             role="user",
-            text="Фото чека" if files else "Чек MEV",
+            text="Фото чека" if files else "Чек по QR-ссылке",
             receipt_id=receipt.id,
         )
     )
@@ -576,6 +580,7 @@ async def upload_receipt(
     files: list[UploadFile] = File(),
     account_id: str = Form(""),
     fx_rate: str = Form("1"),
+    review_required: bool = Form(False),
     user: m.Organization = SCOPE,
     db: Session = DB,
 ):
@@ -609,25 +614,75 @@ async def upload_receipt(
             except ReceiptError:
                 pass  # unrelated QR codes on receipts are not network targets
     key = hashlib.sha256(url.encode() if url else b"".join(images)).hexdigest()
-    return register_receipt(db, user.id, "photo", key, url, account_id or None, rate, images)
+    return register_receipt(
+        db, user.id, "photo", key, url, account_id or None, rate, images, review_required
+    )
 
 
 @router.post("/receipts/link")
 def link_receipt(data: s.ReceiptLink, user: m.Organization = SCOPE, db: Session = DB):
     try:
         url = mev_url(data.url)
-    except ReceiptError as exc:
-        fail(str(exc))
+        source = "mev"
+    except ReceiptError:
+        try:
+            url = receipt_link(data.url)
+        except WebReceiptError as exc:
+            fail(str(exc))
+        source = "web"
     return register_receipt(
         db,
         user.id,
-        "mev",
+        source,
         hashlib.sha256(url.encode()).hexdigest(),
         url,
         data.account_id,
         data.fx_rate or Decimal(1),
         [],
+        data.review_required or source == "web",
     )
+
+
+@router.post("/receipts/{key}/accept")
+def accept_receipt(
+    key: str,
+    data: s.ReceiptAccept,
+    request: Request,
+    user: m.Organization = SCOPE,
+    db: Session = DB,
+):
+    """Confirm the displayed extraction; members cannot alter prices or another author's draft."""
+    row = owned(db, m.Receipt, key, user.id, True)
+    if request.state.membership.role != "admin" and row.created_by != db.info.get("actor_id"):
+        fail("Подтвердить этот чек может его автор или администратор", 403)
+    if row.status not in {"review", "posted"}:
+        fail("Дождитесь распознавания чека", 409)
+    details = receipt_dict(db, row)
+    if not row.purchased_on or not row.merchant or not row.total_minor or not details["items"]:
+        fail("Не все данные распознаны. Нужна корректировка чека администратором")
+    payload = s.ReceiptConfirm(
+        merchant=row.merchant,
+        purchased_on=row.purchased_on,
+        currency=row.currency,
+        total=Decimal(row.total_minor) / 100,
+        account_id=data.account_id,
+        fx_rate=row.fx_rate,
+        version=data.version,
+        items=[
+            dict(
+                name=line["name"],
+                quantity=line["quantity"],
+                unit=line["unit"],
+                unit_price=Decimal(line["unit_price_minor"]) / 100,
+                total=Decimal(line["total_minor"]) / 100,
+                category_id=line["category_id"],
+            )
+            for line in details["items"]
+        ],
+    )
+    result = confirm_receipt(db, user.id, row, payload)
+    db.commit()
+    return result
 
 
 @router.get("/receipts/{key}")

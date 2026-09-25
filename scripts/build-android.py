@@ -8,6 +8,7 @@ import os
 import secrets
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -96,6 +97,7 @@ def main():
         env,
     )
     release = ROOT / "android/app/build/outputs/apk/release"
+    run([sys.executable, str(ROOT / "scripts/check-android-release.py")], env)
     metadata = json.loads((release / "output-metadata.json").read_text())["elements"][0]
     apk = release / metadata["outputFile"]
     sdk = Path(env.get("ANDROID_HOME", env.get("ANDROID_SDK_ROOT", "")))

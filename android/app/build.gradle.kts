@@ -15,9 +15,12 @@ android {
         applicationId = "work.gadmin.finora"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0.0"
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        versionCode = 5
+        versionName = "1.1.0"
+        testInstrumentationRunner =
+            if (providers.gradleProperty("finoraTestBuildType").orNull == "release")
+                "work.gadmin.finora.ReleaseSmokeInstrumentation"
+            else "androidx.test.runner.AndroidJUnitRunner"
     }
     if (signingPath.isPresent) {
         signingConfigs.create("release") {
@@ -38,6 +41,7 @@ android {
             )
         }
     }
+    testBuildType = providers.gradleProperty("finoraTestBuildType").orElse("debug").get()
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

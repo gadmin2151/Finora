@@ -90,7 +90,7 @@ class ScreenAcceptanceTest {
         rule.waitUntil {
             !vm.state.value.busy && vm.state.value.draft.photos == original.reversed()
         }
-        rule.onNodeWithText("Отправить чек").performScrollTo().performClick()
+        rule.onNodeWithText("Распознать чек").performScrollTo().performClick()
         rule.waitUntil(60_000) {
             !vm.state.value.busy && vm.state.value.detail != null && !vm.state.value.detailLoading
         }

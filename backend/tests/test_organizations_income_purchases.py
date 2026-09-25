@@ -103,6 +103,51 @@ def member(client, owner):
         yield member
 
 
+def test_member_accepts_own_receipt_only(client, member, accounts, owner):
+    from datetime import date
+    from decimal import Decimal
+
+    with SessionLocal() as db:
+        actor = db.scalar(select(m.User).where(m.User.username == "member"))
+        ids = []
+        for author in (actor.id, owner["id"]):
+            row = m.Receipt(
+                organization_id=owner["id"],
+                source="photo",
+                source_key=uuid4().hex,
+                status="review",
+                review_required=True,
+                created_by=author,
+                merchant="Market",
+                purchased_on=date(2025, 9, 25),
+                total_minor=1200,
+            )
+            db.add(row)
+            db.flush()
+            db.add(
+                m.ReceiptItem(
+                    receipt_id=row.id,
+                    name="PAINE",
+                    normalized_name="paine",
+                    quantity=Decimal(1),
+                    unit="шт",
+                    unit_price_minor=1200,
+                    total_minor=1200,
+                )
+            )
+            ids.append(row.id)
+        db.commit()
+    body = {"version": 1, "account_id": accounts[0]["id"]}
+    assert member.post(f"/api/receipts/{ids[1]}/accept", json=body).status_code == 403
+    assert (
+        member.post(f"/api/receipts/{ids[0]}/accept", json={**body, "total": "1"}).status_code
+        == 422
+    )
+    assert member.post(f"/api/receipts/{ids[0]}/accept", json=body).status_code == 200
+    assert member.post(f"/api/receipts/{ids[0]}/accept", json=body).status_code == 200
+    assert client.get("/api/transactions").json()["total"] == 1
+
+
 def test_income_plan_receive_and_occasional(client, accounts):
     source, payload = plan(client, accounts)
     assert client.post("/api/income/templates", json=payload).json()["id"] == source["id"]

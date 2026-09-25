@@ -144,6 +144,13 @@ def test_ownership_boundaries(client, accounts):
         "https://mev.sfs.md:invalid/receipt-verifier/1234567890123456",
         "https://x@mev.sfs.md/receipt-verifier/1234567890123456",
         "https://mev.sfs.md/receipt-verifier/1234567890123456?url=http://localhost",
+        "http://sift-mev.sfs.md/receipt/0123456789ABCDEF0123456789ABCDEF",
+        "https://sift-mev.sfs.md.evil.test/receipt/0123456789ABCDEF0123456789ABCDEF",
+        "https://sift-mev.sfs.md:444/receipt/0123456789ABCDEF0123456789ABCDEF",
+        "https://x@sift-mev.sfs.md/receipt/0123456789ABCDEF0123456789ABCDEF",
+        "https://sift-mev.sfs.md/receipt/0123456789ABCDEF0123456789ABCDEF?x=1",
+        "https://sift-mev.sfs.md/receipt-verifier/0123456789ABCDEF0123456789ABCDEF",
+        "https://sift-mev.sfs.md/receipt/short",
     ],
 )
 def test_mev_url_allowlist(url):
@@ -161,6 +168,14 @@ def test_mev_canonical_and_parser():
     assert result["purchased_on"] == "2024-09-08"
     assert result["total"] == "390.00"
     assert result["items"][0]["name"] == "PLATA SERVICII"
+
+
+def test_printed_sift_link_has_same_canonical_receipt():
+    receipt_id = "0123456789ABCDEF0123456789ABCDEF"
+    canonical = "https://mev.sfs.md/receipt-verifier/" + receipt_id
+    assert mev_url("https://sift-mev.sfs.md/receipt/" + receipt_id) == canonical
+    assert mev_url("https://sift-mev.sfs.md/receipt/" + receipt_id + "/") == canonical
+    assert mev_url(canonical) == canonical
 
 
 def photo():

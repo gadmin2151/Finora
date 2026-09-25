@@ -233,6 +233,23 @@ class ApiClient(val server: String, savedCookie: String? = null) {
         execute(request("/api/receipts/$id/retry", org, "POST", jsonBody(buildJsonObject {})))
     }
 
+    suspend fun acceptReceipt(org: String, id: String, version: Int, accountId: String): Receipt =
+        json.decodeFromString(
+            execute(
+                request(
+                    "/api/receipts/$id/accept",
+                    org,
+                    "POST",
+                    jsonBody(
+                        buildJsonObject {
+                            put("version", version)
+                            put("account_id", accountId)
+                        }
+                    ),
+                )
+            )
+        )
+
     suspend fun link(org: String, draft: Draft): ReceiptResult =
         json.decodeFromString(
             execute(
@@ -242,7 +259,8 @@ class ApiClient(val server: String, savedCookie: String? = null) {
                     "POST",
                     jsonBody(
                         buildJsonObject {
-                            put("url", mevLink(draft.qr))
+                            put("url", receiptLink(draft.qr))
+                            put("review_required", true)
                             put("account_id", draft.accountId?.let(::JsonPrimitive) ?: JsonNull)
                         }
                     ),
@@ -262,6 +280,7 @@ class ApiClient(val server: String, savedCookie: String? = null) {
                 .setType(MultipartBody.FORM)
                 .addFormDataPart("account_id", draft.accountId ?: "")
                 .addFormDataPart("fx_rate", "1")
+                .addFormDataPart("review_required", "true")
                 .apply {
                     files.forEachIndexed { index, file ->
                         addFormDataPart(

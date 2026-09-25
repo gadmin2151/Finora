@@ -198,7 +198,7 @@ fun ReceiptDetailScreen(state: AppState, vm: FinoraViewModel) {
             if (receipt.status == "review")
                 item {
                     InfoCard(
-                        "Нужна проверка перед добавлением в расходы. Администратор может исправить и подтвердить чек в веб-версии.",
+                        "Проверьте товары и итог. Подтверждение находится под списком позиций.",
                         Glyph.RECEIPT,
                     )
                 }
@@ -294,6 +294,7 @@ fun ReceiptDetailScreen(state: AppState, vm: FinoraViewModel) {
                         )
                     }
             }
+            if (receipt.status == "review") item { ReceiptReview(state, receipt, vm) }
             item {
                 OutlinedButton(
                     {

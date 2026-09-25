@@ -198,14 +198,14 @@ export function UploadReceipt({ onClose }: { onClose: () => void }) {
         ) : (
           <Field
             label="Ссылка из QR-кода"
-            hint="https://mev.sfs.md/receipt-verifier/…"
+            hint="HTTPS-ссылка на электронный чек любого магазина"
           >
             <input
               type="url"
               required
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="Вставьте ссылку MEV"
+              placeholder="Вставьте ссылку из QR-кода"
               maxLength={1000}
             />
           </Field>

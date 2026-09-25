@@ -54,6 +54,25 @@ class PoliciesTest {
     }
 
     @Test
+    fun normalizesPrintedSiftReceiptLink() {
+        val id = "0123456789ABCDEF0123456789ABCDEF"
+        assertEquals(
+            "https://mev.sfs.md/receipt-verifier/$id",
+            mevLink("https://sift-mev.sfs.md/receipt/$id"),
+        )
+        listOf(
+                "http://sift-mev.sfs.md/receipt/$id",
+                "https://sift-mev.sfs.md.evil.test/receipt/$id",
+                "https://sift-mev.sfs.md/receipt/$id?url=https://evil.test",
+                "https://sift-mev.sfs.md:444/receipt/$id",
+                "https://user@sift-mev.sfs.md/receipt/$id",
+                "https://sift-mev.sfs.md/receipt/short",
+                "https://sift-mev.sfs.md/receipt-verifier/$id",
+            )
+            .forEach { assertThrows(IllegalArgumentException::class.java) { mevLink(it) } }
+    }
+
+    @Test
     fun rejectsUnrelatedQrAndEncodedPaths() {
         listOf(
                 "http://mev.sfs.md/receipt-verifier/0123456789abcdef",
@@ -68,6 +87,35 @@ class PoliciesTest {
             .forEach {
                 assertThrows(IllegalArgumentException::class.java) { mevLink(it) }
             }
+    }
+
+    @Test
+    fun supportsOtherReceiptProvidersAndSegmentedSiftLinks() {
+        listOf(
+                "https://shop.example/receipt?id=123&key=abc#/view",
+                "https://sift-mev.sfs.md/receipt/TEST123/30.00/12345/2026-08-11",
+            )
+            .forEach { assertEquals(it, receiptLink(it)) }
+        val id = "0123456789ABCDEF0123456789ABCDEF"
+        assertEquals(
+            "https://mev.sfs.md/receipt-verifier/$id",
+            receiptLink("https://sift-mev.sfs.md/receipt/$id"),
+        )
+    }
+
+    @Test
+    fun rejectsQrWithoutSecureReceiptUrl() {
+        listOf(
+                "http://shop.example/receipt",
+                "https://user:secret@shop.example/receipt",
+                "https://shop.example:8443/receipt",
+                "https://shop.example/\\@localhost",
+                "https://shop.example/receipt\n123",
+                "https://shop.example/" + "x".repeat(1000),
+                "not a receipt link",
+                "file:///etc/passwd",
+            )
+            .forEach { assertThrows(IllegalArgumentException::class.java) { receiptLink(it) } }
     }
 
     @Test
