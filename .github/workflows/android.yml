@@ -30,7 +30,7 @@ jobs:
           cache: gradle
           cache-dependency-path: 'android/**/*.gradle.kts'
       - name: Install Android SDK platform
-        run: sdkmanager 'platforms;android-37.0' 'build-tools;36.0.0'
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.0" "build-tools;36.0.0"'
       - name: Check and build release
         working-directory: android
         env:
