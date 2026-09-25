@@ -609,6 +609,10 @@ def confirm_receipt(db, organization_id: str, receipt: m.Receipt, data: ReceiptC
         tx.fx_rate if data.transaction_id else rate_for(data.currency, data.fx_rate),
     )
     receipt.status, receipt.error, receipt.version = "posted", None, receipt.version + 1
+    if receipt.warnings:
+        # Keep recognition diagnostics for audit; reviewed values have passed validation.
+        receipt.original = {**receipt.original, "review_warnings": receipt.warnings}
+        receipt.warnings = []
     db.execute(delete(m.ReceiptItem).where(m.ReceiptItem.receipt_id == receipt.id))
     for item in data.items:
         db.add(

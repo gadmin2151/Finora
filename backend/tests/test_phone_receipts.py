@@ -82,6 +82,11 @@ def test_phone_page_never_fetches_source_and_member_can_correct_before_posting(
     # Reprocessing keeps the original page text, without a network/OCR fallback.
     asyncio.run(receipts.process_receipt(row["id"]))
     preview = client.get(f"/api/receipts/{row['id']}").json()
+    with SessionLocal() as db:
+        receipt = db.get(m.Receipt, row["id"])
+        receipt.warnings = ["Сумма товаров не совпала с итогом чека"]
+        original_extraction = receipt.original["extraction"]
+        db.commit()
     body = correction(preview, accounts[0], categories[0]["id"])
     endpoint = f"/api/receipts/{row['id']}/review"
     assert client.post(endpoint, json={**body, "version": 1}).status_code == 409
@@ -98,7 +103,12 @@ def test_phone_page_never_fetches_source_and_member_can_correct_before_posting(
         assert result["total_minor"] == 1150 and result["purchased_on"] == "2025-09-24"
         assert result["items"][0]["category_id"] == categories[0]["id"]
         assert result["items"][0]["quantity"].startswith("2")
+        assert result["warnings"] == []
     assert client.get("/api/transactions").json()["total"] == 1
+    with SessionLocal() as db:
+        receipt = db.get(m.Receipt, row["id"])
+        assert receipt.original["extraction"] == original_extraction
+        assert receipt.original["review_warnings"] == ["Сумма товаров не совпала с итогом чека"]
 
 
 def test_phone_photo_disables_decoded_qr_network_target(client, owner, monkeypatch):
