@@ -5,7 +5,7 @@ services:
   api:
     network_mode: host
     ports: !reset []
-    command: [uvicorn, app.main:app, --host, "127.0.0.1", --port, "${APP_PORT:-8088}"]
+    command: [uvicorn, app.main:app, --host, "${BIND_ADDRESS:-127.0.0.1}", --port, "${APP_PORT:-8088}"]
     environment:
       DATABASE_URL: postgresql+psycopg://finance:${POSTGRES_PASSWORD}@127.0.0.1:5432/finance
       FINORA_HTTP_PORT: ${APP_PORT:-8088}
