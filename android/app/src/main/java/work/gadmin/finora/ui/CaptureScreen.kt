@@ -1,0 +1,462 @@
+package work.gadmin.finora.ui
+
+import android.graphics.BitmapFactory
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.rememberTransformableState
+import androidx.compose.foundation.gestures.transformable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import work.gadmin.finora.*
+import work.gadmin.finora.data.*
+
+@Composable
+fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
+    var manualQr by rememberSaveable { mutableStateOf(false) }
+    var qrText by rememberSaveable { mutableStateOf("") }
+    var discard by remember { mutableStateOf(false) }
+    var preview by remember { mutableStateOf<File?>(null) }
+    var accountMenu by remember { mutableStateOf(false) }
+    val picker =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.PickMultipleVisualMedia(MAX_PHOTOS)
+        ) { uris ->
+            if (uris.isNotEmpty()) vm.addPhotos(uris)
+        }
+    val available = !state.busy && !state.workspaceLoading
+    LazyColumn(
+        contentPadding = PaddingValues(22.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
+    ) {
+        item {
+            Text(
+                if (state.draft.hasContent) "Один чек.\nВсё на месте."
+                else "Чек — и всё\nпод контролем.",
+                style = MaterialTheme.typography.headlineLarge,
+            )
+            Spacer(Modifier.height(9.dp))
+            Text(
+                if (state.draft.hasContent) "Проверьте снимки и отправьте на распознавание."
+                else "Добавляйте покупки за пару касаний.\nОстальное Finora возьмёт на себя.",
+                color = Muted,
+            )
+        }
+        if (state.workspaceLoading) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
+        if (state.draft.hasContent) {
+            item {
+                Surface(shape = RoundedCornerShape(26.dp), color = Color.White) {
+                    Column(
+                        Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text("Черновик чека", style = MaterialTheme.typography.titleMedium)
+                                Text(
+                                    "Сохранён на этом устройстве",
+                                    color = Muted,
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
+                            IconButton({ discard = true }, enabled = available) {
+                                LineIcon(Glyph.TRASH, "Удалить черновик", tint = Muted)
+                            }
+                        }
+                        if (state.draft.qr.isNotBlank())
+                            InfoCard(
+                                "QR-код MEV найден. Товары и сумму получим из электронного чека.",
+                                Glyph.SCAN,
+                            )
+                        state.draft.photos.forEachIndexed { index, name ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                Surface(
+                                    onClick = { preview = vm.photoFile(name) },
+                                    shape = RoundedCornerShape(12.dp),
+                                ) {
+                                    LocalPhoto(
+                                        vm.photoFile(name),
+                                        Modifier.size(70.dp, 86.dp),
+                                        ContentScale.Crop,
+                                    )
+                                }
+                                Column(Modifier.weight(1f)) {
+                                    Text("Часть ${index + 1}", fontWeight = FontWeight.SemiBold)
+                                    Text(
+                                        "Нажмите, чтобы проверить",
+                                        color = Muted,
+                                        style = MaterialTheme.typography.bodySmall,
+                                    )
+                                }
+                                if (index > 0)
+                                    IconButton({ vm.movePhoto(index, -1) }, enabled = available) {
+                                        LineIcon(
+                                            Glyph.BACK,
+                                            "Переместить часть ${index + 1} раньше",
+                                            size = 19.dp,
+                                        )
+                                    }
+                                IconButton({ vm.removePhoto(name) }, enabled = available) {
+                                    LineIcon(
+                                        Glyph.CLOSE,
+                                        "Удалить часть ${index + 1}",
+                                        tint = Muted,
+                                        size = 20.dp,
+                                    )
+                                }
+                            }
+                        }
+                        if (state.draft.qr.isBlank() && state.draft.photos.size < MAX_PHOTOS) {
+                            OutlinedButton(
+                                { vm.camera(CameraMode.PHOTO) },
+                                Modifier.fillMaxWidth(),
+                                enabled = available,
+                                contentPadding = PaddingValues(14.dp),
+                            ) {
+                                LineIcon(Glyph.PLUS, size = 18.dp)
+                                Spacer(Modifier.width(8.dp))
+                                Text("Добавить часть чека · ${state.draft.photos.size}/4")
+                            }
+                        }
+                        Box {
+                            OutlinedButton(
+                                { accountMenu = true },
+                                Modifier.fillMaxWidth(),
+                                enabled = available,
+                                contentPadding = PaddingValues(14.dp),
+                            ) {
+                                LineIcon(Glyph.WALLET, size = 19.dp)
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    state.accounts
+                                        .firstOrNull { it.id == state.draft.accountId }
+                                        ?.name ?: "Счёт по настройке сервера",
+                                    Modifier.weight(1f),
+                                )
+                                LineIcon(Glyph.DOWN, size = 18.dp)
+                            }
+                            DropdownMenu(accountMenu, { accountMenu = false }) {
+                                DropdownMenuItem(
+                                    text = { Text("По настройке сервера") },
+                                    onClick = {
+                                        vm.setAccount(null)
+                                        accountMenu = false
+                                    },
+                                )
+                                state.accounts
+                                    .filter { it.currency == "MDL" }
+                                    .forEach { account ->
+                                        DropdownMenuItem(
+                                            text = { Text("${account.name} · MDL") },
+                                            onClick = {
+                                                vm.setAccount(account.id)
+                                                accountMenu = false
+                                            },
+                                        )
+                                    }
+                            }
+                        }
+                        state.progress?.let { progress ->
+                            LinearProgressIndicator(
+                                progress = { progress },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            Text(
+                                if (progress >= 1f) "Сервер принимает чек…"
+                                else "Передаём фото: ${(progress * 100).toInt()}%",
+                                color = Muted,
+                            )
+                        }
+                        PrimaryButton(
+                            if (state.busy) "Обрабатываем…" else "Отправить чек",
+                            vm::sendDraft,
+                            Modifier.fillMaxWidth(),
+                            available,
+                            Glyph.ARROW,
+                        )
+                        Text(
+                            "Организация: ${state.organization?.name}",
+                            color = Muted,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
+            }
+        } else {
+            item {
+                Surface(
+                    onClick = { vm.camera(CameraMode.QR) },
+                    enabled = available,
+                    color = Forest,
+                    shape = RoundedCornerShape(30.dp),
+                ) {
+                    Column(Modifier.fillMaxWidth().padding(26.dp)) {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Top,
+                        ) {
+                            Surface(
+                                color = Mint.copy(alpha = .13f),
+                                shape = RoundedCornerShape(20.dp),
+                            ) {
+                                Box(Modifier.padding(17.dp)) {
+                                    LineIcon(Glyph.SCAN, tint = Mint, size = 40.dp)
+                                }
+                            }
+                            Text(
+                                "БЫСТРЕЕ ВСЕГО",
+                                color = Mint,
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.padding(top = 7.dp),
+                            )
+                        }
+                        Spacer(Modifier.height(28.dp))
+                        Text(
+                            "Сканировать QR",
+                            fontSize = 25.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.White,
+                        )
+                        Spacer(Modifier.height(7.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                "Наведите на код\nвнизу чека MEV",
+                                color = Mint.copy(alpha = .85f),
+                                modifier = Modifier.weight(1f),
+                            )
+                            Surface(color = Mint, shape = RoundedCornerShape(50)) {
+                                Box(Modifier.padding(14.dp)) {
+                                    LineIcon(Glyph.ARROW, tint = Forest)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (state.draft.qr.isBlank())
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    CaptureTile(
+                        "Сфотографировать",
+                        "До 4 частей чека",
+                        Glyph.CAMERA,
+                        Modifier.weight(1f),
+                        available && state.draft.photos.size < MAX_PHOTOS,
+                    ) {
+                        vm.camera(CameraMode.PHOTO)
+                    }
+                    CaptureTile(
+                        "Из галереи",
+                        "Готовые снимки",
+                        Glyph.IMAGE,
+                        Modifier.weight(1f),
+                        available && state.draft.photos.size < MAX_PHOTOS,
+                    ) {
+                        picker.launch(
+                            PickVisualMediaRequest(
+                                ActivityResultContracts.PickVisualMedia.ImageOnly
+                            )
+                        )
+                    }
+                }
+            }
+        if (!state.draft.hasContent)
+            item {
+                TextButton({ manualQr = true }, Modifier.fillMaxWidth(), enabled = available) {
+                    LineIcon(Glyph.LINK, size = 18.dp)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Вставить ссылку MEV")
+                }
+                Spacer(Modifier.height(8.dp))
+                InfoCard(
+                    "Длинный чек? Снимите его несколькими частями с небольшим перекрытием. Мы соберём их в одну покупку.",
+                    Glyph.SPARK,
+                )
+            }
+        item {
+            Text(
+                "ВАШ СЕРВЕР · ВАШИ ДАННЫЕ",
+                style = MaterialTheme.typography.labelSmall,
+                color = Muted,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            )
+        }
+    }
+    if (manualQr)
+        AlertDialog(
+            onDismissRequest = { manualQr = false },
+            title = { Text("Ссылка на чек MEV") },
+            text = {
+                OutlinedTextField(
+                    qrText,
+                    { qrText = it.take(1000) },
+                    label = { Text("https://mev.sfs.md/…") },
+                    minLines = 3,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    {
+                        vm.setQr(qrText)
+                        manualQr = false
+                    },
+                    enabled = qrText.isNotBlank(),
+                ) {
+                    Text("Добавить")
+                }
+            },
+            dismissButton = { TextButton({ manualQr = false }) { Text("Отмена") } },
+        )
+    if (discard)
+        AlertDialog(
+            onDismissRequest = { discard = false },
+            title = { Text("Удалить черновик?") },
+            text = {
+                Text(
+                    "Фотографии этого черновика будут удалены с устройства. Отправленные чеки останутся на сервере."
+                )
+            },
+            confirmButton = {
+                TextButton({
+                    vm.discardDraft()
+                    discard = false
+                }) {
+                    Text("Удалить")
+                }
+            },
+            dismissButton = { TextButton({ discard = false }) { Text("Оставить") } },
+        )
+    preview?.let { file -> PhotoDialog(file) { preview = null } }
+}
+
+@Composable
+private fun CaptureTile(
+    title: String,
+    subtitle: String,
+    glyph: Glyph,
+    modifier: Modifier,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+        shape = RoundedCornerShape(24.dp),
+        color = Color.White,
+    ) {
+        Column(
+            Modifier.padding(horizontal = 16.dp, vertical = 22.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            LineIcon(glyph, size = 28.dp)
+            Text(
+                title,
+                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Text(subtitle, color = Muted, style = MaterialTheme.typography.bodySmall)
+        }
+    }
+}
+
+@Composable
+fun LocalPhoto(
+    file: File?,
+    modifier: Modifier,
+    scale: ContentScale = ContentScale.Fit,
+    full: Boolean = false,
+) {
+    val image by
+        produceState<ImageBitmap?>(null, file?.path) {
+            value =
+                withContext(Dispatchers.IO) {
+                    file?.takeIf(File::isFile)?.let {
+                        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                        BitmapFactory.decodeFile(it.path, bounds)
+                        val options =
+                            BitmapFactory.Options().apply {
+                                inPreferredConfig = android.graphics.Bitmap.Config.RGB_565
+                                inSampleSize = 1
+                                while (
+                                    maxOf(bounds.outWidth, bounds.outHeight) / inSampleSize >
+                                        if (full) 5000 else 600
+                                ) inSampleSize *= 2
+                            }
+                        BitmapFactory.decodeFile(it.path, options)?.asImageBitmap()
+                    }
+                }
+        }
+    if (image != null)
+        Image(requireNotNull(image), "Фотография чека", modifier, contentScale = scale)
+    else
+        Box(modifier.background(SoftGreen), contentAlignment = Alignment.Center) {
+            LineIcon(Glyph.IMAGE)
+        }
+}
+
+@Composable
+private fun PhotoDialog(file: File, onClose: () -> Unit) {
+    Dialog(onClose, DialogProperties(usePlatformDefaultWidth = false)) {
+        var zoom by remember { mutableFloatStateOf(1f) }
+        var offset by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
+        Box(Modifier.fillMaxSize().background(Color.Black).safeDrawingPadding()) {
+            LocalPhoto(
+                file,
+                Modifier.fillMaxSize()
+                    .clip(RoundedCornerShape(1.dp))
+                    .transformable(
+                        rememberTransformableState { change, pan, _ ->
+                            zoom = (zoom * change).coerceIn(1f, 5f)
+                            offset =
+                                if (zoom == 1f) androidx.compose.ui.geometry.Offset.Zero
+                                else offset + pan
+                        }
+                    )
+                    .graphicsLayer {
+                        scaleX = zoom
+                        scaleY = zoom
+                        translationX = offset.x
+                        translationY = offset.y
+                    },
+                full = true,
+            )
+            IconButton(
+                onClose,
+                Modifier.align(Alignment.TopEnd)
+                    .padding(12.dp)
+                    .background(Forest, RoundedCornerShape(50)),
+            ) {
+                LineIcon(Glyph.CLOSE, "Закрыть фото", tint = Color.White)
+            }
+        }
+    }
+}

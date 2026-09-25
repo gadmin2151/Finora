@@ -1,0 +1,11 @@
+# Optional: publish only Android binaries from ./downloads over Finora's existing HTTPS origin.
+# Put a verified signed APK in downloads/ first, then add this overlay to COMPOSE_FILE.
+services:
+  api:
+    volumes:
+      - type: bind
+        source: ./downloads
+        target: /app/static/assets/mobile
+        read_only: true
+        bind:
+          create_host_path: false

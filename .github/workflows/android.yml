@@ -1,0 +1,57 @@
+name: Android APK
+
+on:
+  push:
+    branches: [main]
+    paths: ['android/**', 'scripts/build-android.py', '.github/workflows/android.yml']
+  pull_request:
+    paths: ['android/**', 'scripts/build-android.py', '.github/workflows/android.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+          cache-dependency-path: 'android/**/*.gradle.kts'
+      - name: Install Android SDK platform
+        run: sdkmanager 'platforms;android-37.0' 'build-tools;36.0.0'
+      - name: Check and build release
+        working-directory: android
+        env:
+          KEYSTORE_BASE64: ${{ secrets.FINORA_KEYSTORE_BASE64 }}
+          FINORA_STORE_PASSWORD: ${{ secrets.FINORA_STORE_PASSWORD }}
+          FINORA_KEY_PASSWORD: ${{ secrets.FINORA_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            export FINORA_KEYSTORE="$RUNNER_TEMP/finora.p12"
+            printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$FINORA_KEYSTORE"
+            chmod 600 "$FINORA_KEYSTORE"
+          fi
+          ./gradlew --no-daemon --console=plain checkKotlinFormat :app:testDebugUnitTest :app:lintRelease :app:assembleRelease
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: finora-android
+          path: |
+            android/app/build/outputs/apk/release/*.apk
+            android/app/build/outputs/mapping/release/mapping.txt
+            android/app/build/reports/lint-results-release.html
+            android/app/build/test-results/testDebugUnitTest/*.xml
+      - name: Remove temporary signing key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/finora.p12"

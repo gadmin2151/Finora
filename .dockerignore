@@ -19,3 +19,11 @@ backups
 **/*.key
 **/*.tsbuildinfo
 .deploy.lock
+android
+artifacts
+**/*.jks
+**/*.keystore
+**/*.apk
+**/*.aab
+**/*.p12
+downloads
