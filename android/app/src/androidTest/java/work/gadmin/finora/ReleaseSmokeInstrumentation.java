@@ -73,10 +73,13 @@ public final class ReleaseSmokeInstrumentation extends Instrumentation {
                 result.putString("camera", "PASS: release QR and photo preview on device");
             }
             if (testRefresh) {
-                getTargetContext().startActivity(new Intent(Intent.ACTION_MAIN)
-                        .setClassName(getTargetContext(), "work.gadmin.finora.MainActivity")
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-                if (awaitNode("Сканировать QR", 3000) == null && organization != null) click(organization);
+                if (!testCamera) {
+                    getTargetContext().startActivity(new Intent(Intent.ACTION_MAIN)
+                            .setClassName(getTargetContext(), "work.gadmin.finora.MainActivity")
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                    if (organization != null && awaitNode(organization, 8000) != null) click(organization);
+                }
+                requireNode("Сканировать QR");
                 for (String page : new String[]{"Добавить", "Чеки", "Обзор", "Профиль"}) {
                     Bundle progress = new Bundle(); progress.putString("stage", "Refresh: " + page); sendStatus(0, progress);
                     click(page);
