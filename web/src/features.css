@@ -1,0 +1,253 @@
+.button-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.organization-picker {
+  max-width: 860px;
+  padding: 70px 28px;
+  margin: auto;
+}
+.organization-picker .brand {
+  margin-bottom: 60px;
+}
+.organization-picker h1 {
+  font-size: clamp(27px, 4vw, 39px);
+  letter-spacing: -0.035em;
+  margin: 15px 0;
+}
+.organization-picker > p {
+  color: #73817b;
+  max-width: 580px;
+  line-height: 1.7;
+}
+.organization-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+  margin: 24px 0;
+}
+.organization-card {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 14px;
+  text-align: left;
+  padding: 24px;
+  cursor: pointer;
+  color: #36534a;
+  border: 1px solid #e2eae6;
+}
+.organization-card strong {
+  font-size: 18px;
+  overflow-wrap: anywhere;
+}
+.organization-card small {
+  color: #7c8a84;
+}
+.organization-card.selected,
+.organization-card:hover {
+  border-color: #65b4a5;
+  background: #f2fbf7;
+}
+.organization-settings {
+  padding: 24px;
+  margin: 20px 0;
+  max-width: 660px;
+}
+.route-income > .panel,
+.route-purchases > .panel {
+  margin-top: 22px;
+}
+.income-stats .stat-card > small {
+  color: #798680;
+}
+.income-stats .stat-card > strong {
+  display: block;
+  margin: 18px 0 12px;
+}
+.bill-row .grow {
+  min-width: 110px;
+  flex: 1;
+}
+.bill-row .grow strong,
+.bill-row .grow small {
+  display: block;
+}
+.bill-row .grow small {
+  color: #849089;
+  font-size: 12px;
+  margin-top: 5px;
+}
+.purchase-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  padding: 0 24px 20px;
+}
+.purchase-filter-grid .field {
+  margin: 0;
+}
+.purchase-filters .panel-heading h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.purchase-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 36px;
+  background: #edf7f2;
+  border: 1px solid #dceee4;
+  padding: 22px 26px;
+  border-radius: 16px;
+  margin: 22px 0;
+}
+.purchase-summary span,
+.purchase-summary strong {
+  display: block;
+}
+.purchase-summary span {
+  color: #688477;
+  font-size: 12px;
+}
+.purchase-summary strong {
+  color: #255b47;
+  margin-top: 9px;
+  font-size: 24px;
+  font-variant-numeric: tabular-nums;
+}
+.purchase-categories {
+  padding: 0 24px 24px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+.purchase-categories button {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 15px;
+  border: 1px solid #e7ece9;
+  border-radius: 9px;
+  background: #fafcfb;
+  text-align: left;
+}
+.comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  padding: 0 24px 24px;
+}
+.price-comparison {
+  border: 1px solid #e4ebe7;
+  border-radius: 12px;
+  padding: 20px;
+}
+.price-comparison h3 {
+  font-size: 15px;
+  margin: 0 0 15px;
+}
+.price-comparison p,
+.price-comparison small {
+  color: #7a8881;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.price-range {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.price-range strong {
+  font-size: 21px;
+}
+.price-range span {
+  color: #7a8881;
+  font-size: 12px;
+}
+.analysis-footnote {
+  margin: 0;
+  padding: 0 24px 24px;
+  color: #859189;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.receipt-moderation,
+.receipt-comments {
+  margin-top: 26px;
+  border-top: 1px solid #e5ece7;
+  padding-top: 18px;
+}
+.receipt-moderation summary {
+  padding: 12px 0;
+  cursor: pointer;
+  font-size: 13px;
+}
+.comment-list article {
+  padding: 18px 0;
+  border-bottom: 1px solid #e6ece8;
+}
+.comment-list small {
+  margin-left: 12px;
+  font-size: 11px;
+  color: #829088;
+}
+.comment-list p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
+.receipt-comments textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+.row-actions[hidden] {
+  display: none;
+}
+@media (max-width: 1100px) {
+  .purchase-filter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .income-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 620px) {
+  .purchase-filter-grid {
+    grid-template-columns: 1fr;
+    padding: 0 16px 16px;
+  }
+  .purchase-summary {
+    gap: 24px;
+    padding: 20px;
+  }
+  .organization-grid {
+    grid-template-columns: 1fr;
+  }
+  .organization-picker {
+    padding-top: 35px;
+  }
+  .bill-row {
+    flex-wrap: wrap;
+  }
+  .price-comparison {
+    min-width: 0;
+  }
+  .comparison-grid {
+    grid-template-columns: 1fr;
+    padding: 0 16px 16px;
+  }
+  .income-stats .stat-card {
+    padding: 17px;
+  }
+  .income-stats .stat-card > strong {
+    font-size: 21px;
+  }
+}
+
+[hidden] {
+  display: none !important;
+}

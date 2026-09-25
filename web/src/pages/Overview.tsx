@@ -1,0 +1,436 @@
+import { useQuery } from "@tanstack/react-query";
+import {
+  ArrowDownLeft,
+  ArrowRight,
+  ArrowUpRight,
+  CalendarClock,
+  ChevronRight,
+  Plus,
+  ScanLine,
+  Sparkles,
+  Wallet,
+} from "lucide-react";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { api } from "../api";
+import { useApp } from "../context";
+import type { Dashboard, Transaction } from "../types";
+import {
+  Badge,
+  CategoryIcon,
+  Empty,
+  ErrorBox,
+  Loading,
+  PageHeading,
+  amount,
+  dateLabel,
+  monthLabel,
+} from "../ui";
+
+export default function Overview() {
+  const { month, open, navigate, categories, accounts, isAdmin } = useApp();
+  const report = useQuery({
+    queryKey: ["dashboard", month],
+    queryFn: () => api<Dashboard>(`/dashboard?month=${month}`),
+  });
+  const recent = useQuery({
+    queryKey: ["transactions", month, "recent"],
+    queryFn: () =>
+      api<{ items: Transaction[] }>(`/transactions?month=${month}&limit=5`),
+  });
+  if (report.isPending) return <Loading />;
+  if (!report.data) return <ErrorBox error={report.error} />;
+  const data = report.data;
+  const ranked = data.categories
+    .filter((c) => (c.spent_minor ?? 0) > 0)
+    .sort((a, b) => (b.spent_minor ?? 0) - (a.spent_minor ?? 0));
+  const pending = data.bills.filter((b) =>
+    ["upcoming", "overdue"].includes(b.status),
+  );
+  const chart = data.chart.map((d) => ({
+    ...d,
+    expense: d.expense / 100,
+    income: d.income / 100,
+  }));
+  const monthEmpty = data.expense_minor === 0 && data.income_minor === 0;
+  return (
+    <>
+      <PageHeading
+        eyebrow="ВАША ФИНАНСОВАЯ КАРТИНА"
+        title="Деньги под контролем"
+        text={`Всё важное за ${monthLabel(month)}`}
+        actions={
+          <button
+            className="button secondary"
+            onClick={() => open({ type: "upload" })}
+          >
+            <ScanLine size={18} />
+            Добавить чек
+          </button>
+        }
+      />
+      <div className="stats-grid">
+        <section className="stat-card main-stat">
+          <div className="stat-label">
+            <span>Остаток за месяц</span>
+            <Wallet size={20} />
+          </div>
+          <strong>{amount(data.net_minor)}</strong>
+          <span className="stat-note">Доходы минус расходы</span>
+          <div className="stat-decoration" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+          </div>
+        </section>
+        <section className="stat-card">
+          <div className="stat-label">
+            <span>Доходы</span>
+            <span className="round-icon mint">
+              <ArrowDownLeft size={18} />
+            </span>
+          </div>
+          <strong>{amount(data.income_minor)}</strong>
+          <button className="text-button" onClick={() => navigate("income")}>
+            <Plus size={15} />
+            Открыть доходы
+          </button>
+        </section>
+        <section className="stat-card">
+          <div className="stat-label">
+            <span>Расходы</span>
+            <span className="round-icon peach">
+              <ArrowUpRight size={18} />
+            </span>
+          </div>
+          <strong>{amount(data.expense_minor)}</strong>
+          <span className="stat-note">Возвраты покупок учтены</span>
+        </section>
+        <section className="stat-card">
+          <div className="stat-label">
+            <span>Ещё к оплате</span>
+            <span className="round-icon lavender">
+              <CalendarClock size={18} />
+            </span>
+          </div>
+          <strong>{amount(data.planned_remaining_minor)}</strong>
+          <button
+            className="text-button"
+            disabled={!isAdmin}
+            onClick={() => navigate("bills")}
+          >
+            {pending.length
+              ? `${pending.length} обязательных платежей`
+              : "Составить план платежей"}
+            <ChevronRight size={16} />
+          </button>
+        </section>
+      </div>
+      {monthEmpty && isAdmin && (
+        <div className="welcome-strip">
+          <div className="round-icon mint">
+            <Sparkles size={22} />
+          </div>
+          <div>
+            <strong>Первый шаг — первый расход</strong>
+            <p>
+              Введите покупку или отправьте фото чека. Finora соберёт вашу
+              финансовую картину.
+            </p>
+          </div>
+          <button
+            className="button primary"
+            onClick={() => open({ type: "transaction" })}
+          >
+            Добавить операцию
+            <ArrowRight size={17} />
+          </button>
+        </div>
+      )}
+      <div className="dashboard-grid">
+        <section className="panel chart-panel">
+          <div className="panel-heading">
+            <div>
+              <h2>Движение денег</h2>
+              <p>По дням месяца · MDL</p>
+            </div>
+            <div className="chart-legend">
+              <span>
+                <i className="dot green" />
+                Доходы
+              </span>
+              <span>
+                <i className="dot purple" />
+                Расходы
+              </span>
+            </div>
+          </div>
+          <div className="chart-wrap">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                data={chart}
+                margin={{ top: 15, right: 10, left: -16, bottom: 0 }}
+              >
+                <defs>
+                  <linearGradient id="incomeFill" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stopColor="#169e8a" stopOpacity={0.17} />
+                    <stop offset="100%" stopColor="#169e8a" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="expenseFill" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stopColor="#7973ca" stopOpacity={0.16} />
+                    <stop offset="100%" stopColor="#7973ca" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid
+                  strokeDasharray="4 5"
+                  vertical={false}
+                  stroke="#e7ebf0"
+                />
+                <XAxis
+                  dataKey="day"
+                  tickLine={false}
+                  axisLine={false}
+                  interval={5}
+                  tick={{ fill: "#7d8794", fontSize: 12 }}
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fill: "#7d8794", fontSize: 12 }}
+                  width={64}
+                  tickFormatter={(n) =>
+                    Number(n) >= 1000 ? `${Number(n) / 1000}к` : String(n)
+                  }
+                />
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: 12,
+                    borderColor: "#e7ebf0",
+                    fontSize: 14,
+                  }}
+                  formatter={(v, name) => [
+                    `${Number(v).toLocaleString("ru-RU")} MDL`,
+                    name === "income" ? "Доходы" : "Расходы",
+                  ]}
+                  labelFormatter={(d) => `${d} ${monthLabel(month)}`}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="income"
+                  stroke="#169e8a"
+                  strokeWidth={2.5}
+                  fill="url(#incomeFill)"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="expense"
+                  stroke="#7973ca"
+                  strokeWidth={2.5}
+                  fill="url(#expenseFill)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="panel-foot">
+            <span>{data.comparison_label}</span>
+            <span>
+              Расходы ранее: <b>{amount(data.previous_expense_minor)}</b>
+            </span>
+          </div>
+        </section>
+        <section className="panel">
+          <div className="panel-heading">
+            <div>
+              <h2>Куда уходят деньги</h2>
+              <p>Расходы по категориям</p>
+            </div>
+            <button
+              className="icon-button"
+              aria-label="Открыть бюджеты"
+              hidden={!isAdmin}
+              onClick={() => navigate("budgets")}
+            >
+              <ArrowUpRight size={20} />
+            </button>
+          </div>
+          {ranked.length ? (
+            <div className="category-ranking">
+              {ranked.slice(0, 5).map((c) => (
+                <div className="ranking-row" key={c.id}>
+                  <CategoryIcon category={c} />
+                  <div>
+                    <div className="between">
+                      <span>{c.name}</span>
+                      <strong>{amount(c.spent_minor, "MDL", true)}</strong>
+                    </div>
+                    <div className="meter">
+                      <span
+                        style={{
+                          width: `${Math.min(100, ((c.spent_minor ?? 0) / Math.max(data.expense_minor, 1)) * 100)}%`,
+                          background: c.color,
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <Empty
+              title="Пока всё впереди"
+              text="Категории появятся после первой покупки."
+            />
+          )}
+        </section>
+        <section className="panel">
+          <div className="panel-heading">
+            <div>
+              <h2>Последние операции</h2>
+              <p>Ваша история за выбранный месяц</p>
+            </div>
+            <button
+              className="text-button"
+              onClick={() => navigate("transactions")}
+            >
+              Все операции
+              <ArrowRight size={17} />
+            </button>
+          </div>
+          {recent.data?.items.length ? (
+            <div className="recent-list">
+              {recent.data.items.map((tx) => (
+                <button
+                  className="recent-row"
+                  key={tx.id}
+                  onClick={() => navigate("transactions")}
+                >
+                  <CategoryIcon
+                    category={categories.find((c) => c.id === tx.category_id)}
+                  />
+                  <div>
+                    <strong>
+                      {tx.merchant ||
+                        tx.note ||
+                        (tx.kind === "income" ? "Доход" : "Операция")}
+                    </strong>
+                    <span>
+                      {dateLabel(tx.occurred_on)} ·{" "}
+                      {accounts.find((a) => a.id === tx.account_id)?.name}
+                    </span>
+                  </div>
+                  <b
+                    className={
+                      [
+                        "income",
+                        "refund",
+                        "debt_repayment_in",
+                        "debt_borrow",
+                      ].includes(tx.kind)
+                        ? "positive"
+                        : ""
+                    }
+                  >
+                    {[
+                      "income",
+                      "refund",
+                      "debt_repayment_in",
+                      "debt_borrow",
+                    ].includes(tx.kind)
+                      ? "+"
+                      : "−"}
+                    {amount(tx.amount_minor, tx.currency)}
+                  </b>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <Empty
+              title="Операций ещё нет"
+              text="Начните вести учёт в удобном вам темпе."
+              action={
+                isAdmin && (
+                  <button
+                    className="text-button"
+                    onClick={() => open({ type: "transaction" })}
+                  >
+                    Добавить первую
+                    <ArrowRight size={16} />
+                  </button>
+                )
+              }
+            />
+          )}
+        </section>
+        <section className="panel">
+          <div className="panel-heading">
+            <div>
+              <h2>Ближайшие платежи</h2>
+              <p>Чтобы ничего не упустить</p>
+            </div>
+            <button
+              className="icon-button"
+              aria-label="Открыть платежи"
+              hidden={!isAdmin}
+              disabled={!isAdmin}
+              onClick={() => navigate("bills")}
+            >
+              <ArrowUpRight size={20} />
+            </button>
+          </div>
+          {pending.length ? (
+            <div className="upcoming-list">
+              {pending.slice(0, 4).map((b) => (
+                <button
+                  className="upcoming-row"
+                  key={b.id}
+                  disabled={!isAdmin}
+                  onClick={() => navigate("bills")}
+                >
+                  <span className="date-tile">
+                    <b>{b.due_date.slice(8)}</b>
+                    <small>
+                      {dateLabel(b.due_date).split(" ").slice(1).join(" ")}
+                    </small>
+                  </span>
+                  <span>
+                    <strong>{b.name}</strong>
+                    <Badge status={b.status} />
+                  </span>
+                  <b>{amount(b.amount_minor, b.currency)}</b>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <Empty
+              icon={<CalendarClock size={28} />}
+              title="Нет ожидающих платежей"
+              text="Добавьте аренду, связь и подписки, чтобы видеть обязательства заранее."
+            />
+          )}
+        </section>
+      </div>
+      <button className="insight-banner" onClick={() => navigate("insights")}>
+        <span className="insight-icon">
+          <Sparkles size={25} />
+        </span>
+        <span>
+          <strong>Больше ясности. Меньше лишних трат.</strong>
+          <span>
+            Посмотрите, что изменилось в расходах и где можно сэкономить.
+          </span>
+        </span>
+        <ArrowRight size={24} />
+      </button>
+    </>
+  );
+}

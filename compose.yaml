@@ -1,0 +1,104 @@
+name: finora
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: finance
+      POSTGRES_USER: finance
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run python3 scripts/init.py}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U finance -d finance"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    mem_limit: 768m
+    logging: &logging
+      driver: json-file
+      options: {max-size: 10m, max-file: "3"}
+
+  api:
+    build: .
+    image: ${FINORA_IMAGE:-finora:local}
+    restart: unless-stopped
+    ports:
+      - "${BIND_ADDRESS:-127.0.0.1}:${APP_PORT:-8088}:8088"
+    environment: &environment
+      DATABASE_URL: postgresql+psycopg://finance:${POSTGRES_PASSWORD}@db:5432/finance
+      SECRET_KEY: ${SECRET_KEY:?Run python3 scripts/init.py}
+      APP_URL: ${APP_URL:-http://localhost:8088}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD_FILE: /run/secrets/admin_password
+      DATA_DIR: /data
+      OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
+      AI_TIMEOUT: ${AI_TIMEOUT:-480}
+      AI_CPU_THREADS: ${AI_CPU_THREADS:-4}
+    secrets:
+      - admin_password
+    volumes: &files
+      - receipt_data:/data
+    depends_on:
+      db: {condition: service_healthy}
+      init: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8088/api/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    mem_limit: 768m
+    security_opt: [no-new-privileges:true]
+    logging: *logging
+
+  init:
+    image: ${FINORA_IMAGE:-finora:local}
+    user: "0:0"
+    command: [sh, -c, "alembic upgrade head && python -m app.bootstrap"]
+    environment: *environment
+    volumes: *files
+    secrets:
+      - admin_password
+    depends_on:
+      db: {condition: service_healthy}
+    security_opt: [no-new-privileges:true]
+    mem_limit: 384m
+    logging: *logging
+
+  worker:
+    image: ${FINORA_IMAGE:-finora:local}
+    restart: unless-stopped
+    command: [python, -m, app.worker]
+    environment: *environment
+    volumes: *files
+    depends_on:
+      api: {condition: service_healthy}
+    mem_limit: 1536m
+    stop_grace_period: 30s
+    security_opt: [no-new-privileges:true]
+    logging: *logging
+
+  ollama:
+    image: ollama/ollama:0.34.4
+    profiles: [local-ai]
+    restart: unless-stopped
+    environment:
+      OLLAMA_HOST: 0.0.0.0:11434
+      OLLAMA_MAX_LOADED_MODELS: "1"
+      OLLAMA_NUM_PARALLEL: "1"
+      OLLAMA_KEEP_ALIVE: 2m
+    volumes:
+      - model_data:/root/.ollama
+    mem_limit: ${OLLAMA_MEMORY_LIMIT:-6g}
+    cpus: ${OLLAMA_CPUS:-4}
+    logging: *logging
+
+volumes:
+  postgres_data:
+  receipt_data:
+  model_data:
+secrets:
+  admin_password:
+    file: ./.secrets/admin_password

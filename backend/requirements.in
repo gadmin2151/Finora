@@ -1,0 +1,17 @@
+fastapi>=0.115,<1
+uvicorn[standard]>=0.34,<1
+sqlalchemy>=2.0,<3
+alembic>=1.15,<2
+psycopg[binary]>=3.2,<4
+argon2-cffi>=23.1,<26
+httpx>=0.28,<1
+python-multipart>=0.0.20,<1
+pillow>=11,<13
+pillow-heif>=0.22,<2
+cryptography>=44,<49
+beautifulsoup4>=4.13,<5
+playwright>=1.51,<2
+zxing-cpp>=2.3,<4
+pydantic-settings>=2.8,<3
+pytest>=8,<10
+ruff>=0.11,<1

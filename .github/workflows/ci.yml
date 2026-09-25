@@ -1,0 +1,204 @@
+name: CI and container images
+
+on:
+  push:
+    branches: [main]
+    tags: ['v[0-9]*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: finora-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Tests, migrations and frontend
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: finance
+          POSTGRES_DB: finance_test
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ['127.0.0.1:5433:5432']
+        options: >-
+          --health-cmd "pg_isready -U finance -d finance_test"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      DATABASE_URL: postgresql+psycopg://finance@localhost:5433/finance_test
+      TEST_DATABASE_URL: postgresql+psycopg://finance@localhost:5433/finance_test
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - run: pip install -r backend/requirements.txt
+      - name: Ephemeral test encryption key
+        run: echo "SECRET_KEY=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+      - run: ruff check backend scripts && ruff format --check backend scripts
+      - run: shellcheck scripts/install-debian.sh
+      - run: alembic -c backend/alembic.ini upgrade head
+      - run: pytest -q backend/tests scripts/tests
+      - run: alembic -c backend/alembic.ini check
+      - name: Validate Compose and HTTPS overlay
+        run: |
+          python3 scripts/init.py
+          docker compose config --quiet
+          DOMAIN=finance.example.com docker compose -f compose.yaml -f compose.tls.yaml --profile local-ai config --quiet
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+      - run: corepack enable && corepack prepare pnpm@11.25.0 --activate
+      - run: pnpm install --frozen-lockfile && pnpm lint && pnpm typecheck && pnpm build
+        working-directory: web
+
+  installer:
+    name: Deployment scripts / Python ${{ matrix.python }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    strategy:
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m unittest discover -s scripts/tests -v
+      - run: bash -n scripts/install-debian.sh && scripts/install-debian.sh --help
+
+  image:
+    name: Build and boot / ${{ matrix.arch }}
+    needs: [checks, installer]
+    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 35
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Image name
+        run: echo "FINORA_REGISTRY_IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push architecture digest
+        id: build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          platforms: linux/${{ matrix.arch }}
+          outputs: type=image,name=${{ env.FINORA_REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=finora-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=finora-${{ matrix.arch }}
+          provenance: mode=max
+          sbom: true
+      - name: Boot the published image and test authenticated API
+        env:
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+          COMPOSE_PROJECT_NAME: finora_ci
+        run: |
+          python3 scripts/init.py --image "${FINORA_REGISTRY_IMAGE}@${IMAGE_DIGEST}"
+          python3 scripts/deploy.py
+          python3 scripts/smoke.py --url http://localhost:8088 --password-file .secrets/admin_password
+      - name: Clean isolated CI containers
+        if: always()
+        env:
+          COMPOSE_PROJECT_NAME: finora_ci
+        run: |
+          if [ -f .env ]; then docker compose down --volumes; fi
+      - name: Export tested digest
+        env:
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          mkdir -p /tmp/finora-digests
+          touch "/tmp/finora-digests/${IMAGE_DIGEST#sha256:}"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: image-digest-${{ matrix.arch }}
+          path: /tmp/finora-digests/*
+          retention-days: 1
+          if-no-files-found: error
+
+  publish:
+    name: Publish multi-platform tags
+    needs: image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Image name
+        run: echo "FINORA_REGISTRY_IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: /tmp/finora-digests
+          pattern: image-digest-*
+          merge-multiple: true
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        id: meta
+        env:
+          DOCKER_METADATA_SHORT_SHA_LENGTH: 12
+        with:
+          images: ${{ env.FINORA_REGISTRY_IMAGE }}
+          flavor: latest=false
+          tags: |
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+      - name: Publish only after both architectures passed smoke tests
+        env:
+          METADATA_JSON: ${{ steps.meta.outputs.json }}
+        working-directory: /tmp/finora-digests
+        run: |
+          mapfile -t image_tags < <(jq -r '.tags[]' <<< "$METADATA_JSON")
+          tag_args=()
+          for tag in "${image_tags[@]}"; do tag_args+=(--tag "$tag"); done
+          image_digests=()
+          for digest in *; do
+            [[ "$digest" =~ ^[a-f0-9]{64}$ ]] || exit 1
+            image_digests+=("${FINORA_REGISTRY_IMAGE}@sha256:${digest}")
+          done
+          [[ ${#image_digests[@]} -eq 2 ]]
+          docker buildx imagetools create "${tag_args[@]}" "${image_digests[@]}"
+          docker buildx imagetools inspect "${image_tags[0]}"
+          printf '### Published images\n\n' >> "$GITHUB_STEP_SUMMARY"
+          # shellcheck disable=SC2016
+          printf -- '- `%s`\n' "${image_tags[@]}" >> "$GITHUB_STEP_SUMMARY"
