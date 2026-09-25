@@ -110,6 +110,8 @@ data class Draft(
     val photos: List<String> = emptyList(),
     val qr: String = "",
     val accountId: String? = null,
+    val pageCaptured: Boolean = false,
+    val pageText: String = "",
 ) {
     val hasContent: Boolean
         get() = photos.isNotEmpty() || qr.isNotBlank()

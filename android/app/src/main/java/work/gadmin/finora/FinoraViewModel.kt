@@ -33,6 +33,8 @@ data class AppState(
     val choosingOrganization: Boolean = false,
     val page: Page = Page.CAPTURE,
     val camera: CameraMode? = null,
+    val receiptPageUrl: String? = null,
+    val editingReceipt: Boolean = false,
     val busy: Boolean = false,
     val workspaceLoading: Boolean = false,
     val progress: Float? = null,
@@ -249,7 +251,9 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
         require(mutable.value.draft.photos.isEmpty()) {
             "В черновике уже есть фотографии. Отправьте или очистите его перед сканированием другого чека."
         }
-        saveDraft(mutable.value.draft.copy(qr = receiptLink(value)))
+        saveDraft(
+            mutable.value.draft.copy(qr = receiptLink(value), pageCaptured = false, pageText = "")
+        )
         mutable.update { it.copy(camera = null) }
         submitDraft()
     }
@@ -308,21 +312,58 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
 
     fun sendDraft() = writeAction { submitDraft() }
 
+    fun closeReceiptPage() {
+        if (!mutable.value.busy) mutable.update { it.copy(receiptPageUrl = null) }
+    }
+
+    fun receiveReceiptPage(text: String, files: List<File>) = writeAction {
+        val store = requireNotNull(drafts)
+        val imported = mutableListOf<String>()
+        try {
+            require(files.size in 1..MAX_PHOTOS && mutable.value.draft.qr.isNotBlank())
+            require(mutable.value.draft.photos.isEmpty()) { "В черновике уже есть снимки" }
+            for (file in files) imported += withContext(Dispatchers.IO) { store.importPhoto(file) }
+            saveDraft(
+                mutable.value.draft.copy(
+                    photos = imported.toList(),
+                    pageCaptured = true,
+                    pageText = text.take(50000),
+                )
+            )
+            imported
+                .clear() // From this point the durable draft owns the files, including on upload
+            // failure.
+            mutable.update { it.copy(receiptPageUrl = null) }
+            submitDraft()
+        } finally {
+            withContext(Dispatchers.IO) {
+                imported.forEach(store::remove)
+                files.forEach { it.delete() }
+            }
+        }
+    }
+
     private suspend fun submitDraft() {
         val current = mutable.value
         val org = requireNotNull(current.organization)
         require(current.draft.hasContent) { "Добавьте QR-код или фотографию" }
-        val result =
-            if (current.draft.photos.isNotEmpty()) {
-                mutable.update { it.copy(progress = 0f) }
-                requireNotNull(api).upload(
-                    org.id,
-                    current.draft,
-                    current.draft.photos.map { requireNotNull(drafts).photo(it) },
-                ) { progress ->
-                    mutable.update { it.copy(progress = progress) }
-                }
-            } else requireNotNull(api).link(org.id, current.draft)
+        if (current.draft.qr.isNotBlank() && !current.draft.pageCaptured) {
+            mutable.update { it.copy(receiptPageUrl = current.draft.qr) }
+            return
+        }
+        require(current.draft.photos.isNotEmpty()) {
+            "Сначала откройте страницу или добавьте фото чека"
+        }
+        val result = run {
+            mutable.update { it.copy(progress = 0f) }
+            requireNotNull(api).upload(
+                org.id,
+                current.draft,
+                current.draft.photos.map { requireNotNull(drafts).photo(it) },
+            ) { progress ->
+                mutable.update { it.copy(progress = progress) }
+            }
+        }
         withContext(Dispatchers.IO) { requireNotNull(drafts).clear() }
         mutable.update {
             it.copy(
@@ -350,6 +391,27 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
                     accountId,
                 )
         mutable.update { it.copy(detail = confirmed, notice = "Чек подтверждён. Расход добавлен.") }
+        loadReceipts()
+        loadDashboard()
+    }
+
+    fun editReceipt(editing: Boolean) {
+        if (!mutable.value.busy) mutable.update { it.copy(editingReceipt = editing, error = null) }
+    }
+
+    fun confirmReview(form: ReceiptForm) = writeAction {
+        val current = mutable.value
+        val receipt = requireNotNull(current.detail)
+        val confirmed =
+            requireNotNull(api)
+                .reviewReceipt(requireNotNull(current.organization).id, receipt.id, form)
+        mutable.update {
+            it.copy(
+                detail = confirmed,
+                editingReceipt = false,
+                notice = "Чек подтверждён. Расход добавлен.",
+            )
+        }
         loadReceipts()
         loadDashboard()
     }
@@ -394,6 +456,7 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
                 detailId = id,
                 detail = it.receipts.firstOrNull { receipt -> receipt.id == id },
                 detailLoading = true,
+                editingReceipt = false,
                 comments = emptyList(),
             )
         }
@@ -413,7 +476,13 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
     fun closeDetail() {
         detailJob?.cancel()
         mutable.update {
-            it.copy(detailId = null, detail = null, comments = emptyList(), detailLoading = false)
+            it.copy(
+                detailId = null,
+                detail = null,
+                comments = emptyList(),
+                detailLoading = false,
+                editingReceipt = false,
+            )
         }
     }
 

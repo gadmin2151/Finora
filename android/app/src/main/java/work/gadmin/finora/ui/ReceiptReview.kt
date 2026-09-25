@@ -49,6 +49,13 @@ fun ReceiptReview(state: AppState, receipt: Receipt, vm: FinoraViewModel) {
                 )
             }
             if (canAccept) {
+                OutlinedButton(
+                    { vm.editReceipt(true) },
+                    Modifier.fillMaxWidth(),
+                    enabled = !state.busy,
+                ) {
+                    Text("Исправить данные и позиции")
+                }
                 Box {
                     OutlinedButton(
                         { menu = true },
@@ -79,7 +86,7 @@ fun ReceiptReview(state: AppState, receipt: Receipt, vm: FinoraViewModel) {
                 )
                 if (!complete)
                     Text(
-                        "Не все данные распознаны или суммы расходятся. Нужна корректировка в веб-версии.",
+                        "Не все данные распознаны или суммы расходятся. Нажмите «Исправить данные и позиции».",
                         color = MaterialTheme.colorScheme.error,
                     )
                 if (accounts.isEmpty())

@@ -72,11 +72,7 @@ fun mevLink(input: String): String {
 }
 
 fun receiptLink(input: String): String {
-    try {
-        return mevLink(input)
-    } catch (_: IllegalArgumentException) {
-        // Other receipt providers are rendered and validated by the server.
-    }
+    // Open the actual QR target on the phone; the server canonicalizes its deduplication key.
     val text = input.trim()
     require(text.length <= 1000 && text.none { it.isWhitespace() || it == '\\' }) {
         "Некорректная ссылка чека"
@@ -97,7 +93,38 @@ fun receiptLink(input: String): String {
     ) {
         "Нужна HTTPS-ссылка на электронный чек. Можно сфотографировать бумажный чек."
     }
+    val host = requireNotNull(uri.host).lowercase(Locale.ROOT).trimEnd('.')
+    require(
+        host != "localhost" &&
+            !host.endsWith(".localhost") &&
+            !host.endsWith(".local") &&
+            !host.endsWith(".internal")
+    ) {
+        "Нужна публичная ссылка на чек"
+    }
+    if (host.matches(Regex("[0-9.]+"))) {
+        val address = java.net.InetAddress.getByName(host)
+        require(publicReceiptAddress(address)) { "Нужна публичная ссылка на чек" }
+    }
     return uri.toASCIIString()
+}
+
+fun publicReceiptAddress(address: java.net.InetAddress): Boolean {
+    if (
+        address.isAnyLocalAddress ||
+            address.isLoopbackAddress ||
+            address.isLinkLocalAddress ||
+            address.isSiteLocalAddress ||
+            address.isMulticastAddress
+    )
+        return false
+    val bytes = address.address.map { it.toInt() and 255 }
+    return if (bytes.size == 4) {
+        bytes[0] != 0 &&
+            bytes[0] < 224 &&
+            !(bytes[0] == 100 && bytes[1] in 64..127) &&
+            !(bytes[0] == 198 && bytes[1] in 18..19)
+    } else bytes[0] and 0xfe != 0xfc
 }
 
 fun scopeKey(server: String, user: String, organization: String): String =

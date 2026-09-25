@@ -250,6 +250,11 @@ class ApiClient(val server: String, savedCookie: String? = null) {
             )
         )
 
+    suspend fun reviewReceipt(org: String, id: String, form: ReceiptForm): Receipt =
+        json.decodeFromString(
+            execute(request("/api/receipts/$id/review", org, "POST", jsonBody(form.payload())))
+        )
+
     suspend fun link(org: String, draft: Draft): ReceiptResult =
         json.decodeFromString(
             execute(
@@ -281,7 +286,12 @@ class ApiClient(val server: String, savedCookie: String? = null) {
                 .addFormDataPart("account_id", draft.accountId ?: "")
                 .addFormDataPart("fx_rate", "1")
                 .addFormDataPart("review_required", "true")
+                .addFormDataPart("resolve_qr", "false")
                 .apply {
+                    if (draft.pageCaptured) {
+                        addFormDataPart("page_url", draft.qr)
+                        addFormDataPart("page_text", draft.pageText)
+                    }
                     files.forEachIndexed { index, file ->
                         addFormDataPart(
                             "files",

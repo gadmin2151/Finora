@@ -98,7 +98,7 @@ class PoliciesTest {
             .forEach { assertEquals(it, receiptLink(it)) }
         val id = "0123456789ABCDEF0123456789ABCDEF"
         assertEquals(
-            "https://mev.sfs.md/receipt-verifier/$id",
+            "https://sift-mev.sfs.md/receipt/$id",
             receiptLink("https://sift-mev.sfs.md/receipt/$id"),
         )
     }
@@ -114,6 +114,11 @@ class PoliciesTest {
                 "https://shop.example/" + "x".repeat(1000),
                 "not a receipt link",
                 "file:///etc/passwd",
+                "https://127.0.0.1/receipt",
+                "https://10.0.0.1/receipt",
+                "https://169.254.169.254/",
+                "https://100.64.0.1/",
+                "https://printer.local/receipt",
             )
             .forEach { assertThrows(IllegalArgumentException::class.java) { receiptLink(it) } }
     }

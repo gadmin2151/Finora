@@ -1,5 +1,6 @@
 package work.gadmin.finora.ui
 
+import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -10,9 +11,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -23,6 +26,15 @@ import work.gadmin.finora.*
 @Composable
 fun FinoraApp(vm: FinoraViewModel) {
     val state by vm.state.collectAsStateWithLifecycle()
+    val view = LocalView.current
+    SideEffect {
+        (view.context as? Activity)?.window?.let { window ->
+            WindowCompat.getInsetsController(window, view).apply {
+                isAppearanceLightStatusBars = state.camera == null
+                isAppearanceLightNavigationBars = state.camera == null
+            }
+        }
+    }
     val lifecycle = LocalLifecycleOwner.current
     val snackbars = remember { SnackbarHostState() }
     LaunchedEffect(state.notice) {
@@ -70,6 +82,15 @@ fun FinoraApp(vm: FinoraViewModel) {
                 error = state.error,
                 onError = vm::reportError,
             )
+        state.receiptPageUrl != null ->
+            ReceiptWebScreen(
+                requireNotNull(state.receiptPageUrl),
+                state.busy,
+                state.error,
+                vm::closeReceiptPage,
+                vm::receiveReceiptPage,
+            )
+        state.editingReceipt && state.detail != null -> ReceiptEditor(state, vm)
         else -> {
             BackHandler(state.detailId != null) { if (!state.busy) vm.closeDetail() }
             Scaffold(

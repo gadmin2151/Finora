@@ -87,7 +87,10 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
                         }
                         if (state.draft.qr.isNotBlank())
                             InfoCard(
-                                "Ссылка на чек найдена. Сервер распознает товары и сумму для проверки.",
+                                if (state.draft.pageCaptured)
+                                    "Страница чека сохранена на телефоне и готова к распознаванию."
+                                else
+                                    "Телефон откроет ссылку на чек и передаст страницу на распознавание.",
                                 Glyph.SCAN,
                             )
                         state.draft.photos.forEachIndexed { index, name ->
