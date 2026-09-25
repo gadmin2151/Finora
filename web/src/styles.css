@@ -6,18 +6,18 @@
     "Segoe UI",
     sans-serif;
   color: #9ab3c0;
-  background: #171e29;
+  background: #101715;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   color-scheme: dark;
-  --primary: #86e5bd;
-  --primary-dark: #b0f5d5;
-  --text: #edf3f7;
-  --muted: #9cacbd;
+  --primary: #82ddb5;
+  --primary-dark: #c5f4dc;
+  --text: #f1f3ec;
+  --muted: #a6b5ad;
   --border: #ffffff12;
-  --sidebar: #141e29;
-  --surface: #1a2531;
+  --sidebar: #101715;
+  --surface: #1b2722;
 }
 * {
   box-sizing: border-box;
@@ -67,7 +67,7 @@ textarea {
   border: 1px solid var(--border);
   border-radius: 9px;
   padding: 10px 12px;
-  background: #161d25;
+  background: #16201b;
   color: var(--text);
   outline: none;
   min-height: 44px;
@@ -207,7 +207,7 @@ code {
   background: var(--primary-dark);
 }
 .secondary {
-  background: #161d25;
+  background: #16201b;
   color: #a0b0bb;
   border-color: var(--border);
 }
@@ -512,7 +512,7 @@ code {
   top: -60px;
   left: 250px;
   padding: 12px;
-  background: #161d25;
+  background: #16201b;
   z-index: 100;
 }
 .skip-link:focus {
@@ -531,7 +531,7 @@ code {
   font-size: 14px;
 }
 .panel {
-  background: #161d25;
+  background: #16201b;
   border: 1px solid var(--border);
   border-radius: 13px;
   box-shadow: 0 2px 4px #243c4e02;
@@ -556,7 +556,7 @@ code {
   margin-bottom: 23px;
 }
 .stat-card {
-  background: #161d25;
+  background: #16201b;
   border: 1px solid var(--border);
   border-radius: 13px;
   padding: 20px 22px;
@@ -754,7 +754,7 @@ code {
   gap: 12px;
   border: 0;
   border-bottom: 1px solid var(--border);
-  background: #161d25;
+  background: #16201b;
   text-align: left;
   color: var(--text);
 }
@@ -801,7 +801,7 @@ code {
   padding: 13px 0;
   border: 0;
   border-bottom: 1px solid var(--border);
-  background: #161d25;
+  background: #16201b;
   text-align: left;
   width: 100%;
   color: var(--text);
@@ -1012,7 +1012,7 @@ code {
   color: var(--text);
   box-shadow: 0 24px 80px #10232233;
   overflow: visible;
-  background: #161d25;
+  background: #16201b;
 }
 .modal::backdrop {
   background: #183b3b5e;
@@ -1043,7 +1043,7 @@ code {
   margin-top: 6px;
 }
 .modal-header .icon-button {
-  background: #161d25;
+  background: #16201b;
   color: #a5adb6;
 }
 .modal-footer {
@@ -1122,7 +1122,7 @@ code {
   white-space: nowrap;
 }
 .segmented button.selected {
-  background: #161d25;
+  background: #16201b;
   color: #a1d3c6;
   box-shadow: 0 1px 4px #203c3e12;
   font-weight: 550;
@@ -1519,7 +1519,7 @@ tbody tr:hover {
 }
 .receipt-images a {
   border: 1px solid var(--border);
-  background: #161d25;
+  background: #16201b;
   border-radius: 9px;
   overflow: hidden;
   display: block;
@@ -1688,8 +1688,8 @@ tbody tr:hover {
   right: 0;
   height: 10px;
   background:
-    linear-gradient(135deg, #161d25 25%, transparent 25%) -7px 0,
-    linear-gradient(225deg, #161d25 25%, transparent 25%) -7px 0;
+    linear-gradient(135deg, #16201b 25%, transparent 25%) -7px 0,
+    linear-gradient(225deg, #16201b 25%, transparent 25%) -7px 0;
   background-size: 14px 14px;
   filter: drop-shadow(0 1px 0 #e6ebee);
 }
@@ -1789,7 +1789,7 @@ tbody tr:hover {
   display: flex;
   align-items: center;
   border: 1px solid var(--border);
-  background: #161d25;
+  background: #16201b;
   border-radius: 12px;
   padding: 9px;
   gap: 8px;
@@ -1847,7 +1847,7 @@ tbody tr:hover {
   min-width: 0;
 }
 .message-bubble {
-  background: #161d25;
+  background: #16201b;
   padding: 15px 18px;
   border-radius: 2px 12px 12px;
   white-space: pre-wrap;
@@ -1886,7 +1886,7 @@ tbody tr:hover {
   width: 100%;
   align-items: center;
   gap: 10px;
-  background: #161d25;
+  background: #16201b;
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 13px;
@@ -2207,7 +2207,7 @@ tbody tr:hover {
   width: 15px;
   height: 15px;
   border-radius: 50%;
-  background: #161d25;
+  background: #16201b;
   position: absolute;
   top: 3px;
   left: 3px;
@@ -2593,7 +2593,7 @@ tbody tr:hover {
 .login-form input {
   padding: 13px;
   font-size: 14px;
-  background: #161d25;
+  background: #16201b;
 }
 .login-form .primary {
   width: 100%;

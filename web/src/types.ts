@@ -5,6 +5,8 @@ export type User = {
   username: string;
   name: string;
   csrf: string;
+  is_server_admin?: boolean;
+  avatar_url?: string | null;
   organizations: Organization[];
 };
 export type Account = {
@@ -168,6 +170,7 @@ export type Rule = {
   category_id: string;
 };
 export type Route =
+  | "users"
   | "income"
   | "purchases"
   | "organizations"

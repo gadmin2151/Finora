@@ -132,7 +132,11 @@ class ApiClient(val server: String, savedCookie: String? = null) {
                                             else ->
                                                 "Сервер недоступен (${it.code}). Попробуйте ещё раз."
                                         }
-                                    throw ApiException(it.code, detail?.take(400) ?: fallback)
+                                    throw ApiException(
+                                        it.code,
+                                        if (it.code >= 500) fallback
+                                        else detail?.take(400) ?: fallback,
+                                    )
                                 }
                                 if (continuation.isActive) continuation.resume(bytes)
                             }
@@ -181,6 +185,32 @@ class ApiClient(val server: String, savedCookie: String? = null) {
             }
 
     suspend fun me(): User = get<User>("/api/auth/me").also { csrf = it.csrf }
+
+    suspend fun avatar(userId: String): ByteArray =
+        fetch(request("/api/users/$userId/avatar", null), 1024L * 1024)
+
+    suspend fun updateAvatar(raw: ByteArray?): User {
+        val body = raw?.let {
+            MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart(
+                    "file",
+                    "profile-photo",
+                    it.toRequestBody("application/octet-stream".toMediaType()),
+                )
+                .build()
+        }
+        return json.decodeFromString(
+            execute(
+                request(
+                    "/api/auth/avatar",
+                    null,
+                    if (raw == null) "DELETE" else "POST",
+                    body,
+                )
+            )
+        )
+    }
 
     suspend fun logout() {
         execute(request("/api/auth/logout", null, "POST", jsonBody(buildJsonObject {})))

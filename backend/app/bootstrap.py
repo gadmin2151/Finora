@@ -17,7 +17,10 @@ def main():
         if len(password) < 12:
             raise RuntimeError("Initial password must be at least 12 characters")
         user = m.User(
-            username=settings().admin_username, name="Владелец", password_hash=hasher.hash(password)
+            username=settings().admin_username,
+            name="Владелец",
+            password_hash=hasher.hash(password),
+            is_server_admin=True,
         )
         db.add(user)
         seed_user(db, user)

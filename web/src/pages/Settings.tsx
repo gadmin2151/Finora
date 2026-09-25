@@ -1,3 +1,4 @@
+import { ProfileSettings } from "../Profile";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -217,16 +218,17 @@ function AccountForm({
 }
 
 export default function Settings() {
-  const [tab, setTab] = useState("ai");
+  const [tab, setTab] = useState("profile");
   const { prefs, isAdmin } = useApp();
   if (!isAdmin)
     return (
       <>
         <PageHeading
           eyebrow="ВАШ АККАУНТ"
-          title="Безопасность"
-          text="Изменение пароля и управление вашими сеансами."
+          title="Ваш профиль"
+          text="Фото, имя, пароль и активные сеансы."
         />
+        <ProfileSettings />
         <SecuritySettings />
       </>
     );
@@ -243,6 +245,7 @@ export default function Settings() {
         aria-label="Разделы настроек"
       >
         {[
+          ["profile", "Мой профиль", Pencil],
           ["ai", "AI и распознавание", Sparkles],
           ["categories", "Категории и правила", Wallet],
           ["security", "Безопасность", ShieldCheck],
@@ -263,7 +266,9 @@ export default function Settings() {
           );
         })}
       </div>
-      {tab === "ai" ? (
+      {tab === "profile" ? (
+        <ProfileSettings />
+      ) : tab === "ai" ? (
         prefs ? (
           <AISettings initial={prefs} />
         ) : (

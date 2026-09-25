@@ -32,6 +32,10 @@ def identity(db, user, csrf):
         "username": user.username,
         "name": user.name,
         "csrf": csrf,
+        "is_server_admin": user.is_server_admin,
+        "avatar_url": f"/api/users/{user.id}/avatar?v={user.avatar_version}"
+        if user.avatar_version
+        else None,
         "organizations": organization_list(db, user.id),
     }
 
@@ -157,7 +161,12 @@ def editable_member(db, organization_id, key):
         and db.scalar(
             select(func.count())
             .select_from(m.Membership)
-            .where(m.Membership.organization_id == organization_id, m.Membership.role == "admin")
+            .join(m.User, m.User.id == m.Membership.user_id)
+            .where(
+                m.Membership.organization_id == organization_id,
+                m.Membership.role == "admin",
+                m.User.is_active.is_(True),
+            )
         )
         <= 1
     ):

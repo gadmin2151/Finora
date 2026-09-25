@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   X,
 } from "lucide-react";
+import { Avatar } from "./Profile";
 import type { Organization, Route, User } from "./types";
 import {
   canAccessRoute,
@@ -365,7 +366,7 @@ export default function Sidebar({
           <div className="navigation-section-label">Рабочее пространство</div>
           {navigationGroups.map((group) => {
             const items = group.items.filter((item) =>
-              canAccessRoute(item.id, isAdmin),
+              canAccessRoute(item.id, isAdmin, user.is_server_admin),
             );
             if (!items.length) return null;
             const expanded = expandedGroups.includes(group.id);
@@ -428,7 +429,9 @@ export default function Sidebar({
         </nav>
         <div className="sidebar-bottom">
           <div className="sidebar-profile">
-            <span className="sidebar-user-avatar">{user.name.charAt(0)}</span>
+            <a href="#settings" aria-label="Мой профиль" onClick={onClose}>
+              <Avatar user={user} />
+            </a>
             <span className="sidebar-user-info">
               <strong title={user.name}>{user.name}</strong>
               <small>{user.username}</small>

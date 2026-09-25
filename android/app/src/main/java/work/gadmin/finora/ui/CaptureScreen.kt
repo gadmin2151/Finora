@@ -49,6 +49,7 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
         }
     val available = !state.busy && !state.workspaceLoading
     LazyColumn(
+        modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(22.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
@@ -72,7 +73,8 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
                 color = Muted,
             )
         }
-        if (state.workspaceLoading) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
+        if (state.workspaceLoading)
+            item { BrandLoading("Открываем вашу организацию", compact = true) }
         if (state.draft.hasContent) {
             item {
                 Surface(shape = RoundedCornerShape(26.dp), color = SurfaceColor) {
@@ -228,7 +230,7 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
                 ) {
                     Column(
                         Modifier.fillMaxWidth()
-                            .background(Brush.linearGradient(listOf(Forest, Color(0xFF273650))))
+                            .background(Brush.linearGradient(listOf(Forest, HeroEnd)))
                             .padding(26.dp)
                     ) {
                         Row(
@@ -236,15 +238,15 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.Top,
                         ) {
-                            ScanArtwork(Modifier.size(100.dp))
+                            BrandMark(Modifier.size(100.dp))
                             Text(
                                 "01 / БЫСТРЫЙ СТАРТ",
-                                color = Mint,
+                                color = Amber,
                                 style = MaterialTheme.typography.labelSmall,
                                 modifier = Modifier.padding(top = 7.dp),
                             )
                         }
-                        Spacer(Modifier.height(20.dp))
+                        Spacer(Modifier.height(12.dp))
                         Text(
                             "Сканировать QR",
                             fontSize = 25.sp,
@@ -258,7 +260,7 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
                                 color = Mint.copy(alpha = .85f),
                                 modifier = Modifier.weight(1f),
                             )
-                            Surface(color = Mint, shape = RoundedCornerShape(50)) {
+                            Surface(color = Amber, shape = RoundedCornerShape(50)) {
                                 Box(Modifier.padding(14.dp)) {
                                     LineIcon(Glyph.ARROW, tint = Forest)
                                 }

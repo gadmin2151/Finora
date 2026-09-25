@@ -27,6 +27,7 @@ import work.gadmin.finora.data.money
 fun OverviewScreen(state: AppState, vm: FinoraViewModel) {
     val dashboard = state.dashboard
     LazyColumn(
+        modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(22.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
@@ -37,7 +38,7 @@ fun OverviewScreen(state: AppState, vm: FinoraViewModel) {
                     style = MaterialTheme.typography.headlineMedium,
                     modifier = Modifier.weight(1f),
                 )
-                IconButton(vm::loadDashboard, enabled = !state.dashboardLoading) {
+                IconButton(vm::refreshCurrent, enabled = !state.refreshing && !state.busy) {
                     LineIcon(Glyph.REFRESH, "Обновить статистику")
                 }
             }
@@ -62,17 +63,24 @@ fun OverviewScreen(state: AppState, vm: FinoraViewModel) {
                 }
             }
         }
-        if (state.dashboardLoading) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
+        if (state.dashboardLoading && !state.refreshing)
+            item { BrandLoading("Собираем картину месяца", compact = true) }
         if (dashboard != null) {
             item {
                 Surface(color = Forest, shape = RoundedCornerShape(28.dp)) {
                     Column(
                         Modifier.fillMaxWidth()
-                            .background(Brush.linearGradient(listOf(Forest, Color(0xFF29364F))))
+                            .background(Brush.linearGradient(listOf(Forest, HeroEnd)))
                             .padding(25.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Text("Расходы за месяц", color = Mint)
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text("Расходы за месяц", Modifier.weight(1f), color = Mint)
+                            BrandMark(Modifier.size(52.dp))
+                        }
                         Text(
                             money(dashboard.expense_minor),
                             style = MaterialTheme.typography.headlineLarge,
@@ -266,7 +274,7 @@ fun OverviewScreen(state: AppState, vm: FinoraViewModel) {
                     "Проверьте соединение с сервером.",
                     Glyph.CHART,
                 )
-                PrimaryButton("Обновить", vm::loadDashboard, Modifier.fillMaxWidth())
+                PrimaryButton("Обновить", vm::refreshCurrent, Modifier.fillMaxWidth())
             }
     }
 }

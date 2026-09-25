@@ -42,12 +42,14 @@ import {
   currentMonth,
   monthLabel,
 } from "./ui";
+import { BrandMark } from "./BrandMark";
 import TransactionForm from "./TransactionForm";
 import Sidebar from "./Sidebar";
 import { canAccessRoute, navigationItems } from "./navigation";
 import { ReceiptEditor, UploadReceipt } from "./ReceiptDialogs";
 const Income = lazy(() => import("./pages/Income"));
 const Purchases = lazy(() => import("./pages/Purchases"));
+const Users = lazy(() => import("./pages/Users"));
 const Organizations = lazy(() => import("./pages/Organizations"));
 const Overview = lazy(() => import("./pages/Overview"));
 const Transactions = lazy(() => import("./pages/Transactions"));
@@ -83,11 +85,7 @@ function routeFromHash(): Route {
 function Logo() {
   return (
     <div className="brand">
-      <span className="brand-mark" aria-hidden="true">
-        <i />
-        <i />
-        <i />
-      </span>
+      <BrandMark className="brand-symbol" />
       <span>
         finora<span className="brand-dot">.</span>
         <small className="brand-caption">PERSONAL FINANCE</small>
@@ -390,6 +388,7 @@ function Workspace({
     income: Income,
     purchases: Purchases,
     organizations: Organizations,
+    users: Users,
     overview: Overview,
     transactions: Transactions,
     assistant: Assistant,
@@ -401,7 +400,9 @@ function Workspace({
     accounts: Accounts,
     settings: Settings,
   };
-  const activeRoute = canAccessRoute(route, isAdmin) ? route : "overview";
+  const activeRoute = canAccessRoute(route, isAdmin, user.is_server_admin)
+    ? route
+    : "overview";
   const Page = pages[activeRoute];
   return (
     <AppContext.Provider

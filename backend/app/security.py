@@ -76,9 +76,15 @@ def current_user(request: Request, db: Session = Depends(get_db)) -> m.User:
             raise HTTPException(403, "Обновите страницу и повторите действие")
     request.state.session = session
     user = db.get(m.User, session.user_id)
-    if user is None:
+    if user is None or not user.is_active:
         raise HTTPException(401, "Войдите в свой аккаунт")
     db.info["actor_id"] = user.id
+    return user
+
+
+def server_admin(user: m.User = Depends(current_user)) -> m.User:
+    if not user.is_server_admin:
+        raise HTTPException(403, "Нужны права владельца сервера")
     return user
 
 

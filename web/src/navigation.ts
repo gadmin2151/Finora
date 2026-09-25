@@ -22,6 +22,7 @@ export interface NavigationItem {
   label: string;
   icon: LucideIcon;
   adminOnly?: boolean;
+  serverOnly?: boolean;
 }
 
 interface NavigationGroup {
@@ -106,6 +107,7 @@ export const navigationGroups: NavigationGroup[] = [
     icon: FolderCog,
     items: [
       { id: "organizations", label: "Организации и люди", icon: Building2 },
+      { id: "users", label: "Пользователи", icon: Users, serverOnly: true },
       { id: "settings", label: "Настройки", icon: Settings },
     ],
   },
@@ -116,9 +118,15 @@ export const navigationItems = [
   ...navigationGroups.flatMap((group) => group.items),
 ];
 
-export function canAccessRoute(route: Route, isAdmin: boolean) {
+export function canAccessRoute(
+  route: Route,
+  isAdmin: boolean,
+  isServerAdmin = false,
+) {
   const item = navigationItems.find((item) => item.id === route);
-  return Boolean(item && (isAdmin || !item.adminOnly));
+  return Boolean(
+    item && (!item.serverOnly || isServerAdmin) && (isAdmin || !item.adminOnly),
+  );
 }
 
 export function navigationGroupFor(route: Route) {

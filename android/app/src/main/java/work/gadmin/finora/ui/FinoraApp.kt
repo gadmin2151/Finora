@@ -15,6 +15,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -23,6 +25,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.delay
 import work.gadmin.finora.*
 
@@ -63,7 +68,8 @@ fun FinoraApp(vm: FinoraViewModel) {
                     verticalArrangement = Arrangement.spacedBy(30.dp),
                 ) {
                     Brand()
-                    CircularProgressIndicator(color = Green)
+                    BrandPulse(Modifier.size(96.dp))
+                    Text("Открываем ваше пространство", color = Muted)
                 }
             }
         state.user == null -> LoginScreen(state, vm)
@@ -149,13 +155,36 @@ fun FinoraApp(vm: FinoraViewModel) {
                                 shape = CircleShape,
                                 enabled = !state.busy,
                             ) {
-                                Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) {
-                                    Text(
-                                        state.user?.name?.take(1)?.uppercase() ?: "F",
-                                        color = Mint,
-                                        fontWeight = FontWeight.SemiBold,
-                                    )
-                                }
+                                ProfileAvatar(state.user, vm)
+                            }
+                        }
+                        Row(
+                            Modifier.fillMaxWidth().padding(start = 24.dp, end = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            val updated = state.lastRefreshedAt
+                            Text(
+                                if (updated == null) "Потяните вниз, чтобы обновить"
+                                else
+                                    "Обновлено в " +
+                                        Instant.ofEpochMilli(updated)
+                                            .atZone(ZoneId.systemDefault())
+                                            .format(DateTimeFormatter.ofPattern("HH:mm:ss")),
+                                Modifier.weight(1f).semantics {
+                                    contentDescription =
+                                        if (updated == null) "Обновление жестом сверху вниз"
+                                        else "Данные обновлены"
+                                },
+                                color = if (updated == null) Muted else Green,
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                            IconButton(
+                                vm::refreshCurrent,
+                                enabled =
+                                    !state.busy && !state.refreshing && !state.workspaceLoading,
+                                modifier = Modifier.size(48.dp),
+                            ) {
+                                LineIcon(Glyph.REFRESH, "Обновить данные", size = 18.dp)
                             }
                         }
                         state.error?.let { message ->
@@ -232,7 +261,12 @@ fun FinoraApp(vm: FinoraViewModel) {
                     Modifier.fillMaxSize().padding(padding),
                     contentAlignment = Alignment.TopCenter,
                 ) {
-                    Box(Modifier.widthIn(max = 700.dp).fillMaxSize()) {
+                    RefreshSurface(
+                        refreshing = state.refreshing,
+                        enabled = !state.busy && !state.workspaceLoading,
+                        onRefresh = vm::refreshCurrent,
+                        modifier = Modifier.widthIn(max = 700.dp).fillMaxSize(),
+                    ) {
                         if (state.detailId != null) ReceiptDetailScreen(state, vm)
                         else
                             AnimatedContent(

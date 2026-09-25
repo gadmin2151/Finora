@@ -25,6 +25,7 @@ import {
   Train,
   X,
 } from "lucide-react";
+import { BrandMark } from "./BrandMark";
 import { errorText } from "./api";
 import type { Account, Category } from "./types";
 
@@ -162,8 +163,11 @@ export function ErrorBox({ error }: { error: unknown }) {
 export function Loading({ text = "Загружаю данные…" }: { text?: string }) {
   return (
     <div className="loading" role="status">
-      <LoaderCircle className="spin" size={24} />
-      {text}
+      <span className="brand-loader">
+        <BrandMark />
+        <span className="brand-loader-label">27G</span>
+      </span>
+      <span>{text}</span>
     </div>
   );
 }
@@ -307,13 +311,19 @@ export function CurrencySelect({
 }
 export function Submit({
   pending,
+  disabled,
   children = "Сохранить",
 }: {
   pending?: boolean;
+  disabled?: boolean;
   children?: ReactNode;
 }) {
   return (
-    <button className="button primary" type="submit" disabled={pending}>
+    <button
+      className="button primary"
+      type="submit"
+      disabled={pending || disabled}
+    >
       {pending ? (
         <LoaderCircle size={18} className="spin" />
       ) : (

@@ -13,6 +13,7 @@ from .api import router
 from .config import settings
 from .feature_api import router as feature_router
 from .organizations import router as organization_router
+from .users import router as user_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("finora")
@@ -20,6 +21,7 @@ app = FastAPI(title="Finora", version="1.0.0", docs_url=None, redoc_url=None, op
 app.include_router(router)
 app.include_router(organization_router)
 app.include_router(feature_router)
+app.include_router(user_router)
 
 
 @app.exception_handler(RequestValidationError)
@@ -46,7 +48,8 @@ async def guard(request: Request, call_next):
             return JSONResponse({"detail": "Недопустимый адрес приложения"}, status_code=403)
         try:
             if (
-                request.url.path == "/api/receipts/upload"
+                request.method == "POST"
+                and request.url.path in {"/api/receipts/upload", "/api/auth/avatar"}
                 and "content-length" not in request.headers
             ):
                 return JSONResponse(
@@ -54,6 +57,13 @@ async def guard(request: Request, call_next):
                 )
             if int(request.headers.get("content-length", "0")) > 62 * 1024 * 1024:
                 return JSONResponse({"detail": "Слишком большой запрос"}, status_code=413)
+            if (
+                request.url.path == "/api/auth/avatar"
+                and int(request.headers.get("content-length", "0")) > 5 * 1024 * 1024 + 65536
+            ):
+                return JSONResponse(
+                    {"detail": "Выберите фотографию размером до 5 МБ"}, status_code=413
+                )
         except ValueError:
             return JSONResponse({"detail": "Некорректный запрос"}, status_code=400)
     started = time.monotonic()
@@ -102,6 +112,6 @@ if static.exists():
     def web(path: str):
         if path.startswith("api/"):
             return JSONResponse({"detail": "Не найдено"}, status_code=404)
-        if path in {"favicon.svg", "manifest.webmanifest", "sw.js"}:
+        if path in {"favicon.svg", "finora-icon.png", "manifest.webmanifest", "sw.js"}:
             return FileResponse(static / path)
         return FileResponse(static / "index.html", headers={"Cache-Control": "no-cache"})

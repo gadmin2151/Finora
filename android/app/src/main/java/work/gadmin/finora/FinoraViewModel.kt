@@ -37,6 +37,8 @@ data class AppState(
     val editingReceipt: Boolean = false,
     val busy: Boolean = false,
     val workspaceLoading: Boolean = false,
+    val refreshing: Boolean = false,
+    val lastRefreshedAt: Long? = null,
     val progress: Float? = null,
     val error: String? = null,
     val notice: String? = null,
@@ -70,6 +72,13 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
     private var receiptsJob: Job? = null
     private var detailJob: Job? = null
     private var dashboardJob: Job? = null
+    private var avatarCache: Pair<String, ByteArray>? = null
+    private val refresh =
+        RefreshController(
+            viewModelScope,
+            onRefreshing = { loading -> mutable.update { it.copy(refreshing = loading) } },
+            onError = ::handleError,
+        )
 
     init {
         viewModelScope.launch {
@@ -84,7 +93,7 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
                     }
                 } catch (error: Exception) {
                     if (error is CancellationException) throw error
-                    if (error is IOException) {
+                    if (canUseSavedSession(error)) {
                         mutable.update {
                             it.copy(
                                 user = saved.user,
@@ -132,6 +141,7 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
 
     private fun writeAction(block: suspend () -> Unit) {
         if (mutable.value.busy) return
+        refresh.cancel()
         viewModelScope.launch {
             mutable.update { it.copy(busy = true, error = null) }
             try {
@@ -163,10 +173,14 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun chooseOrganization(show: Boolean = true) {
-        if (!mutable.value.busy) mutable.update { it.copy(choosingOrganization = show) }
+        if (!mutable.value.busy) {
+            refresh.cancel()
+            mutable.update { it.copy(choosingOrganization = show) }
+        }
     }
 
     private fun cancelWorkspace() {
+        refresh.cancel()
         workspaceJob?.cancel()
         receiptsJob?.cancel()
         detailJob?.cancel()
@@ -198,18 +212,12 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
             try {
                 val draft = withContext(Dispatchers.IO) { requireNotNull(drafts).read() }
                 mutable.update { it.copy(draft = draft) }
-                val accounts = requireNotNull(api).accounts(org.id)
-                val categories = requireNotNull(api).categories(org.id)
-                mutable.update {
-                    it.copy(
-                        accounts = accounts.filterNot(Account::archived),
-                        categories = categories,
-                    )
-                }
+                fetchWorkspace(org.id)
             } catch (error: Exception) {
                 handleError(error)
             } finally {
-                mutable.update { it.copy(workspaceLoading = false) }
+                if (currentCoroutineContext().isActive)
+                    mutable.update { it.copy(workspaceLoading = false) }
             }
         }
         loadReceipts()
@@ -219,7 +227,7 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
     fun navigate(page: Page) {
         if (mutable.value.busy) return
         closeDetail()
-        mutable.update { it.copy(page = page, error = null) }
+        mutable.update { it.copy(page = page, error = null, lastRefreshedAt = null) }
         when (page) {
             Page.RECEIPTS -> loadReceipts()
             Page.OVERVIEW -> loadDashboard()
@@ -235,6 +243,7 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
 
     fun camera(mode: CameraMode?) {
         if (mutable.value.busy || mutable.value.workspaceLoading) return
+        refresh.cancel()
         if (mode == CameraMode.PHOTO && mutable.value.draft.photos.size >= MAX_PHOTOS) {
             reportError("В одном чеке может быть до 4 фотографий")
             return
@@ -396,7 +405,10 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun editReceipt(editing: Boolean) {
-        if (!mutable.value.busy) mutable.update { it.copy(editingReceipt = editing, error = null) }
+        if (!mutable.value.busy) {
+            refresh.cancel()
+            mutable.update { it.copy(editingReceipt = editing, error = null) }
+        }
     }
 
     fun confirmReview(form: ReceiptForm) = writeAction {
@@ -417,39 +429,32 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun search(value: String) {
-        mutable.update { it.copy(search = value.take(100)) }
+        refresh.cancel()
+        mutable.update { it.copy(search = value.take(100), lastRefreshedAt = null) }
         loadReceipts(debounce = true)
     }
 
     fun loadReceipts(more: Boolean = false, debounce: Boolean = false) {
         val current = mutable.value
-        val org = current.organization ?: return
+        current.organization ?: return
         receiptsJob?.cancel()
         receiptsJob = viewModelScope.launch {
             if (debounce) delay(350)
             mutable.update { it.copy(receiptsLoading = true) }
             try {
-                val result =
-                    requireNotNull(api)
-                        .receipts(org.id, current.search, if (more) current.receipts.size else 0)
-                mutable.update {
-                    it.copy(
-                        receipts =
-                            if (more) (it.receipts + result.items).distinctBy(Receipt::id)
-                            else result.items,
-                        receiptCount = result.total,
-                    )
-                }
+                fetchReceipts(current, more)
             } catch (error: Exception) {
                 handleError(error)
             } finally {
-                mutable.update { it.copy(receiptsLoading = false) }
+                if (currentCoroutineContext().isActive)
+                    mutable.update { it.copy(receiptsLoading = false) }
             }
         }
     }
 
     fun openReceipt(id: String) {
         val org = mutable.value.organization ?: return
+        refresh.cancel()
         detailJob?.cancel()
         mutable.update {
             it.copy(
@@ -457,23 +462,24 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
                 detail = it.receipts.firstOrNull { receipt -> receipt.id == id },
                 detailLoading = true,
                 editingReceipt = false,
-                comments = emptyList(),
+                comments = if (it.detailId == id) it.comments else emptyList(),
+                lastRefreshedAt = null,
             )
         }
         detailJob = viewModelScope.launch {
             try {
-                val receipt = requireNotNull(api).receipt(org.id, id)
-                val comments = requireNotNull(api).comments(org.id, id)
-                mutable.update { it.copy(detail = receipt, comments = comments) }
+                fetchDetail(org.id, id)
             } catch (error: Exception) {
                 handleError(error)
             } finally {
-                mutable.update { it.copy(detailLoading = false) }
+                if (currentCoroutineContext().isActive)
+                    mutable.update { it.copy(detailLoading = false) }
             }
         }
     }
 
     fun closeDetail() {
+        refresh.cancel()
         detailJob?.cancel()
         mutable.update {
             it.copy(
@@ -489,6 +495,48 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
     suspend fun receiptPhoto(id: String, index: Int): ByteArray {
         val org = requireNotNull(mutable.value.organization)
         return requireNotNull(api).receiptPhoto(org.id, id, index)
+    }
+
+    suspend fun avatarPhoto(): ByteArray? {
+        val user = mutable.value.user ?: return null
+        val version = user.avatar_url ?: return null
+        avatarCache
+            ?.takeIf { it.first == version }
+            ?.let {
+                return it.second
+            }
+        val bytes = requireNotNull(api).avatar(user.id)
+        currentCoroutineContext().ensureActive()
+        if (mutable.value.user?.id == user.id) avatarCache = version to bytes
+        return bytes
+    }
+
+    fun updateAvatar(uri: Uri?) = writeAction {
+        val bytes = uri?.let {
+            withContext(Dispatchers.IO) {
+                getApplication<Application>().contentResolver.openInputStream(uri)?.use { stream ->
+                    val buffer = ByteArray(5 * 1024 * 1024 + 1)
+                    var count = 0
+                    while (count < buffer.size) {
+                        val read = stream.read(buffer, count, buffer.size - count)
+                        if (read < 0) break
+                        count += read
+                    }
+                    val raw = buffer.copyOf(count)
+                    require(raw.size <= 5 * 1024 * 1024) { "Выберите фотографию размером до 5 МБ" }
+                    raw
+                } ?: throw IllegalArgumentException("Не удалось открыть фотографию")
+            }
+        }
+        val user = requireNotNull(api).updateAvatar(bytes)
+        persist(user)
+        avatarCache = null
+        mutable.update {
+            it.copy(
+                user = user,
+                notice = if (uri == null) "Фото удалено" else "Фото профиля обновлено",
+            )
+        }
     }
 
     fun addComment(text: String, onSuccess: () -> Unit) = writeAction {
@@ -515,34 +563,45 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun month(delta: Long) {
-        mutable.update { it.copy(month = YearMonth.parse(it.month).plusMonths(delta).toString()) }
+        refresh.cancel()
+        mutable.update {
+            it.copy(
+                month = YearMonth.parse(it.month).plusMonths(delta).toString(),
+                dashboard = null,
+                insights = emptyList(),
+                lastRefreshedAt = null,
+            )
+        }
         loadDashboard()
     }
 
     fun loadDashboard() {
         val current = mutable.value
-        val org = current.organization ?: return
+        current.organization ?: return
         dashboardJob?.cancel()
         dashboardJob = viewModelScope.launch {
-            mutable.update {
-                it.copy(dashboardLoading = true, dashboard = null, insights = emptyList())
-            }
+            mutable.update { it.copy(dashboardLoading = true) }
             try {
-                val result = requireNotNull(api).dashboard(org.id, current.month)
-                mutable.update { it.copy(dashboard = result) }
-                val insights = requireNotNull(api).insights(org.id, current.month)
-                mutable.update { it.copy(insights = insights) }
+                fetchDashboard(current)
             } catch (error: Exception) {
                 handleError(error)
             } finally {
-                mutable.update { it.copy(dashboardLoading = false) }
+                if (currentCoroutineContext().isActive)
+                    mutable.update { it.copy(dashboardLoading = false) }
             }
         }
     }
 
     fun refreshProcessing() {
         val current = mutable.value
-        if (current.busy) return
+        if (
+            current.busy ||
+                current.refreshing ||
+                current.editingReceipt ||
+                current.camera != null ||
+                current.receiptPageUrl != null
+        )
+            return
         if (current.detail?.isProcessing == true && !current.detailLoading)
             openReceipt(requireNotNull(current.detailId))
         else if (
@@ -551,6 +610,109 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
                 !current.receiptsLoading
         )
             loadReceipts()
+    }
+
+    fun refreshCurrent() {
+        val current = mutable.value
+        val org = current.organization ?: return
+        if (
+            current.busy || current.refreshing || current.workspaceLoading || current.editingReceipt
+        )
+            return
+        when {
+            current.detailId != null -> detailJob?.cancel()
+            current.page == Page.RECEIPTS -> receiptsJob?.cancel()
+            current.page == Page.OVERVIEW -> dashboardJob?.cancel()
+        }
+        mutable.update {
+            it.copy(
+                error = null,
+                lastRefreshedAt = null,
+                receiptsLoading = if (current.page == Page.RECEIPTS) false else it.receiptsLoading,
+                dashboardLoading =
+                    if (current.page == Page.OVERVIEW) false else it.dashboardLoading,
+                detailLoading = false,
+            )
+        }
+        refresh.launch(
+            onSuccess = { mutable.update { it.copy(lastRefreshedAt = System.currentTimeMillis()) } }
+        ) {
+            when {
+                current.detailId != null -> fetchDetail(org.id, current.detailId)
+                current.page == Page.RECEIPTS -> fetchReceipts(current)
+                current.page == Page.OVERVIEW -> fetchDashboard(current)
+                current.page == Page.CAPTURE -> fetchWorkspace(org.id)
+                else -> {
+                    val user = requireNotNull(api).me()
+                    persist(user)
+                    currentCoroutineContext().ensureActive()
+                    val membership = user.organizations.firstOrNull { it.id == org.id }
+                    mutable.update {
+                        it.copy(
+                            user = user,
+                            organization = membership,
+                            choosingOrganization = membership == null,
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private suspend fun fetchWorkspace(org: String) = coroutineScope {
+        val client = requireNotNull(api)
+        val accounts = async { client.accounts(org) }
+        val categories = async { client.categories(org) }
+        val resultAccounts = accounts.await().filterNot(Account::archived)
+        val resultCategories = categories.await()
+        ensureActive()
+        mutable.update { it.copy(accounts = resultAccounts, categories = resultCategories) }
+    }
+
+    private suspend fun fetchReceipts(current: AppState, more: Boolean = false) {
+        val result =
+            requireNotNull(api)
+                .receipts(
+                    requireNotNull(current.organization).id,
+                    current.search,
+                    if (more) current.receipts.size else 0,
+                )
+        currentCoroutineContext().ensureActive()
+        mutable.update {
+            it.copy(
+                receipts =
+                    if (more) (it.receipts + result.items).distinctBy(Receipt::id)
+                    else result.items,
+                receiptCount = result.total,
+            )
+        }
+    }
+
+    private suspend fun fetchDetail(org: String, id: String) = coroutineScope {
+        val client = requireNotNull(api)
+        val receipt = async { client.receipt(org, id) }
+        val comments = async { client.comments(org, id) }
+        val result = receipt.await()
+        val resultComments = comments.await()
+        ensureActive()
+        mutable.update {
+            it.copy(
+                detail = result,
+                comments = resultComments,
+                receipts = it.receipts.map { row -> if (row.id == id) result else row },
+            )
+        }
+    }
+
+    private suspend fun fetchDashboard(current: AppState) = coroutineScope {
+        val client = requireNotNull(api)
+        val org = requireNotNull(current.organization).id
+        val dashboard = async { client.dashboard(org, current.month) }
+        val insights = async { client.insights(org, current.month) }
+        val result = dashboard.await()
+        val resultInsights = insights.await()
+        ensureActive()
+        mutable.update { it.copy(dashboard = result, insights = resultInsights) }
     }
 
     fun logout() = writeAction {
@@ -570,6 +732,7 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
         cancelWorkspace()
         api?.cancel()
         api = null
+        avatarCache = null
         drafts = null
         mutable.update {
             AppState(

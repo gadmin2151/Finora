@@ -12,10 +12,13 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    LargeBinary,
     Numeric,
     String,
     Text,
     UniqueConstraint,
+    false,
+    true,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -40,6 +43,18 @@ class User(Identity, Base):
     username: Mapped[str] = mapped_column(String(80), unique=True)
     name: Mapped[str] = mapped_column(String(100))
     password_hash: Mapped[str] = mapped_column(Text)
+    is_server_admin: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
+    avatar_version: Mapped[str | None] = mapped_column(String(36))
+    avatar_data: Mapped[bytes | None] = mapped_column(LargeBinary, deferred=True)
+
+
+class UserAudit(Identity, Base):
+    __tablename__ = "user_audit"
+    actor_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    action: Mapped[str] = mapped_column(String(60))
+    details: Mapped[dict] = mapped_column(JSON, default=dict)
 
 
 class Organization(Identity, Base):
@@ -147,7 +162,7 @@ class Occurrence(Owned, Base):
 
 class Receipt(Owned, Base):
     __tablename__ = "receipts"
-    review_required: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    review_required: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     created_by: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     source: Mapped[str] = mapped_column(String(16))
     source_key: Mapped[str] = mapped_column(String(64))

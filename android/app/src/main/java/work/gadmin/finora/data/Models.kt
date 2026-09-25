@@ -15,6 +15,8 @@ data class User(
     val name: String,
     val csrf: String,
     val organizations: List<Organization> = emptyList(),
+    val avatar_url: String? = null,
+    val is_server_admin: Boolean = false,
 )
 
 @Serializable

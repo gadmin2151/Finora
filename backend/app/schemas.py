@@ -44,6 +44,30 @@ class MemberRole(Strict):
     role: Literal["admin", "user"]
 
 
+class UserMembership(Strict):
+    organization_id: str = Field(min_length=1, max_length=36)
+    role: Literal["admin", "user"] = "user"
+
+
+class UserEdit(Strict):
+    name: str = Field(min_length=1, max_length=100)
+    is_active: bool = True
+    memberships: list[UserMembership] = Field(default_factory=list, max_length=100)
+
+
+class UserCreate(UserEdit):
+    username: str = Field(min_length=3, max_length=80, pattern=r"^[a-zA-Z0-9_.@-]+$")
+    password: str = Field(min_length=12, max_length=256)
+
+
+class PasswordReset(Strict):
+    password: str = Field(min_length=12, max_length=256)
+
+
+class ProfileEdit(Strict):
+    name: str = Field(min_length=1, max_length=100)
+
+
 class CommentInput(Strict):
     text: str = Field(min_length=1, max_length=3000)
 

@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -23,16 +24,23 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-val Forest = Color(0xFF173D38)
-val Green = Color(0xFF86E5BD)
-val Mint = Color(0xFFBCF7DB)
-val Paper = Color(0xFF10161F)
-val Ink = Color(0xFFEDF3F7)
-val Muted = Color(0xFF9CAFBE)
-val SoftGreen = Color(0xFF203731)
-val Border = Color(0xFF33414E)
-
-val SurfaceColor = Color(0xFF1B2733)
+val Forest = Color(0xFF123A32)
+val Green = Color(0xFF82DDB5)
+val Mint = Color(0xFFC5F4DC)
+val Paper = Color(0xFF101715)
+val Ink = Color(0xFFF1F3EC)
+val Muted = Color(0xFFA6B5AD)
+val SoftGreen = Color(0xFF203B31)
+val Border = Color(0xFF40534A)
+val SurfaceColor = Color(0xFF1B2722)
+val SurfaceRaised = Color(0xFF25352D)
+val OutlineSoft = Color(0xFF31443A)
+val Amber = Color(0xFFF0CB8C)
+val AmberSurface = Color(0xFF3B3021)
+val Coral = Color(0xFFFFB4A8)
+val CoralSurface = Color(0xFF442B26)
+val Sage = Color(0xFFBCD1B5)
+val HeroEnd = Color(0xFF2B3B32)
 
 @Composable
 fun FinoraTheme(content: @Composable () -> Unit) {
@@ -43,24 +51,48 @@ fun FinoraTheme(content: @Composable () -> Unit) {
                 onPrimary = Forest,
                 primaryContainer = SoftGreen,
                 onPrimaryContainer = Mint,
-                secondary = Green,
+                secondary = Amber,
+                onSecondary = AmberSurface,
+                secondaryContainer = AmberSurface,
+                onSecondaryContainer = Amber,
+                tertiary = Amber,
+                onTertiary = AmberSurface,
+                tertiaryContainer = AmberSurface,
+                onTertiaryContainer = Amber,
                 background = Paper,
                 surface = SurfaceColor,
                 onBackground = Ink,
                 onSurface = Ink,
                 onSurfaceVariant = Muted,
                 outline = Border,
-                surfaceVariant = SoftGreen,
+                outlineVariant = OutlineSoft,
+                surfaceVariant = SurfaceRaised,
+                surfaceTint = Color.Transparent,
+                surfaceDim = Paper,
+                surfaceBright = SurfaceRaised,
+                surfaceContainerLowest = Paper,
+                surfaceContainerLow = SurfaceColor,
+                surfaceContainer = SurfaceColor,
+                surfaceContainerHigh = SurfaceRaised,
+                surfaceContainerHighest = Border,
+                inverseSurface = Ink,
+                inverseOnSurface = Paper,
+                inversePrimary = Forest,
+                error = Coral,
+                onError = CoralSurface,
+                errorContainer = CoralSurface,
+                onErrorContainer = Coral,
+                scrim = Color.Black,
             ),
         typography =
             Typography(
                 headlineLarge =
                     TextStyle(
                         fontFamily = FontFamily.SansSerif,
-                        fontSize = 34.sp,
-                        lineHeight = 39.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = (-1).sp,
+                        fontSize = 32.sp,
+                        lineHeight = 38.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = (-0.9).sp,
                     ),
                 headlineMedium =
                     TextStyle(
@@ -148,26 +180,29 @@ fun LineIcon(glyph: Glyph, description: String? = null, tint: Color = Green, siz
 }
 
 @Composable
+fun BrandMark(modifier: Modifier = Modifier) {
+    androidx.compose.foundation.Image(
+        painter =
+            androidx.compose.ui.res.painterResource(work.gadmin.finora.R.drawable.finora_symbol),
+        contentDescription = null,
+        modifier =
+            modifier.then(
+                Modifier.graphicsLayer {
+                    scaleX = 1.42f
+                    scaleY = 1.42f
+                }
+            ),
+    )
+}
+
+@Composable
 fun Brand(modifier: Modifier = Modifier, light: Boolean = false) {
     Row(
         modifier,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Box(
-                Modifier.size(22.dp, 5.dp)
-                    .background(if (light) Mint else Green, RoundedCornerShape(2.dp))
-            )
-            Box(
-                Modifier.size(16.dp, 5.dp)
-                    .background(if (light) Mint else Green, RoundedCornerShape(2.dp))
-            )
-            Box(
-                Modifier.size(7.dp, 5.dp)
-                    .background(if (light) Mint else Green, RoundedCornerShape(2.dp))
-            )
-        }
+        BrandMark(Modifier.size(46.dp))
         Column {
             Row(
                 verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
@@ -190,7 +225,13 @@ fun Brand(modifier: Modifier = Modifier, light: Boolean = false) {
                     )
                 }
             }
-            Text("PERSONAL FINANCE", fontSize = 8.sp, letterSpacing = 2.sp, color = Muted)
+            Text(
+                "PERSONAL FINANCE",
+                fontSize = 8.sp,
+                lineHeight = 12.sp,
+                letterSpacing = 2.sp,
+                color = Muted,
+            )
         }
     }
 }

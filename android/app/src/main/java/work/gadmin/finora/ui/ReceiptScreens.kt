@@ -11,7 +11,6 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -24,6 +23,7 @@ import work.gadmin.finora.data.*
 @Composable
 fun ReceiptsScreen(state: AppState, vm: FinoraViewModel) {
     LazyColumn(
+        modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(22.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
@@ -33,7 +33,7 @@ fun ReceiptsScreen(state: AppState, vm: FinoraViewModel) {
                     Text("Ваши чеки", style = MaterialTheme.typography.headlineLarge)
                     Text("Вся история организации", color = Muted)
                 }
-                IconButton({ vm.loadReceipts() }, enabled = !state.receiptsLoading) {
+                IconButton(vm::refreshCurrent, enabled = !state.refreshing && !state.busy) {
                     LineIcon(Glyph.REFRESH, "Обновить чеки")
                 }
             }
@@ -56,7 +56,8 @@ fun ReceiptsScreen(state: AppState, vm: FinoraViewModel) {
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             )
         }
-        if (state.receiptsLoading) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
+        if (state.receiptsLoading && !state.refreshing)
+            item { BrandLoading("Загружаем ваши чеки", compact = true) }
         if (state.receipts.isEmpty() && !state.receiptsLoading)
             item {
                 EmptyState(
@@ -138,13 +139,16 @@ fun ReceiptsScreen(state: AppState, vm: FinoraViewModel) {
 fun StatusBadge(status: String) {
     val warning = status !in listOf("posted", "queued", "processing")
     Surface(
-        color = if (warning) Color(0xFF493A27) else SoftGreen,
+        color =
+            if (status in setOf("failed", "error")) CoralSurface
+            else if (warning) AmberSurface else SoftGreen,
         shape = RoundedCornerShape(8.dp),
     ) {
         Text(
             statusLabel(status),
             Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
-            color = if (warning) Color(0xFFFFD69B) else Green,
+            color =
+                if (status in setOf("failed", "error")) Coral else if (warning) Amber else Green,
             style = MaterialTheme.typography.labelSmall,
         )
     }
@@ -159,13 +163,15 @@ fun ReceiptDetailScreen(state: AppState, vm: FinoraViewModel) {
     val context = LocalContext.current
     val receipt = state.detail
     LazyColumn(
+        modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(22.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
-        if (state.detailLoading) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
-        if (receipt == null)
+        if (state.detailLoading && !state.refreshing)
+            item { BrandLoading("Открываем чек", compact = true) }
+        if (receipt == null && !state.detailLoading)
             item {
-                EmptyState("Открываем чек", "Здесь будут товары, сумма и комментарии.")
+                EmptyState("Не удалось загрузить чек", "Потяните вниз, чтобы повторить загрузку.")
                 OutlinedButton(
                     { state.detailId?.let(vm::openReceipt) },
                     Modifier.fillMaxWidth(),
@@ -188,9 +194,12 @@ fun ReceiptDetailScreen(state: AppState, vm: FinoraViewModel) {
             }
             if (receipt.isProcessing)
                 item {
-                    InfoCard(
-                        "Чек на сервере. Можно закрыть приложение — товары появятся после распознавания.",
-                        Glyph.SPARK,
+                    BrandLoading("Распознаём товары и итог", compact = true)
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        "Можно закрыть приложение — обработка продолжится на сервере.",
+                        color = Muted,
+                        style = MaterialTheme.typography.bodySmall,
                     )
                 }
             receipt.error?.let { error -> item { InfoCard(error, Glyph.RECEIPT) } }

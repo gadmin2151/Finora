@@ -12,6 +12,7 @@ import android.view.accessibility.AccessibilityNodeInfo;
 /** Platform-only runner: test libraries can reference AndroidX methods removed from release APKs. */
 public final class ReleaseSmokeInstrumentation extends Instrumentation {
     private boolean testCamera;
+    private boolean testRefresh;
     private String organization;
     private String receiptUrl;
     private boolean submitReceipt;
@@ -20,6 +21,7 @@ public final class ReleaseSmokeInstrumentation extends Instrumentation {
     @Override
     public void onCreate(Bundle arguments) {
         super.onCreate(arguments);
+        testRefresh = "true".equals(arguments.getString("refresh"));
         testCamera = "true".equals(arguments.getString("camera"));
         organization = arguments.getString("organization");
         receiptUrl = arguments.getString("receiptUrl");
@@ -47,12 +49,14 @@ public final class ReleaseSmokeInstrumentation extends Instrumentation {
             }
             if (count < 3) throw new AssertionError("Missing ML Kit registrars");
             result.putString("registrars", "PASS: " + count + " release constructors");
+            sendStatus(0, result);
             if (testCamera) {
-                startActivitySync(new Intent(Intent.ACTION_MAIN)
+                getTargetContext().startActivity(new Intent(Intent.ACTION_MAIN)
                         .setClassName(getTargetContext(), "work.gadmin.finora.MainActivity")
                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
                 // Preserve the existing account and drafts. Keep paper QR codes away during camera smoke.
                 if (organization != null && awaitNode(organization, 8000) != null) click(organization);
+                Bundle progress = new Bundle(); progress.putString("stage", "QR camera"); sendStatus(0, progress);
                 click("Сканировать QR");
                 requireNode("QR-код чека");
                 requireNode("Включить фонарик");
@@ -68,10 +72,27 @@ public final class ReleaseSmokeInstrumentation extends Instrumentation {
                 click("Закрыть камеру");
                 result.putString("camera", "PASS: release QR and photo preview on device");
             }
+            if (testRefresh) {
+                getTargetContext().startActivity(new Intent(Intent.ACTION_MAIN)
+                        .setClassName(getTargetContext(), "work.gadmin.finora.MainActivity")
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                if (awaitNode("Сканировать QR", 3000) == null && organization != null) click(organization);
+                for (String page : new String[]{"Добавить", "Чеки", "Обзор", "Профиль"}) {
+                    Bundle progress = new Bundle(); progress.putString("stage", "Refresh: " + page); sendStatus(0, progress);
+                    click(page);
+                    SystemClock.sleep(900);
+                    if (find("Данные обновлены") != null) throw new AssertionError("Refresh status leaked between screens");
+                    pullToRefresh(page.equals("Добавить"));
+                    requireNode("Данные обновлены");
+                    snapshot("refresh-" + (page.equals("Добавить") ? "capture" : page.equals("Чеки") ? "receipts" : page.equals("Обзор") ? "overview" : "profile") + ".png");
+                }
+                click("Добавить");
+                result.putString("refresh", "PASS: real downward gestures update capture, receipts, overview and profile");
+            }
             if (receiptUrl != null) {
                 if (organization == null || !organization.startsWith("Android QA "))
                     throw new AssertionError("Receipt acceptance requires an isolated Android QA organization");
-                startActivitySync(new Intent(Intent.ACTION_MAIN)
+                getTargetContext().startActivity(new Intent(Intent.ACTION_MAIN)
                         .setClassName(getTargetContext(), "work.gadmin.finora.MainActivity")
                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
                 click(organization);
@@ -131,6 +152,32 @@ public final class ReleaseSmokeInstrumentation extends Instrumentation {
             result.putString("failure", failure.getClass().getSimpleName() + ": " + failure.getMessage());
             finish(Activity.RESULT_CANCELED, result);
         }
+    }
+
+    private void pullToRefresh(boolean captureGesture) throws java.io.IOException {
+        AccessibilityNodeInfo list = scrollable(getUiAutomation().getRootInActiveWindow());
+        if (list == null) throw new AssertionError("No scrollable screen for pull-to-refresh");
+        android.graphics.Rect bounds = new android.graphics.Rect();
+        list.getBoundsInScreen(bounds);
+        float x = bounds.exactCenterX();
+        float from = bounds.top + bounds.height() * .18f;
+        float to = bounds.top + bounds.height() * .83f;
+        long down = SystemClock.uptimeMillis();
+        injectTouch(down, android.view.MotionEvent.ACTION_DOWN, x, from);
+        for (int i = 1; i <= 24; i++) {
+            SystemClock.sleep(16);
+            injectTouch(down, android.view.MotionEvent.ACTION_MOVE, x, from + (to - from) * i / 24f);
+        }
+        if (captureGesture) snapshot("refresh-gesture.png");
+        injectTouch(down, android.view.MotionEvent.ACTION_UP, x, to);
+    }
+
+    private void injectTouch(long down, int action, float x, float y) {
+        android.view.MotionEvent event = android.view.MotionEvent.obtain(down, SystemClock.uptimeMillis(), action, x, y, 0);
+        event.setSource(android.view.InputDevice.SOURCE_TOUCHSCREEN);
+        try {
+            if (!getUiAutomation().injectInputEvent(event, true)) throw new AssertionError("Touch injection failed");
+        } finally { event.recycle(); }
     }
 
     private void snapshot(String name) throws java.io.IOException {
@@ -243,12 +290,26 @@ public final class ReleaseSmokeInstrumentation extends Instrumentation {
     private void click(String label) {
         long deadline = SystemClock.uptimeMillis() + 20000;
         do {
-            AccessibilityNodeInfo node = find(label);
-            while (node != null && !node.isClickable()) node = node.getParent();
+            AccessibilityNodeInfo node = clickTarget(getUiAutomation().getRootInActiveWindow(), label);
             if (node != null && node.isEnabled()
                     && node.performAction(AccessibilityNodeInfo.ACTION_CLICK)) return;
             SystemClock.sleep(100);
         } while (SystemClock.uptimeMillis() < deadline);
         throw new AssertionError("Cannot activate UI control: " + label);
+    }
+
+    private AccessibilityNodeInfo clickTarget(AccessibilityNodeInfo root, String label) {
+        if (root == null) return null;
+        if (label.contentEquals(root.getText() == null ? "" : root.getText())
+                || label.contentEquals(root.getContentDescription() == null ? "" : root.getContentDescription())) {
+            AccessibilityNodeInfo candidate = root;
+            while (candidate != null && !candidate.isClickable()) candidate = candidate.getParent();
+            if (candidate != null && candidate.isEnabled()) return candidate;
+        }
+        for (int i = 0; i < root.getChildCount(); i++) {
+            AccessibilityNodeInfo match = clickTarget(root.getChild(i), label);
+            if (match != null) return match;
+        }
+        return null;
     }
 }

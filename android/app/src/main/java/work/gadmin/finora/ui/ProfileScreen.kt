@@ -1,6 +1,9 @@
 package work.gadmin.finora.ui
 
 import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,11 +23,59 @@ import work.gadmin.finora.FinoraViewModel
 fun ProfileScreen(state: AppState, vm: FinoraViewModel) {
     val context = LocalContext.current
     var logout by remember { mutableStateOf(false) }
+    val picker =
+        rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+            if (uri != null) vm.updateAvatar(uri)
+        }
     LazyColumn(
+        modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(22.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         item { Text("Ваш профиль", style = MaterialTheme.typography.headlineLarge) }
+        item {
+            Surface(color = SurfaceColor, shape = RoundedCornerShape(26.dp)) {
+                Column(
+                    Modifier.fillMaxWidth().padding(22.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    ProfileAvatar(state.user, vm, 96.dp)
+                    Text("Фото профиля", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        "Вас узнают в каждой организации",
+                        color = Muted,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    OutlinedButton(
+                        {
+                            picker.launch(
+                                PickVisualMediaRequest(
+                                    ActivityResultContracts.PickVisualMedia.ImageOnly
+                                )
+                            )
+                        },
+                        enabled = !state.busy,
+                    ) {
+                        LineIcon(Glyph.CAMERA, size = 18.dp)
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            if (state.user?.avatar_url == null) "Добавить фото" else "Изменить фото"
+                        )
+                    }
+                    if (state.user?.avatar_url != null)
+                        TextButton({ vm.updateAvatar(null) }, enabled = !state.busy) {
+                            Text("Удалить фото")
+                        }
+                    Text(
+                        "До 5 МБ · кадрирование по центру",
+                        color = Muted,
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                    if (state.busy) BrandLoading("Сохраняем профиль", compact = true)
+                }
+            }
+        }
         item {
             Surface(color = SurfaceColor, shape = RoundedCornerShape(26.dp)) {
                 Column(

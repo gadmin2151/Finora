@@ -101,7 +101,7 @@ def login(data: s.Login, request: Request, response: Response, db: Session = DB)
         fail("Слишком много попыток входа. Повторите через 15 минут", 429)
     user = db.scalar(select(m.User).where(m.User.username == data.username))
     valid = verify_password(data.password, user.password_hash if user else dummy_hash)
-    if not valid or not user:
+    if not valid or not user or not user.is_active:
         db.add_all([m.LoginAttempt(key=key) for key in keys])
         db.commit()
         fail("Неверный логин или пароль", 401)

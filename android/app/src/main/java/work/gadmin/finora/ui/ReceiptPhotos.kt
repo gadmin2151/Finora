@@ -132,7 +132,7 @@ private fun RemotePhoto(
         }
     Box(modifier, contentAlignment = Alignment.Center) {
         when {
-            result == null -> CircularProgressIndicator(Modifier.size(24.dp), color = Green)
+            result == null -> BrandPulse(Modifier.size(48.dp))
             result?.isSuccess == true ->
                 Image(
                     requireNotNull(result?.getOrNull()).asImageBitmap(),
