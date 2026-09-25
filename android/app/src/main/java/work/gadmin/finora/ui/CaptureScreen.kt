@@ -17,6 +17,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -53,21 +54,28 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
     ) {
         item {
             Text(
+                "27G FINORA / PERSONAL FINANCE",
+                fontSize = 9.sp,
+                letterSpacing = 1.7.sp,
+                color = Green,
+            )
+            Spacer(Modifier.height(16.dp))
+            Text(
                 if (state.draft.hasContent) "Один чек.\nВсё на месте."
-                else "Чек — и всё\nпод контролем.",
+                else "Меньше рутины.\nБольше жизни.",
                 style = MaterialTheme.typography.headlineLarge,
             )
             Spacer(Modifier.height(9.dp))
             Text(
                 if (state.draft.hasContent) "Проверьте снимки и отправьте на распознавание."
-                else "Добавляйте покупки за пару касаний.\nОстальное Finora возьмёт на себя.",
+                else "Один снимок — и покупки в вашем бюджете.",
                 color = Muted,
             )
         }
         if (state.workspaceLoading) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
         if (state.draft.hasContent) {
             item {
-                Surface(shape = RoundedCornerShape(26.dp), color = Color.White) {
+                Surface(shape = RoundedCornerShape(26.dp), color = SurfaceColor) {
                     Column(
                         Modifier.padding(20.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -218,28 +226,25 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
                     color = Forest,
                     shape = RoundedCornerShape(30.dp),
                 ) {
-                    Column(Modifier.fillMaxWidth().padding(26.dp)) {
+                    Column(
+                        Modifier.fillMaxWidth()
+                            .background(Brush.linearGradient(listOf(Forest, Color(0xFF273650))))
+                            .padding(26.dp)
+                    ) {
                         Row(
                             Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.Top,
                         ) {
-                            Surface(
-                                color = Mint.copy(alpha = .13f),
-                                shape = RoundedCornerShape(20.dp),
-                            ) {
-                                Box(Modifier.padding(17.dp)) {
-                                    LineIcon(Glyph.SCAN, tint = Mint, size = 40.dp)
-                                }
-                            }
+                            ScanArtwork(Modifier.size(100.dp))
                             Text(
-                                "БЫСТРЕЕ ВСЕГО",
+                                "01 / БЫСТРЫЙ СТАРТ",
                                 color = Mint,
                                 style = MaterialTheme.typography.labelSmall,
                                 modifier = Modifier.padding(top = 7.dp),
                             )
                         }
-                        Spacer(Modifier.height(28.dp))
+                        Spacer(Modifier.height(20.dp))
                         Text(
                             "Сканировать QR",
                             fontSize = 25.sp,
@@ -374,7 +379,7 @@ private fun CaptureTile(
         modifier = modifier,
         enabled = enabled,
         shape = RoundedCornerShape(24.dp),
-        color = Color.White,
+        color = SurfaceColor,
     ) {
         Column(
             Modifier.padding(horizontal = 16.dp, vertical = 22.dp),

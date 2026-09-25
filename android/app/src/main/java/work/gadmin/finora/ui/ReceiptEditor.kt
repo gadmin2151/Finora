@@ -12,7 +12,6 @@ import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import kotlinx.serialization.encodeToString
@@ -65,7 +64,7 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
             }
         },
         bottomBar = {
-            Surface(color = Color.White, shadowElevation = 5.dp) {
+            Surface(color = SurfaceColor, shadowElevation = 5.dp) {
                 Column(
                     Modifier.navigationBarsPadding().imePadding().padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -167,7 +166,7 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
                 }
             }
             itemsIndexed(form.items, key = { _, item -> item.key }) { index, item ->
-                Surface(color = Color.White, shape = RoundedCornerShape(20.dp)) {
+                Surface(color = SurfaceColor, shape = RoundedCornerShape(20.dp)) {
                     Column(
                         Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp),

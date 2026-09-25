@@ -2,6 +2,9 @@ package work.gadmin.finora.ui
 
 import android.app.Activity
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -30,8 +33,8 @@ fun FinoraApp(vm: FinoraViewModel) {
     SideEffect {
         (view.context as? Activity)?.window?.let { window ->
             WindowCompat.getInsetsController(window, view).apply {
-                isAppearanceLightStatusBars = state.camera == null
-                isAppearanceLightNavigationBars = state.camera == null
+                isAppearanceLightStatusBars = false
+                isAppearanceLightNavigationBars = false
             }
         }
     }
@@ -185,32 +188,43 @@ fun FinoraApp(vm: FinoraViewModel) {
                 },
                 bottomBar = {
                     if (state.detailId == null)
-                        NavigationBar(containerColor = Color.White, tonalElevation = 0.dp) {
-                            listOf(
-                                    Triple(Page.CAPTURE, "Добавить", Glyph.SCAN),
-                                    Triple(Page.RECEIPTS, "Чеки", Glyph.RECEIPT),
-                                    Triple(Page.OVERVIEW, "Обзор", Glyph.CHART),
-                                    Triple(Page.PROFILE, "Профиль", Glyph.USER),
-                                )
-                                .forEach { (page, label, glyph) ->
-                                    NavigationBarItem(
-                                        selected = state.page == page,
-                                        onClick = { vm.navigate(page) },
-                                        enabled = !state.busy,
-                                        icon = {
-                                            LineIcon(
-                                                glyph,
-                                                tint = if (state.page == page) Forest else Muted,
-                                            )
-                                        },
-                                        label = { Text(label) },
-                                        colors =
-                                            NavigationBarItemDefaults.colors(
-                                                indicatorColor = Mint,
-                                                selectedTextColor = Forest,
-                                            ),
+                        Surface(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                            color = SurfaceColor,
+                            shape = RoundedCornerShape(26.dp),
+                            border = BorderStroke(1.dp, Border.copy(alpha = .65f)),
+                        ) {
+                            NavigationBar(
+                                containerColor = Color.Transparent,
+                                tonalElevation = 0.dp,
+                            ) {
+                                listOf(
+                                        Triple(Page.CAPTURE, "Добавить", Glyph.SCAN),
+                                        Triple(Page.RECEIPTS, "Чеки", Glyph.RECEIPT),
+                                        Triple(Page.OVERVIEW, "Обзор", Glyph.CHART),
+                                        Triple(Page.PROFILE, "Профиль", Glyph.USER),
                                     )
-                                }
+                                    .forEach { (page, label, glyph) ->
+                                        NavigationBarItem(
+                                            selected = state.page == page,
+                                            onClick = { vm.navigate(page) },
+                                            enabled = !state.busy,
+                                            icon = {
+                                                LineIcon(
+                                                    glyph,
+                                                    tint =
+                                                        if (state.page == page) Forest else Muted,
+                                                )
+                                            },
+                                            label = { Text(label) },
+                                            colors =
+                                                NavigationBarItemDefaults.colors(
+                                                    indicatorColor = Mint,
+                                                    selectedTextColor = Mint,
+                                                ),
+                                        )
+                                    }
+                            }
                         }
                 },
             ) { padding ->
@@ -221,11 +235,21 @@ fun FinoraApp(vm: FinoraViewModel) {
                     Box(Modifier.widthIn(max = 700.dp).fillMaxSize()) {
                         if (state.detailId != null) ReceiptDetailScreen(state, vm)
                         else
-                            when (state.page) {
-                                Page.CAPTURE -> CaptureScreen(state, vm)
-                                Page.RECEIPTS -> ReceiptsScreen(state, vm)
-                                Page.OVERVIEW -> OverviewScreen(state, vm)
-                                Page.PROFILE -> ProfileScreen(state, vm)
+                            AnimatedContent(
+                                targetState = state.page,
+                                transitionSpec = {
+                                    (fadeIn(tween(220)) +
+                                        slideInVertically(tween(280)) { it / 18 }) togetherWith
+                                        fadeOut(tween(120))
+                                },
+                                label = "Page transition",
+                            ) { page ->
+                                when (page) {
+                                    Page.CAPTURE -> CaptureScreen(state, vm)
+                                    Page.RECEIPTS -> ReceiptsScreen(state, vm)
+                                    Page.OVERVIEW -> OverviewScreen(state, vm)
+                                    Page.PROFILE -> ProfileScreen(state, vm)
+                                }
                             }
                     }
                 }

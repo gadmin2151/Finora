@@ -6,7 +6,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import work.gadmin.finora.AppState
@@ -31,7 +30,7 @@ fun ReceiptReview(state: AppState, receipt: Receipt, vm: FinoraViewModel) {
             receipt.purchased_on != null &&
             receipt.merchant.isNotBlank() &&
             receipt.items.sumOf { it.total_minor } == receipt.total_minor
-    Surface(shape = RoundedCornerShape(24.dp), color = Color.White) {
+    Surface(shape = RoundedCornerShape(24.dp), color = SurfaceColor) {
         Column(
             Modifier.fillMaxWidth().padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),

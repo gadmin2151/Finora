@@ -18,7 +18,7 @@
   margin: 15px 0;
 }
 .organization-picker > p {
-  color: #73817b;
+  color: #a9adb2;
   max-width: 580px;
   line-height: 1.7;
 }
@@ -36,20 +36,20 @@
   text-align: left;
   padding: 24px;
   cursor: pointer;
-  color: #36534a;
-  border: 1px solid #e2eae6;
+  color: #9cbfb4;
+  border: 1px solid var(--border);
 }
 .organization-card strong {
   font-size: 18px;
   overflow-wrap: anywhere;
 }
 .organization-card small {
-  color: #7c8a84;
+  color: #a9adb2;
 }
 .organization-card.selected,
 .organization-card:hover {
   border-color: #65b4a5;
-  background: #f2fbf7;
+  background: #172921;
 }
 .organization-settings {
   padding: 24px;
@@ -61,7 +61,7 @@
   margin-top: 22px;
 }
 .income-stats .stat-card > small {
-  color: #798680;
+  color: #a9adb2;
 }
 .income-stats .stat-card > strong {
   display: block;
@@ -76,7 +76,7 @@
   display: block;
 }
 .bill-row .grow small {
-  color: #849089;
+  color: #a9adb2;
   font-size: 12px;
   margin-top: 5px;
 }
@@ -98,8 +98,8 @@
   display: flex;
   flex-wrap: wrap;
   gap: 36px;
-  background: #edf7f2;
-  border: 1px solid #dceee4;
+  background: #172920;
+  border: 1px solid var(--border);
   padding: 22px 26px;
   border-radius: 16px;
   margin: 22px 0;
@@ -109,11 +109,11 @@
   display: block;
 }
 .purchase-summary span {
-  color: #688477;
+  color: #a4adb7;
   font-size: 12px;
 }
 .purchase-summary strong {
-  color: #255b47;
+  color: #9dd7c2;
   margin-top: 9px;
   font-size: 24px;
   font-variant-numeric: tabular-nums;
@@ -129,9 +129,9 @@
   justify-content: space-between;
   gap: 12px;
   padding: 15px;
-  border: 1px solid #e7ece9;
+  border: 1px solid var(--border);
   border-radius: 9px;
-  background: #fafcfb;
+  background: #182820;
   text-align: left;
 }
 .comparison-grid {
@@ -141,7 +141,7 @@
   padding: 0 24px 24px;
 }
 .price-comparison {
-  border: 1px solid #e4ebe7;
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 20px;
 }
@@ -151,7 +151,7 @@
 }
 .price-comparison p,
 .price-comparison small {
-  color: #7a8881;
+  color: #a9adb2;
   font-size: 12px;
   line-height: 1.7;
 }
@@ -165,20 +165,20 @@
   font-size: 21px;
 }
 .price-range span {
-  color: #7a8881;
+  color: #a9adb2;
   font-size: 12px;
 }
 .analysis-footnote {
   margin: 0;
   padding: 0 24px 24px;
-  color: #859189;
+  color: #a9adb2;
   font-size: 12px;
   line-height: 1.7;
 }
 .receipt-moderation,
 .receipt-comments {
   margin-top: 26px;
-  border-top: 1px solid #e5ece7;
+  border-top: 1px solid var(--border);
   padding-top: 18px;
 }
 .receipt-moderation summary {
@@ -188,12 +188,12 @@
 }
 .comment-list article {
   padding: 18px 0;
-  border-bottom: 1px solid #e6ece8;
+  border-bottom: 1px solid var(--border);
 }
 .comment-list small {
   margin-left: 12px;
   font-size: 11px;
-  color: #829088;
+  color: #a9adb2;
 }
 .comment-list p {
   white-space: pre-wrap;

@@ -23,27 +23,29 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-val Forest = Color(0xFF173F35)
-val Green = Color(0xFF24745F)
-val Mint = Color(0xFFB7EFCE)
-val Paper = Color(0xFFF5F7F4)
-val Ink = Color(0xFF20332D)
-val Muted = Color(0xFF73847C)
-val SoftGreen = Color(0xFFE7F1E9)
-val Border = Color(0xFFE0E7E0)
+val Forest = Color(0xFF173D38)
+val Green = Color(0xFF86E5BD)
+val Mint = Color(0xFFBCF7DB)
+val Paper = Color(0xFF10161F)
+val Ink = Color(0xFFEDF3F7)
+val Muted = Color(0xFF9CAFBE)
+val SoftGreen = Color(0xFF203731)
+val Border = Color(0xFF33414E)
+
+val SurfaceColor = Color(0xFF1B2733)
 
 @Composable
 fun FinoraTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme =
-            lightColorScheme(
+            darkColorScheme(
                 primary = Green,
-                onPrimary = Color.White,
+                onPrimary = Forest,
                 primaryContainer = SoftGreen,
-                onPrimaryContainer = Forest,
+                onPrimaryContainer = Mint,
                 secondary = Green,
                 background = Paper,
-                surface = Color.White,
+                surface = SurfaceColor,
                 onBackground = Ink,
                 onSurface = Ink,
                 onSurfaceVariant = Muted,
@@ -166,14 +168,30 @@ fun Brand(modifier: Modifier = Modifier, light: Boolean = false) {
                     .background(if (light) Mint else Green, RoundedCornerShape(2.dp))
             )
         }
-        Text(
-            "finora",
-            fontSize = 31.sp,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = (-1.5).sp,
-            color = if (light) Color.White else Forest,
-        )
-        Text("•", color = if (light) Mint else Green, fontSize = 24.sp)
+        Column {
+            Row(
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(9.dp),
+            ) {
+                Text(
+                    "finora.",
+                    fontSize = 31.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = (-1.5).sp,
+                    color = Ink,
+                )
+                Surface(color = SoftGreen, shape = RoundedCornerShape(6.dp)) {
+                    Text(
+                        "27G",
+                        Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                        fontSize = 9.sp,
+                        color = Mint,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            }
+            Text("PERSONAL FINANCE", fontSize = 8.sp, letterSpacing = 2.sp, color = Muted)
+        }
     }
 }
 
@@ -195,7 +213,7 @@ fun PrimaryButton(
         Text(text)
         if (icon != null) {
             Spacer(Modifier.width(10.dp))
-            LineIcon(icon, tint = Color.White, size = 20.dp)
+            LineIcon(icon, tint = Forest, size = 20.dp)
         }
     }
 }
@@ -214,7 +232,7 @@ fun InfoCard(text: String, icon: Glyph = Glyph.SHIELD) {
     Surface(color = SoftGreen, shape = RoundedCornerShape(20.dp)) {
         Row(Modifier.padding(18.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             LineIcon(icon, size = 21.dp)
-            Text(text, style = MaterialTheme.typography.bodyMedium, color = Forest)
+            Text(text, style = MaterialTheme.typography.bodyMedium, color = Ink)
         }
     }
 }

@@ -8,7 +8,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -27,7 +26,7 @@ fun ProfileScreen(state: AppState, vm: FinoraViewModel) {
     ) {
         item { Text("Ваш профиль", style = MaterialTheme.typography.headlineLarge) }
         item {
-            Surface(color = Color.White, shape = RoundedCornerShape(26.dp)) {
+            Surface(color = SurfaceColor, shape = RoundedCornerShape(26.dp)) {
                 Column(
                     Modifier.fillMaxWidth().padding(24.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -53,7 +52,7 @@ fun ProfileScreen(state: AppState, vm: FinoraViewModel) {
             }
         }
         item {
-            Surface(color = Color.White, shape = RoundedCornerShape(24.dp)) {
+            Surface(color = SurfaceColor, shape = RoundedCornerShape(24.dp)) {
                 Column(
                     Modifier.fillMaxWidth().padding(22.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),

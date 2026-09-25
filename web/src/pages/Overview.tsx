@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useSyncExternalStore } from "react";
 import {
   ArrowDownLeft,
   ArrowRight,
@@ -34,8 +35,20 @@ import {
   monthLabel,
 } from "../ui";
 
+const reducedMotionQuery = window.matchMedia(
+  "(prefers-reduced-motion: reduce)",
+);
+function subscribeMotion(onChange: () => void) {
+  reducedMotionQuery.addEventListener("change", onChange);
+  return () => reducedMotionQuery.removeEventListener("change", onChange);
+}
+
 export default function Overview() {
   const { month, open, navigate, categories, accounts, isAdmin } = useApp();
+  const reducedMotion = useSyncExternalStore(
+    subscribeMotion,
+    () => reducedMotionQuery.matches,
+  );
   const report = useQuery({
     queryKey: ["dashboard", month],
     queryFn: () => api<Dashboard>(`/dashboard?month=${month}`),
@@ -63,8 +76,8 @@ export default function Overview() {
   return (
     <>
       <PageHeading
-        eyebrow="ВАША ФИНАНСОВАЯ КАРТИНА"
-        title="Деньги под контролем"
+        eyebrow="PERSONAL FINANCE / ОБЗОР"
+        title="Больше ясности. Меньше лишнего."
         text={`Всё важное за ${monthLabel(month)}`}
         actions={
           <button
@@ -79,11 +92,26 @@ export default function Overview() {
       <div className="stats-grid">
         <section className="stat-card main-stat">
           <div className="stat-label">
-            <span>Остаток за месяц</span>
+            <span className="balance-eyebrow">
+              <i /> Финансовый пульс
+            </span>
             <Wallet size={20} />
           </div>
           <strong>{amount(data.net_minor)}</strong>
-          <span className="stat-note">Доходы минус расходы</span>
+          <span className="stat-note">
+            Остаток за месяц · доходы минус расходы
+          </span>
+          <button
+            className="balance-link"
+            onClick={() => navigate(isAdmin ? "accounts" : "transactions")}
+          >
+            {isAdmin ? "Мои счета" : "Все операции"} <ArrowUpRight size={17} />
+          </button>
+          <div className="balance-orbit" aria-hidden="true">
+            <i />
+            <i />
+            <Wallet size={54} strokeWidth={1} />
+          </div>
           <div className="stat-decoration" aria-hidden="true">
             <span />
             <span />
@@ -183,30 +211,30 @@ export default function Overview() {
               >
                 <defs>
                   <linearGradient id="incomeFill" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="#169e8a" stopOpacity={0.17} />
-                    <stop offset="100%" stopColor="#169e8a" stopOpacity={0} />
+                    <stop offset="0%" stopColor="#86e5bd" stopOpacity={0.17} />
+                    <stop offset="100%" stopColor="#86e5bd" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="expenseFill" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="#7973ca" stopOpacity={0.16} />
-                    <stop offset="100%" stopColor="#7973ca" stopOpacity={0} />
+                    <stop offset="0%" stopColor="#b7afff" stopOpacity={0.16} />
+                    <stop offset="100%" stopColor="#b7afff" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid
                   strokeDasharray="4 5"
                   vertical={false}
-                  stroke="#e7ebf0"
+                  stroke="#ffffff0d"
                 />
                 <XAxis
                   dataKey="day"
                   tickLine={false}
                   axisLine={false}
                   interval={5}
-                  tick={{ fill: "#7d8794", fontSize: 12 }}
+                  tick={{ fill: "#9cacbd", fontSize: 12 }}
                 />
                 <YAxis
                   tickLine={false}
                   axisLine={false}
-                  tick={{ fill: "#7d8794", fontSize: 12 }}
+                  tick={{ fill: "#9cacbd", fontSize: 12 }}
                   width={64}
                   tickFormatter={(n) =>
                     Number(n) >= 1000 ? `${Number(n) / 1000}к` : String(n)
@@ -214,8 +242,10 @@ export default function Overview() {
                 />
                 <Tooltip
                   contentStyle={{
+                    background: "#202d3a",
+                    color: "#edf3f7",
                     borderRadius: 12,
-                    borderColor: "#e7ebf0",
+                    borderColor: "#ffffff0d",
                     fontSize: 14,
                   }}
                   formatter={(v, name) => [
@@ -225,16 +255,18 @@ export default function Overview() {
                   labelFormatter={(d) => `${d} ${monthLabel(month)}`}
                 />
                 <Area
+                  isAnimationActive={!reducedMotion}
                   type="monotone"
                   dataKey="income"
-                  stroke="#169e8a"
+                  stroke="#86e5bd"
                   strokeWidth={2.5}
                   fill="url(#incomeFill)"
                 />
                 <Area
+                  isAnimationActive={!reducedMotion}
                   type="monotone"
                   dataKey="expense"
-                  stroke="#7973ca"
+                  stroke="#b7afff"
                   strokeWidth={2.5}
                   fill="url(#expenseFill)"
                 />

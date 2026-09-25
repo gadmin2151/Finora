@@ -77,7 +77,7 @@ fun ReceiptsScreen(state: AppState, vm: FinoraViewModel) {
             Surface(
                 onClick = { vm.openReceipt(receipt.id) },
                 shape = RoundedCornerShape(22.dp),
-                color = Color.White,
+                color = SurfaceColor,
             ) {
                 Column(
                     Modifier.fillMaxWidth().padding(18.dp),
@@ -138,13 +138,13 @@ fun ReceiptsScreen(state: AppState, vm: FinoraViewModel) {
 fun StatusBadge(status: String) {
     val warning = status !in listOf("posted", "queued", "processing")
     Surface(
-        color = if (warning) Color(0xFFFFF1DC) else SoftGreen,
+        color = if (warning) Color(0xFF493A27) else SoftGreen,
         shape = RoundedCornerShape(8.dp),
     ) {
         Text(
             statusLabel(status),
             Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
-            color = if (warning) Color(0xFF8A5A12) else Green,
+            color = if (warning) Color(0xFFFFD69B) else Green,
             style = MaterialTheme.typography.labelSmall,
         )
     }
@@ -256,7 +256,7 @@ fun ReceiptDetailScreen(state: AppState, vm: FinoraViewModel) {
                     }
                 if (filtered.isEmpty()) item { Text("Нет товаров по этому фильтру", color = Muted) }
                 items(filtered, key = ReceiptItem::id) { item ->
-                    Surface(color = Color.White, shape = RoundedCornerShape(17.dp)) {
+                    Surface(color = SurfaceColor, shape = RoundedCornerShape(17.dp)) {
                         Column(
                             Modifier.fillMaxWidth().padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(5.dp),
@@ -336,7 +336,7 @@ fun ReceiptDetailScreen(state: AppState, vm: FinoraViewModel) {
                 }
             }
             items(state.comments, key = ReceiptComment::id) { entry ->
-                Surface(color = Color.White, shape = RoundedCornerShape(16.dp)) {
+                Surface(color = SurfaceColor, shape = RoundedCornerShape(16.dp)) {
                     Column(
                         Modifier.fillMaxWidth().padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp),

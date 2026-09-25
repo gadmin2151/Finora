@@ -29,7 +29,11 @@ fun LoginScreen(state: AppState, vm: FinoraViewModel) {
     var showPassword by remember { mutableStateOf(false) }
     Column(
         Modifier.fillMaxSize()
-            .background(Paper)
+            .background(
+                androidx.compose.ui.graphics.Brush.verticalGradient(
+                    listOf(Color(0xFF223747), Paper, Paper)
+                )
+            )
             .safeDrawingPadding()
             .imePadding()
             .verticalScroll(rememberScrollState())
@@ -44,7 +48,7 @@ fun LoginScreen(state: AppState, vm: FinoraViewModel) {
             style = MaterialTheme.typography.bodyLarge,
         )
         Spacer(Modifier.height(8.dp))
-        Surface(shape = RoundedCornerShape(26.dp), color = Color.White) {
+        Surface(shape = RoundedCornerShape(26.dp), color = SurfaceColor) {
             Column(Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text("Войти в Finora", style = MaterialTheme.typography.titleLarge)
                 OutlinedTextField(
@@ -136,7 +140,11 @@ fun OrganizationScreen(
 ) {
     Column(
         Modifier.fillMaxSize()
-            .background(Paper)
+            .background(
+                androidx.compose.ui.graphics.Brush.verticalGradient(
+                    listOf(Color(0xFF223747), Paper, Paper)
+                )
+            )
             .safeDrawingPadding()
             .verticalScroll(rememberScrollState())
             .padding(24.dp),
@@ -158,7 +166,7 @@ fun OrganizationScreen(
             Surface(
                 onClick = { onSelect(organization) },
                 shape = RoundedCornerShape(24.dp),
-                color = Color.White,
+                color = SurfaceColor,
             ) {
                 Row(
                     Modifier.fillMaxWidth().padding(22.dp),

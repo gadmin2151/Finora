@@ -1,6 +1,7 @@
 package work.gadmin.finora.ui
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -8,6 +9,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -65,7 +67,9 @@ fun OverviewScreen(state: AppState, vm: FinoraViewModel) {
             item {
                 Surface(color = Forest, shape = RoundedCornerShape(28.dp)) {
                     Column(
-                        Modifier.fillMaxWidth().padding(25.dp),
+                        Modifier.fillMaxWidth()
+                            .background(Brush.linearGradient(listOf(Forest, Color(0xFF29364F))))
+                            .padding(25.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         Text("Расходы за месяц", color = Mint)
@@ -109,7 +113,7 @@ fun OverviewScreen(state: AppState, vm: FinoraViewModel) {
             }
             if (dashboard.categories.any { it.spent_minor > 0 })
                 item {
-                    Surface(color = Color.White, shape = RoundedCornerShape(26.dp)) {
+                    Surface(color = SurfaceColor, shape = RoundedCornerShape(26.dp)) {
                         Column(
                             Modifier.padding(22.dp),
                             verticalArrangement = Arrangement.spacedBy(18.dp),
@@ -197,7 +201,7 @@ fun OverviewScreen(state: AppState, vm: FinoraViewModel) {
                 item {
                     SectionTitle("Счета")
                     Spacer(Modifier.height(12.dp))
-                    Surface(color = Color.White, shape = RoundedCornerShape(22.dp)) {
+                    Surface(color = SurfaceColor, shape = RoundedCornerShape(22.dp)) {
                         Column(
                             Modifier.padding(18.dp),
                             verticalArrangement = Arrangement.spacedBy(18.dp),

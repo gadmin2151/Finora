@@ -90,7 +90,9 @@ function Logo() {
       </span>
       <span>
         finora<span className="brand-dot">.</span>
+        <small className="brand-caption">PERSONAL FINANCE</small>
       </span>
+      <span className="brand-edition">27G</span>
     </div>
   );
 }
@@ -214,7 +216,7 @@ function Login() {
             </span>
           </div>
         </div>
-        <footer>Finora · личные финансы, с заботой о вас</footer>
+        <footer>27G Finora · Personal Finance</footer>
       </main>
     </div>
   );
@@ -515,6 +517,7 @@ function Workspace({
           </div>
         )}
         <main
+          key={activeRoute}
           id="main-content"
           tabIndex={-1}
           className={`main-content route-${activeRoute}`}
@@ -533,7 +536,7 @@ function Workspace({
           </Suspense>
         </main>
         <footer className="workspace-footer">
-          <span>Finora · больше ясности в каждом дне</span>
+          <span>27G Finora · Personal Finance</span>
           <span>Учёт в MDL · Europe/Chisinau</span>
         </footer>
       </div>
