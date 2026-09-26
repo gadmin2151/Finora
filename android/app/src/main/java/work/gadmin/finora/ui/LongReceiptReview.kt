@@ -36,7 +36,7 @@ fun LongReceiptReview(
         Modifier.fillMaxSize().background(Paper).safeDrawingPadding().padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("Ваш длинный чек", style = MaterialTheme.typography.headlineSmall)
+        Text("Ваш чек", style = MaterialTheme.typography.headlineSmall)
         Text(
             "Прокрутите до конца: все строки, итог и QR должны быть на месте. Снимок пока только на телефоне.",
             color = Muted,

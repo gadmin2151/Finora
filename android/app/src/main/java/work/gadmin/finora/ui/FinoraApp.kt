@@ -236,15 +236,15 @@ fun FinoraApp(vm: FinoraViewModel) {
                 bottomBar = {
                     if (state.detailId == null && !composingChat)
                         Surface(
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                            modifier =
+                                Modifier.navigationBarsPadding()
+                                    .padding(horizontal = 14.dp, vertical = 4.dp),
                             color = SurfaceColor,
                             shape = RoundedCornerShape(26.dp),
                             border = BorderStroke(1.dp, Border.copy(alpha = .65f)),
                         ) {
                             Row(
-                                Modifier.fillMaxWidth()
-                                    .navigationBarsPadding()
-                                    .padding(horizontal = 2.dp),
+                                Modifier.fillMaxWidth().padding(horizontal = 2.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 listOf(
@@ -259,7 +259,7 @@ fun FinoraApp(vm: FinoraViewModel) {
                                         val selected = state.page == page
                                         Column(
                                             Modifier.weight(1f)
-                                                .height(94.dp)
+                                                .heightIn(min = 72.dp)
                                                 .selectable(
                                                     selected,
                                                     enabled = !state.busy,
@@ -269,12 +269,13 @@ fun FinoraApp(vm: FinoraViewModel) {
                                                 .semantics {
                                                     contentDescription =
                                                         if (capture) "Добавить чек" else label
-                                                },
+                                                }
+                                                .padding(vertical = 4.dp),
                                             horizontalAlignment = Alignment.CenterHorizontally,
                                             verticalArrangement =
                                                 Arrangement.spacedBy(
-                                                    5.dp,
-                                                    Alignment.CenterVertically,
+                                                    2.dp,
+                                                    Alignment.Bottom,
                                                 ),
                                         ) {
                                             if (capture)
@@ -282,10 +283,10 @@ fun FinoraApp(vm: FinoraViewModel) {
                                                     color = Mint,
                                                     shape = CircleShape,
                                                     shadowElevation = 6.dp,
-                                                    modifier = Modifier.size(56.dp),
+                                                    modifier = Modifier.size(48.dp),
                                                 ) {
                                                     Box(contentAlignment = Alignment.Center) {
-                                                        LineIcon(glyph, tint = Forest, size = 29.dp)
+                                                        LineIcon(glyph, tint = Forest, size = 27.dp)
                                                     }
                                                 }
                                             else
@@ -307,6 +308,7 @@ fun FinoraApp(vm: FinoraViewModel) {
                                                 label,
                                                 color = if (selected || capture) Mint else Muted,
                                                 fontSize = 11.sp,
+                                                lineHeight = 14.sp,
                                                 fontWeight =
                                                     if (selected || capture) FontWeight.SemiBold
                                                     else FontWeight.Normal,

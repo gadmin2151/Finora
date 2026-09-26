@@ -21,7 +21,7 @@ private const val MAX_SEGMENTS = 100
 data class ScanProgress(
     val count: Int = 0,
     val height: Int = 0,
-    val message: String = "Поместите начало чека в рамку",
+    val message: String = "Поместите чек или его начало в рамку",
     val warning: Boolean = false,
     val limitReached: Boolean = false,
     val thumbnail: Bitmap? = null,
@@ -75,12 +75,12 @@ class LongReceiptSession(cache: File) : Closeable {
                 commonRight = frameWidth.toFloat()
                 append(Pending(bitmap, texture, 0f, 0f, 1f))
                 retained = true
-                return status("Начало сохранено. Плавно ведите телефон вниз")
+                return status("Кадр сохранён. Продолжите вниз или нажмите «Готово»")
             }
             if (bitmap.width != frameWidth || bitmap.height != frameHeight)
                 return status("Верните телефон в прежнее положение и держите его вертикально", true)
-            if (texture.energy < requireNotNull(previousTexture).energy * .55f)
-                return status("Кадр смазан. Задержите телефон и дождитесь фокусировки", true)
+            // A dense header or QR leaving the frame lowers global contrast without any blur.
+            // Judge the shared printed rows through normalized registration instead.
             val match =
                 ReceiptAlignment.match(requireNotNull(previousTexture), texture)
                     ?: return status(

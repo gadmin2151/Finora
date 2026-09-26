@@ -142,6 +142,63 @@ class LongReceiptAcceptanceTest {
         }
     }
 
+    @Test
+    fun clearSparseReceiptSectionIsNotMistakenForBlur() {
+        val source = paper(height = 1800)
+        val canvas = Canvas(source)
+        val ink = Paint().apply { color = Color.BLACK }
+        // A dense header leaves the frame, while the shared printed rows remain perfectly sharp.
+        for (y in 0 until 440 step 10) {
+            canvas.drawRect(20f, y.toFloat(), 700f, y + 4f, ink)
+        }
+        val first = Bitmap.createBitmap(source, 0, 0, 720, 1000)
+        val next = Bitmap.createBitmap(source, 0, 480, 720, 1000)
+        assertTrue(
+            "Fixture must reproduce the old whole-frame contrast rejection",
+            LongReceiptSession.texture(next).energy <
+                LongReceiptSession.texture(first).energy * .55f,
+        )
+        LongReceiptSession(context.cacheDir).use { session ->
+            try {
+                assertEquals(1, session.offer(first).count)
+                val progress = session.offer(next)
+                assertFalse(progress.message, progress.warning)
+                assertEquals(2, progress.count)
+                val output = requireNotNull(BitmapFactory.decodeFile(session.finish().path))
+                try {
+                    assertTrue("The new rows must be included", abs(output.height - 1480) < 8)
+                } finally {
+                    output.recycle()
+                }
+            } finally {
+                source.recycle()
+            }
+        }
+    }
+
+    @Test
+    fun heavilyBlurredOverlapIsNotAppended() {
+        val source = paper(height = 1800)
+        val next = Bitmap.createBitmap(source, 0, 280, 720, 1000)
+        val tiny = Bitmap.createScaledBitmap(next, 45, 63, true)
+        val blurred = Bitmap.createScaledBitmap(tiny, 720, 1000, true)
+        next.recycle()
+        tiny.recycle()
+        LongReceiptSession(context.cacheDir).use { session ->
+            try {
+                session.offer(Bitmap.createBitmap(source, 0, 0, 720, 1000))
+                val progress = session.offer(blurred)
+                assertTrue("An unreadable frame must not be appended", progress.warning)
+                assertEquals(1, progress.count)
+                val recovered = session.offer(Bitmap.createBitmap(source, 0, 280, 720, 1000))
+                assertFalse(recovered.message, recovered.warning)
+                assertEquals(2, recovered.count)
+            } finally {
+                source.recycle()
+            }
+        }
+    }
+
     /** Optional private user photo; never included in the repository or release. */
     @Test
     fun privateReceiptPhotoCanBeReassembled() {

@@ -1,20 +1,20 @@
-# Long receipts · Android 1.6
+# Receipt capture · Android 1.7.1
 
-The **Длинный чек** camera mode assembles overlapping camera frames into one vertical JPEG on the phone. It does not use OpenAI, record a video file, or send camera frames to the server.
+The **Снять чек** camera handles both short and long receipts. One frame is enough for a short receipt; overlapping frames form one vertical JPEG for a long receipt. Assembly runs on the phone without OpenAI, a recorded video file, or uploading camera frames.
 
 ## How to scan
 
-1. Select your organization, open **Добавить → Длинный чек**, and place the top of the receipt inside the guide. Fill the guide with the paper's width; include both edges.
-2. Tap **Начать** and move the phone slowly from the top toward the bottom. Keep the paper flat and maintain the camera's angle and distance. A small vibration indicates an accepted section; the preview strip grows as sections are added.
+1. Select your organization, open **Добавить → Снять чек**, and place the whole short receipt or the top of a long receipt inside the guide. Fill the guide with the paper's width; include both edges.
+2. Tap **Начать**. If the entire receipt fits, tap **Готово** after the first frame is accepted. Otherwise, move the phone slowly from the top toward the bottom. Keep the paper flat and maintain the camera's angle and distance. A small vibration indicates an accepted section; the preview strip grows as sections are added.
 3. Include the final total and QR in the guide, then tap **Готово**. You can pause and continue during scanning. If the camera loses overlap, move slightly back toward the last captured section; it does not invent or silently bridge the missing area.
 4. Scroll through the assembled image and use **+ / −** to inspect the joins. **Переснять** starts again; **Использовать** adds one photo to the existing private draft. **Распознать чек** sends the draft over HTTPS. The resulting items and total still require review and confirmation before posting.
 
-The regular photo camera and multi-photo upload remain available for curled, folded, badly lit or otherwise difficult receipts.
+Gallery upload and **Добавить часть чека** in an existing draft remain available for curled, folded, badly lit or otherwise difficult receipts.
 
 ## Implementation and limits
 
 - [CameraX ImageAnalysis](https://developer.android.com/media/camera/camerax/analyze) uses the latest available frame and a shared preview viewport. Only the guide's camera pixels are captured, without the interface overlay. Frame sampling is throttled; actual cadence depends on the device.
-- Local contrast matching checks translation and small changes in scale. Multiple possible overlaps are compared to reject ambiguous repeated patterns. Low-detail frames, blur relative to the last good section, large sideways movement and lost overlap produce guidance instead of adding uncertain content.
+- Local contrast matching checks translation and small changes in scale. Multiple possible overlaps are compared to reject ambiguous repeated patterns. Low-detail frames, unreadable or unmatched overlaps, large sideways movement and lost overlap produce guidance instead of adding uncertain content. Version 1.7.1 removes the whole-frame contrast comparison: a dense header leaving the view must not make a sharp sparse section appear blurred. Matching still checks the shared printed rows before appending.
 - The join is placed in a light shared paper band. Overlap is removed; the common horizontal area is retained. The last small valid movement is included when finishing.
 - Capture is bounded to 100 accepted sections, a maximum width of 960 pixels and a maximum height of 14,000 pixels. The app asks the user to finish at the limit. It pauses when backgrounded and keeps the screen awake while open. Leaving the capture screen discards its uncommitted temporary files; this is not a recoverable video recording.
 - Temporary sections live in app-private cache. The selected JPEG enters the existing organization-specific, backup-excluded draft store. The same review, HTTPS transport and receipt permissions apply.

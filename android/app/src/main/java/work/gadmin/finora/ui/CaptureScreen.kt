@@ -270,13 +270,13 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                     CaptureTile(
-                        "Сфотографировать",
-                        "Обычный снимок",
+                        "Снять чек",
+                        "Короткий или длинный",
                         Glyph.CAMERA,
                         Modifier.weight(1f),
                         available && state.draft.photos.size < MAX_PHOTOS,
                     ) {
-                        vm.camera(CameraMode.PHOTO)
+                        vm.camera(CameraMode.LONG_RECEIPT)
                     }
                     CaptureTile(
                         "Из галереи",
@@ -293,18 +293,6 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
                     }
                 }
             }
-        if (state.draft.qr.isBlank())
-            item {
-                CaptureTile(
-                    "Длинный чек",
-                    "Ведите камеру сверху вниз — снимки склеятся автоматически",
-                    Glyph.RECEIPT,
-                    Modifier.fillMaxWidth(),
-                    available && state.draft.photos.size < MAX_PHOTOS,
-                ) {
-                    vm.camera(CameraMode.LONG_RECEIPT)
-                }
-            }
         if (!state.draft.hasContent)
             item {
                 TextButton({ manualQr = true }, Modifier.fillMaxWidth(), enabled = available) {
@@ -314,7 +302,7 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
                 }
                 Spacer(Modifier.height(8.dp))
                 InfoCard(
-                    "Длинный чек склеивается на телефоне в одно фото. Перед распознаванием можно проверить весь снимок.",
+                    "Короткий чек — один кадр. Длинный — ведите камеру сверху вниз. Получится одно фото для проверки.",
                     Glyph.SPARK,
                 )
             }

@@ -65,11 +65,11 @@ public final class ReleaseSmokeInstrumentation extends Instrumentation {
                 if (find("Не удалось запустить QR-сканер. Сфотографируйте чек или вставьте ссылку на чек.") != null)
                     throw new AssertionError("QR initialization failed");
                 click("Закрыть камеру");
-                click("Сфотографировать");
-                requireNode("Снять чек");
+                click("Снять чек");
+                requireNode("Съёмка чека");
                 SystemClock.sleep(2000);
-                requireNode("Снять чек");
-                click("Закрыть камеру");
+                requireNode("Съёмка чека");
+                click("Закрыть съёмку чека");
                 result.putString("camera", "PASS: release QR and photo preview on device");
             }
             if (testRefresh) {

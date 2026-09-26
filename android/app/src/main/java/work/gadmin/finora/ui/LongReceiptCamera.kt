@@ -263,10 +263,10 @@ fun LongReceiptCamera(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton({ close() }, enabled = !busy && !working) {
-                        LineIcon(Glyph.CLOSE, "Закрыть длинный чек", tint = Color.White)
+                        LineIcon(Glyph.CLOSE, "Закрыть съёмку чека", tint = Color.White)
                     }
                     Text(
-                        "Длинный чек",
+                        "Съёмка чека",
                         Modifier.weight(1f),
                         color = Color.White,
                         textAlign = TextAlign.Center,
@@ -288,8 +288,9 @@ fun LongReceiptCamera(
                 }
                 Text(
                     if (progress.count == 0)
-                        "Начните с верха чека. Вся ширина бумаги — внутри рамки."
-                    else "Ведите телефон сверху вниз. Держите его параллельно бумаге.",
+                        "Поместите в рамку короткий чек целиком или начало длинного."
+                    else
+                        "Весь чек в кадре? Нажмите «Готово». Если он длиннее — ведите камеру вниз.",
                     Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
                     color = Color.White,
                     textAlign = TextAlign.Center,
@@ -382,7 +383,7 @@ fun LongReceiptCamera(
                 }
                 if (progress.count == 0)
                     Text(
-                        "Склейка на телефоне · без интернета и AI",
+                        "Один чек · одно фото · без интернета",
                         Modifier.padding(top = 10.dp),
                         color = Color.White.copy(alpha = .65f),
                         style = MaterialTheme.typography.labelSmall,

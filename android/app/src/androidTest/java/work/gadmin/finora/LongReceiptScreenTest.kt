@@ -70,7 +70,7 @@ class LongReceiptScreenTest {
                 .isNotEmpty() || error.value != null
         }
         assertNull(error.value)
-        rule.onNodeWithText("Ваш длинный чек").assertIsDisplayed()
+        rule.onNodeWithText("Ваш чек").assertIsDisplayed()
         instrumentation.uiAutomation.takeScreenshot()?.let { bitmap ->
             File(context.filesDir, "long-receipt-review-screen.png").outputStream().use {
                 bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it)
