@@ -185,6 +185,14 @@ fun ReceiptDetailScreen(state: AppState, vm: FinoraViewModel) {
                 StatusBadge(receipt.status)
                 Spacer(Modifier.height(12.dp))
                 Text(receipt.title, style = MaterialTheme.typography.headlineMedium)
+                if (receipt.merchant_address.isNotBlank()) {
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        receipt.merchant_address,
+                        color = Muted,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
                 Text(receipt.purchased_on ?: receipt.created_at.take(10), color = Muted)
                 Spacer(Modifier.height(18.dp))
                 Text(

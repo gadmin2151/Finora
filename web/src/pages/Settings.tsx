@@ -1,3 +1,4 @@
+import { CategoryRefresh } from "../CategoryRefresh";
 import { ProfileSettings } from "../Profile";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -697,6 +698,7 @@ function CategorySettings() {
             Добавить
           </button>
         </div>
+        <CategoryRefresh />
         <div className="category-settings">
           {categories.map((c) => (
             <button key={c.id} onClick={() => setEditing(c)}>
@@ -711,7 +713,8 @@ function CategorySettings() {
         <h2>Ваши правила распределения</h2>
         <p>
           Правила имеют приоритет перед AI. Самое новое подходящее правило
-          применяется первым, к новым распознаваниям.
+          применяется первым. Чтобы применить правила к сохранённым чекам,
+          нажмите «Перераспределить чеки».
         </p>
         <Form onSubmit={() => save.mutate(undefined)}>
           <div className="form-grid">
@@ -838,6 +841,27 @@ function CategoryForm({
                 book: "Образование",
                 plane: "Отдых",
                 gift: "Подарки",
+                apple: "Овощи и фрукты",
+                beef: "Мясо",
+                fish: "Рыба",
+                milk: "Молочные продукты",
+                croissant: "Выпечка",
+                wheat: "Бакалея",
+                candy: "Сладости",
+                popcorn: "Снеки",
+                "cup-soda": "Напитки",
+                zap: "Энергетики",
+                wine: "Алкоголь",
+                cigarette: "Табак",
+                utensils: "Готовая еда",
+                "spray-can": "Бытовая химия",
+                bath: "Гигиена",
+                lamp: "Товары для дома",
+                baby: "Для детей",
+                "paw-print": "Питомцы",
+                shirt: "Одежда",
+                sparkles: "Косметика",
+                pill: "Лекарства",
               }).map(([k, v]) => (
                 <option key={k} value={k}>
                   {v}

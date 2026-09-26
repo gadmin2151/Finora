@@ -2321,6 +2321,26 @@ tbody tr:hover {
 .category-settings {
   margin-top: 17px;
 }
+
+.category-refresh {
+  margin-block: 18px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+}
+.category-refresh p {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.category-refresh-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.category-refresh-actions .button {
+  font-size: 13px;
+}
 .category-settings > button {
   display: flex;
   width: 100%;

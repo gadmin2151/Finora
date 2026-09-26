@@ -113,6 +113,7 @@ export type Receipt = {
   source: string;
   source_url: string | null;
   merchant: string;
+  merchant_address?: string;
   purchased_on: string | null;
   currency: Currency;
   total_minor: number | null;

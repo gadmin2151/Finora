@@ -11,22 +11,8 @@ from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
 from . import models as m
+from .category_catalog import DEFAULT_CATEGORIES
 from .schemas import SplitInput, TransactionInput
-
-DEFAULT_CATEGORIES = [
-    ("Продукты", "shopping-basket", "#18a999"),
-    ("Рестораны и кафе", "coffee", "#ed9753"),
-    ("Дом", "house", "#7376d7"),
-    ("Автомобиль", "car", "#4a93cf"),
-    ("Транспорт", "train", "#64abc2"),
-    ("Здоровье", "heart", "#dc7590"),
-    ("Покупки", "shopping-bag", "#bf8cc8"),
-    ("Связь и подписки", "repeat", "#d5ad4b"),
-    ("Образование", "book", "#689d7a"),
-    ("Отдых", "plane", "#4db6ba"),
-    ("Подарки", "gift", "#ce7c6c"),
-    ("Прочее", "tag", "#98a1b2"),
-]
 
 
 def today() -> date:

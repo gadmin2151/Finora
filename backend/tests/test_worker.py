@@ -111,7 +111,9 @@ def test_ai_classifies_unfamiliar_ocr_items_without_changing_amounts(
     monkeypatch.setattr(
         receipts,
         "local_ocr",
-        lambda images: "TEST MARKET\n20.09.2025\nCIOCOLATA\n1 x 25.00 25.00\nTOTAL 25.00",
+        lambda images: (
+            "TEST MARKET\n20.09.2025\nSpecialitate exotica\n1 x 25.00 25.00\nTOTAL 25.00"
+        ),
     )
 
     async def classify(organization_id, purpose, system, text, schema, images=None):

@@ -56,6 +56,7 @@ data class Receipt(
     val review_required: Boolean = false,
     val created_by: String? = null,
     val merchant: String = "",
+    val merchant_address: String = "",
     val purchased_on: String? = null,
     val currency: String = "MDL",
     val total_minor: Long? = null,

@@ -43,6 +43,7 @@ data class ReceiptForm(
     val fxRate: String,
     val version: Int,
     val items: List<ReceiptLineForm>,
+    val merchantAddress: String = "",
 ) {
     fun lineSum(): BigDecimal? = runCatching {
         items.fold(BigDecimal.ZERO) { sum, item -> sum + receiptNumber(item.total, true) }
@@ -51,6 +52,7 @@ data class ReceiptForm(
 
     fun payload(): JsonObject {
         require(merchant.trim().length in 1..200) { "Укажите магазин" }
+        require(merchantAddress.length <= 500) { "Адрес слишком длинный" }
         val purchased = runCatching { LocalDate.parse(date.trim()) }.getOrNull()
         require(purchased != null && purchased.year >= 1990 && purchased <= LocalDate.now()) {
             "Проверьте дату: ГГГГ-ММ-ДД, не позднее сегодняшнего дня"
@@ -69,6 +71,7 @@ data class ReceiptForm(
         }
         return buildJsonObject {
             put("merchant", merchant.trim())
+            put("merchant_address", merchantAddress.trim())
             put("purchased_on", purchased.toString())
             put("currency", currency)
             put("total", amount.toPlainString())
@@ -104,6 +107,7 @@ data class ReceiptForm(
         fun from(receipt: Receipt, accounts: List<Account>): ReceiptForm =
             ReceiptForm(
                 merchant = receipt.merchant,
+                merchantAddress = receipt.merchant_address,
                 date = receipt.purchased_on ?: "",
                 currency = receipt.currency,
                 total = receipt.total_minor?.let(::editableMoney) ?: "",

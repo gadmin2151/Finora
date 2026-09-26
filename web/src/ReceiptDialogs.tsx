@@ -449,6 +449,7 @@ function ReceiptForm({
 }) {
   const { accounts, categories, toast, isAdmin } = useApp();
   const [merchant, setMerchant] = useState(receipt.merchant);
+  const [address, setAddress] = useState(receipt.merchant_address ?? "");
   const [date, setDate] = useState(receipt.purchased_on ?? today());
   const [currency, setCurrency] = useState<string>(receipt.currency);
   const [total, setTotal] = useState(
@@ -491,6 +492,7 @@ function ReceiptForm({
     () =>
       send(`/receipts/${receipt.id}/confirm`, {
         merchant,
+        merchant_address: address,
         purchased_on: date,
         currency,
         total,
@@ -559,6 +561,14 @@ function ReceiptForm({
                     maxLength={200}
                     value={merchant}
                     onChange={(e) => setMerchant(e.target.value)}
+                  />
+                </Field>
+                <Field label="Адрес магазина" wide>
+                  <input
+                    maxLength={500}
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="Адрес, напечатанный на чеке"
                   />
                 </Field>
                 <Field label="Дата покупки">

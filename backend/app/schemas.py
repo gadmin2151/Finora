@@ -24,6 +24,10 @@ class Login(Strict):
     password: str = Field(min_length=1, max_length=256)
 
 
+class CategoryRefresh(Strict):
+    after: str = Field(default="", max_length=36, pattern=r"^(?:[0-9a-f-]{36})?$")
+
+
 class PasswordChange(Strict):
     current_password: str = Field(min_length=1, max_length=256)
     new_password: str = Field(min_length=12, max_length=256)
@@ -216,6 +220,7 @@ class ReceiptLineInput(Strict):
 
 class ReceiptConfirm(Strict):
     merchant: str = Field(min_length=1, max_length=200)
+    merchant_address: str | None = Field(default=None, max_length=500)
     purchased_on: date
     currency: Currency = "MDL"
     total: Money = Field(gt=0, le=1000000000)

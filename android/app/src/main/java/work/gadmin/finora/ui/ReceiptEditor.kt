@@ -118,6 +118,12 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
                         enabled = enabled,
                     )
                     EditField(
+                        "Адрес магазина",
+                        form.merchantAddress,
+                        { form = form.copy(merchantAddress = it.take(500)) },
+                        enabled = enabled,
+                    )
+                    EditField(
                         "Дата · ГГГГ-ММ-ДД",
                         form.date,
                         { form = form.copy(date = it.take(10)) },

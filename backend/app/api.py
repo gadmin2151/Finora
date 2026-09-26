@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 from . import ai, ledger
 from . import models as m
 from . import schemas as s
+from .category_refresh import install_daily_categories, refresh_receipt_categories
 from .config import settings
 from .db import SessionLocal, get_db
 from .finance import (
@@ -282,6 +283,20 @@ def add_category(data: s.CategoryInput, user: m.Organization = SCOPE, db: Sessio
     db.add(row)
     db.commit()
     return {"id": row.id}
+
+
+@router.post("/categories/daily")
+def add_daily_categories(user: m.Organization = SCOPE, db: Session = DB):
+    added = install_daily_categories(db, user.id)
+    db.commit()
+    return {"added": added}
+
+
+@router.post("/categories/refresh")
+def refresh_categories(data: s.CategoryRefresh, user: m.Organization = SCOPE, db: Session = DB):
+    result = refresh_receipt_categories(db, user.id, data.after)
+    db.commit()
+    return result
 
 
 @router.put("/categories/{key}")

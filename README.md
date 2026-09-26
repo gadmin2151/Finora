@@ -164,3 +164,11 @@ Server CI runs PostgreSQL integration tests, migration checks, lint/format check
 ## License
 
 [MIT](LICENSE). Screenshots in this README use fictional demonstration data. Finora is independent of fiscal providers and the products discussed in the market research.
+
+### Everyday categories and existing receipts
+
+New organizations start with 34 categories, including groceries, sweets, coffee and tea, energy drinks, tobacco, household supplies and personal care. Organization admins can install the additional presets and reclassify existing receipts under **Settings → Categories and rules**. Reclassification applies explicit user rules first, preserves custom categories and unknown assignments, and updates the category allocations used by reports. It does not change money, account postings, currencies or receipt originals. Drafts remain drafts. Refund-linked receipts and inconsistent monetary records are skipped with an explanation instead of guessing.
+
+Receipt recognition separates the printed seller and address from products and fiscal identifiers, including full SFS pages captured by a phone. Existing contaminated names are repaired only when the original text has a unique matching quantity, price and line total. Changes are audited. The optional `merchant_address` API field is backward compatible and stored in existing receipt metadata; no database schema migration is required.
+
+The organization-scoped admin endpoints are `POST /api/categories/daily` and `POST /api/categories/refresh` with `{ "after": "" }`. Refresh processes up to 50 receipts per request; pass `next_cursor` as `after` until it is null. A repeated run is safe.
