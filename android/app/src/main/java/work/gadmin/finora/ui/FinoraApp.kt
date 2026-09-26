@@ -7,6 +7,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -16,11 +17,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -162,6 +165,10 @@ fun FinoraApp(vm: FinoraViewModel) {
                                 Spacer(Modifier.width(18.dp))
                                 Surface(
                                     onClick = { vm.navigate(Page.PROFILE) },
+                                    modifier =
+                                        Modifier.semantics {
+                                            contentDescription = "Открыть профиль"
+                                        },
                                     color = Forest,
                                     shape = CircleShape,
                                     enabled = !state.busy,
@@ -234,36 +241,78 @@ fun FinoraApp(vm: FinoraViewModel) {
                             shape = RoundedCornerShape(26.dp),
                             border = BorderStroke(1.dp, Border.copy(alpha = .65f)),
                         ) {
-                            NavigationBar(
-                                containerColor = Color.Transparent,
-                                tonalElevation = 0.dp,
+                            Row(
+                                Modifier.fillMaxWidth()
+                                    .navigationBarsPadding()
+                                    .padding(horizontal = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 listOf(
+                                        Triple(Page.OVERVIEW, "Обзор", Glyph.CHART),
+                                        Triple(Page.FINANCES, "Финансы", Glyph.WALLET),
                                         Triple(Page.CAPTURE, "Добавить", Glyph.SCAN),
                                         Triple(Page.RECEIPTS, "Чеки", Glyph.RECEIPT),
-                                        Triple(Page.OVERVIEW, "Обзор", Glyph.CHART),
                                         Triple(Page.CHAT, "Помощник", Glyph.SPARK),
-                                        Triple(Page.PROFILE, "Профиль", Glyph.USER),
                                     )
                                     .forEach { (page, label, glyph) ->
-                                        NavigationBarItem(
-                                            selected = state.page == page,
-                                            onClick = { vm.navigate(page) },
-                                            enabled = !state.busy,
-                                            icon = {
-                                                LineIcon(
-                                                    glyph,
-                                                    tint =
-                                                        if (state.page == page) Forest else Muted,
+                                        val capture = page == Page.CAPTURE
+                                        val selected = state.page == page
+                                        Column(
+                                            Modifier.weight(1f)
+                                                .height(94.dp)
+                                                .selectable(
+                                                    selected,
+                                                    enabled = !state.busy,
+                                                    role = Role.Tab,
+                                                    onClick = { vm.navigate(page) },
                                                 )
-                                            },
-                                            label = { Text(label) },
-                                            colors =
-                                                NavigationBarItemDefaults.colors(
-                                                    indicatorColor = Mint,
-                                                    selectedTextColor = Mint,
+                                                .semantics {
+                                                    contentDescription =
+                                                        if (capture) "Добавить чек" else label
+                                                },
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement =
+                                                Arrangement.spacedBy(
+                                                    5.dp,
+                                                    Alignment.CenterVertically,
                                                 ),
-                                        )
+                                        ) {
+                                            if (capture)
+                                                Surface(
+                                                    color = Mint,
+                                                    shape = CircleShape,
+                                                    shadowElevation = 6.dp,
+                                                    modifier = Modifier.size(56.dp),
+                                                ) {
+                                                    Box(contentAlignment = Alignment.Center) {
+                                                        LineIcon(glyph, tint = Forest, size = 29.dp)
+                                                    }
+                                                }
+                                            else
+                                                Surface(
+                                                    color =
+                                                        if (selected) SoftGreen
+                                                        else Color.Transparent,
+                                                    shape = RoundedCornerShape(14.dp),
+                                                    modifier = Modifier.size(46.dp, 34.dp),
+                                                ) {
+                                                    Box(contentAlignment = Alignment.Center) {
+                                                        LineIcon(
+                                                            glyph,
+                                                            tint = if (selected) Mint else Muted,
+                                                        )
+                                                    }
+                                                }
+                                            Text(
+                                                label,
+                                                color = if (selected || capture) Mint else Muted,
+                                                fontSize = 11.sp,
+                                                fontWeight =
+                                                    if (selected || capture) FontWeight.SemiBold
+                                                    else FontWeight.Normal,
+                                                maxLines = 1,
+                                            )
+                                        }
                                     }
                             }
                         }
@@ -295,6 +344,7 @@ fun FinoraApp(vm: FinoraViewModel) {
                                     Page.RECEIPTS -> ReceiptsScreen(state, vm)
                                     Page.OVERVIEW -> OverviewScreen(state, vm)
                                     Page.CHAT -> ChatScreen(state, vm)
+                                    Page.FINANCES -> FinanceScreen(state, vm)
                                     Page.PROFILE -> ProfileScreen(state, vm)
                                 }
                             }

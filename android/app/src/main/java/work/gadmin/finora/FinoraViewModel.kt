@@ -18,6 +18,7 @@ enum class Page {
     RECEIPTS,
     OVERVIEW,
     CHAT,
+    FINANCES,
     PROFILE,
 }
 
@@ -88,6 +89,21 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
             viewModelScope,
             onRefreshing = { loading -> mutable.update { it.copy(refreshing = loading) } },
             onError = ::handleError,
+        )
+
+    val finance =
+        FinanceController(
+            viewModelScope,
+            { requireNotNull(api) },
+            { mutable.value.organization },
+            { mutable.value.month },
+            { mutable.value.busy },
+            ::writeAction,
+            ::handleError,
+            { notice ->
+                mutable.update { it.copy(notice = notice) }
+                loadDashboard()
+            },
         )
 
     init {
@@ -191,6 +207,7 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
 
     private fun cancelWorkspace() {
         refresh.cancel()
+        finance.reset()
         workspaceJob?.cancel()
         receiptsJob?.cancel()
         detailJob?.cancel()
@@ -244,6 +261,7 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
             Page.RECEIPTS -> loadReceipts()
             Page.OVERVIEW -> loadDashboard()
             Page.CHAT -> loadChat()
+            Page.FINANCES -> finance.load()
             else -> Unit
         }
     }
@@ -591,6 +609,7 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
             )
         }
         if (mutable.value.page == Page.OVERVIEW) loadDashboard()
+        if (mutable.value.page == Page.FINANCES) finance.load()
     }
 
     fun loadDashboard() {
@@ -665,6 +684,7 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
                 current.page == Page.OVERVIEW -> fetchDashboard(current)
                 current.page == Page.CAPTURE -> fetchWorkspace(org.id)
                 current.page == Page.CHAT -> fetchChat(current)
+                current.page == Page.FINANCES -> finance.refresh()
                 else -> {
                     val user = requireNotNull(api).me()
                     persist(user)

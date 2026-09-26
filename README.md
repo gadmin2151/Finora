@@ -13,6 +13,10 @@
 
 ![Finora dashboard with fictional demonstration data](docs/assets/overview.png)
 
+## New in 1.7: income and debts on Android
+
+The native **Finances** tab handles occasional income, recurring schedules, received payments, lending, borrowing and partial repayments. Existing income can be linked to a planned payment without counting it twice. The five-item navigation puts the larger receipt-capture button in the middle; profile stays under the avatar. [Mobile finance guide](docs/MOBILE-FINANCE.md).
+
 ## New in 1.6: scan a long receipt
 
 Move the Android camera from the top of a receipt to the bottom. **Long receipt** mode captures overlapping sections and assembles one vertical photo locally, with pause, full-image review and zoom before upload. No AI key or network connection is needed for stitching. [How it works and its limits](docs/LONG-RECEIPTS.md).

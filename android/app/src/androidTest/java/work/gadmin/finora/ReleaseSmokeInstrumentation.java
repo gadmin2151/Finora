@@ -80,9 +80,9 @@ public final class ReleaseSmokeInstrumentation extends Instrumentation {
                     if (organization != null && awaitNode(organization, 8000) != null) click(organization);
                 }
                 requireNode("Сканировать QR");
-                for (String page : new String[]{"Добавить", "Чеки", "Обзор", "Профиль"}) {
+                for (String page : new String[]{"Добавить", "Чеки", "Обзор", "Финансы", "Профиль"}) {
                     Bundle progress = new Bundle(); progress.putString("stage", "Refresh: " + page); sendStatus(0, progress);
-                    click(page);
+                    click(page.equals("Профиль") ? "Открыть профиль" : page);
                     SystemClock.sleep(900);
                     if (find("Данные обновлены") != null) throw new AssertionError("Refresh status leaked between screens");
                     pullToRefresh(page.equals("Добавить"));

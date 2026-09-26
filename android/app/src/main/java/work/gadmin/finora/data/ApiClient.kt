@@ -221,6 +221,45 @@ class ApiClient(val server: String, savedCookie: String? = null) {
 
     suspend fun categories(org: String): List<Category> = get("/api/categories", org)
 
+    suspend fun income(org: String, month: String): IncomeReport =
+        get("/api/income?month=$month", org)
+
+    suspend fun incomePlans(org: String): List<IncomePlan> = get("/api/income/templates", org)
+
+    suspend fun debts(org: String): List<Debt> = get("/api/debts", org)
+
+    suspend fun incomeHistory(
+        org: String,
+        month: String,
+        offset: Int = 0,
+        account: String? = null,
+        limit: Int = 30,
+    ): IncomeHistory {
+        val url =
+            origin
+                .newBuilder()
+                .encodedPath("/api/transactions")
+                .addQueryParameter("kind", "income")
+                .addQueryParameter("month", month)
+                .addQueryParameter("offset", offset.toString())
+                .addQueryParameter("limit", limit.toString())
+                .apply { account?.let { addQueryParameter("account_id", it) } }
+                .build()
+        return get(url.encodedPath + "?" + url.encodedQuery, org)
+    }
+
+    suspend fun financeWrite(org: String, command: FinanceCommand) {
+        execute(
+            request(
+                command.path,
+                org,
+                command.method,
+                if (command.method == "DELETE") null
+                else jsonBody(command.body ?: buildJsonObject {}),
+            )
+        )
+    }
+
     suspend fun receipts(org: String, search: String, offset: Int): ReceiptPage {
         val url =
             origin
