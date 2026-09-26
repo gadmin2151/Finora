@@ -16,3 +16,13 @@ This change adds recoverable organization/account deletion, explicit administrat
 Existing organization and receipt image endpoints remain compatible with Android. Phone-page processing still performs no receipt-site network request on the server. There is no new AI credential, Android package or mandatory mobile update.
 
 A source image never captured in an earlier release cannot be reconstructed from recognized text. The receipt explicitly shows the missing original and permits an authorized photo/screenshot attachment. External pages may be unavailable; no CAPTCHA, regional restriction or TLS validation is bypassed. Deletion is reversible trash, not permanent erasure, and retains storage usage.
+
+## CI and deployed release
+
+Source revision: `70fed1ccfd72c8da7a0282ce50ad056fc46e557f`.
+
+[CI run 36219318106](https://github.com/gadmin2151/Finora/actions/runs/36219318106) succeeded: backend/migration/frontend checks, installer checks on Python 3.11 and 3.13, amd64/arm64 image builds, authenticated boot checks and multi-platform publication.
+
+The authorized deployment is running `ghcr.io/gadmin2151/finora@sha256:44f68f2e3e67fbe9dd53bf90044139889f1954458e18fe565290aff8f65b97c0` with schema `9ad271c084fe`. An encrypted pre-update backup was created before migration. All 21 non-ephemeral table row counts and both existing source-file hashes matched before/after deployment. No live financial records were created or deleted by verification.
+
+HTTPS checks passed for authenticated organization/user management (including trash), finance and reporting endpoints. Anonymous access returns 401 and unrelated organization access returns 403. The short-lived verification session was revoked. Published JS/CSS assets match the locally verified production build.
