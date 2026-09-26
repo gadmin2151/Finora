@@ -1,5 +1,7 @@
 """Wallet preferences and audited receipt reassignment; amounts and originals stay intact."""
 
+from collections import defaultdict
+
 from sqlalchemy import select
 
 from . import models as m
@@ -38,37 +40,36 @@ def save_accounting(db, organization_id: str, data: AccountingInput):
     moved = 0
     if data.move_existing_receipts:
         # Lock the scope before receipts, matching the confirmation/deletion lock order.
-        receipts = db.scalars(
-            select(m.Receipt)
-            .where(
-                m.Receipt.organization_id == organization_id,
-                m.Receipt.deleted_at.is_(None),
-                m.Receipt.currency == "MDL",
-                (m.Receipt.account_id.is_(None)) | (m.Receipt.account_id != account.id),
-            )
-            .order_by(m.Receipt.id)
-            .with_for_update()
+        receipt_query = select(m.Receipt).where(
+            m.Receipt.organization_id == organization_id,
+            m.Receipt.deleted_at.is_(None),
+            m.Receipt.currency == "MDL",
+            (m.Receipt.account_id.is_(None)) | (m.Receipt.account_id != account.id),
         )
+        receipts = list(db.scalars(receipt_query.order_by(m.Receipt.id).with_for_update()))
+        transaction_query = select(m.Transaction).where(
+            m.Transaction.organization_id == organization_id,
+            m.Transaction.receipt_id.in_(receipt_query.with_only_columns(m.Receipt.id)),
+            ~m.Transaction.voided,
+        )
+        transactions = {tx.receipt_id: tx for tx in db.scalars(transaction_query.with_for_update())}
+        postings_by_transaction = defaultdict(list)
+        for posting in db.scalars(
+            select(m.Posting)
+            .where(
+                m.Posting.transaction_id.in_(transaction_query.with_only_columns(m.Transaction.id))
+            )
+            .with_for_update()
+        ):
+            postings_by_transaction[posting.transaction_id].append(posting)
         for receipt in receipts:
             previous = receipt.account_id
-            tx = db.scalar(
-                select(m.Transaction)
-                .where(
-                    m.Transaction.organization_id == organization_id,
-                    m.Transaction.receipt_id == receipt.id,
-                    ~m.Transaction.voided,
-                )
-                .with_for_update()
-            )
+            tx = transactions.get(receipt.id)
             if receipt.status == "posted" and tx is None:
                 fail("Не удалось сверить проводку чека. Перенос отменён", 409)
             transaction_before = None
             if tx:
-                postings = list(
-                    db.scalars(
-                        select(m.Posting).where(m.Posting.transaction_id == tx.id).with_for_update()
-                    )
-                )
+                postings = postings_by_transaction[tx.id]
                 if (
                     tx.kind != "expense"
                     or tx.currency != "MDL"
