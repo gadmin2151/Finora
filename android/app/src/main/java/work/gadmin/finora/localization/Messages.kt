@@ -10,21 +10,17 @@ enum class Message(val english: String, val russian: String) {
     ACCOUNTING_COMBINED("All together", "Всё вместе"),
     ACCOUNTING_SEPARATE("Cash and cards separately", "Наличные и карты отдельно"),
     ACCOUNTING_COMBINED_HINT(
-        "One balance. New MDL transactions use the primary account.",
-        "Общий остаток. Новые операции MDL — на основном счёте.",
+        "One MDL account: balances, receipts and all transactions are merged.",
+        "Один счёт MDL: объединяются остатки, чеки и все операции.",
     ),
     ACCOUNTING_SEPARATE_HINT(
         "Choose an account for purchases, income and debt repayments.",
         "Выбирайте счёт для покупок, доходов и возвратов долгов.",
     ),
     ACCOUNTING_PRIMARY("Primary MDL account", "Основной счёт MDL"),
-    ACCOUNTING_MOVE_RECEIPTS(
-        "Move existing MDL receipts to the primary account",
-        "Перенести существующие чеки MDL на основной счёт",
-    ),
     ACCOUNTING_HISTORY_HINT(
-        "Amounts, items and originals are preserved. Other currencies stay separate. Switching back will not undo receipt moves.",
-        "Суммы, товары и оригиналы сохраняются. Другие валюты — отдельно. Возврат к раздельному режиму не отменяет перенос чеков.",
+        "All MDL accounts merge into the primary account, including balances, transactions and plans. Amounts and originals are preserved. Other currencies stay separate. To split again, switch modes and create new accounts.",
+        "Все счета MDL объединятся в основной: остатки, операции и планы. Суммы и оригиналы сохранятся. Другие валюты — отдельно. Для раздельного учёта переключите режим и создайте новые счета.",
     ),
     ACCOUNTING_SAVED("Money tracking settings saved", "Настройки учёта сохранены"),
     ACCOUNTING_SHOW_ACCOUNTS("Show accounts", "Показать счета"),

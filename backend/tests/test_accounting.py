@@ -34,11 +34,11 @@ def test_separate_default_and_combined_routes_legacy_clients_without_duplicates(
     assert receipt["account_id"] == card
     assert client.post("/api/receipts/manual", json=body).json()["duplicate"]
     assert post_tx(client, cash)["account_id"] == card
-    assert balance(client, cash) == 1000  # Earlier non-receipt history is preserved.
-    assert balance(client, card) == -250
+    assert balance(client, card) == 750  # Earlier income moved to the only account.
     assert [a["id"] for a in client.get("/api/accounts?for_payment=true").json()] == [card]
-    assert len(client.get("/api/accounts").json()) == 2
+    assert len(client.get("/api/accounts").json()) == 1
     assert configure(client, card, "separate").status_code == 200
+    cash = client.post("/api/accounts", json={"name": "New cash"}).json()["id"]
     assert post_tx(client, cash)["account_id"] == cash
 
 
@@ -57,7 +57,8 @@ def test_receipt_move_preserves_amounts_items_originals_reports_and_total_balanc
     result = configure(client, card, move=True)
     assert result.status_code == 200, result.text
     assert result.json()["receipts_moved"] == 1
-    assert balance(client, cash) == 0 and balance(client, card) == -1250
+    assert [row["id"] for row in client.get("/api/accounts").json()] == [card]
+    assert balance(client, card) == -1250
     after = client.get("/api/dashboard?month=" + receipt["purchased_on"][:7]).json()
     for key in ("income_minor", "expense_minor", "net_minor", "balances"):
         assert report[key] == after[key]
@@ -76,7 +77,7 @@ def test_receipt_move_preserves_amounts_items_originals_reports_and_total_balanc
         change = db.scalar(select(m.Audit).where(m.Audit.action == "receipt.account_moved"))
         assert change.actor_id == owner["id"] and change.details["from_account_id"] == cash
     assert configure(client, card, move=True).json()["receipts_moved"] == 0
-    assert configure(client, cash, mode="separate").status_code == 200
+    assert configure(client, card, mode="separate").status_code == 200
     assert balance(client, card) == -1250
 
 
@@ -141,12 +142,14 @@ def test_combined_keeps_foreign_currency_separate_and_blocks_internal_transfer(c
     assert balance(client, card) == 9000
 
 
-def test_combined_balance_correction_still_targets_explicit_account(client, accounts):
+def test_combined_balance_correction_targets_only_remaining_account(client, accounts):
     cash, card = [a["id"] for a in accounts]
     assert configure(client, card).status_code == 200
     result = client.post(url(cash), json=adjustment("100", 0, effect="income_expense"))
+    assert result.status_code == 404
+    result = client.post(url(card), json=adjustment("100", 0, effect="income_expense"))
     assert result.status_code == 200, result.text
-    assert balance(client, cash) == 10000 and balance(client, card) == 0
+    assert balance(client, card) == 10000
 
 
 def test_combined_debt_repayment_routes_to_primary(client, accounts):
@@ -174,7 +177,8 @@ def test_combined_debt_repayment_routes_to_primary(client, accounts):
         },
     )
     assert result.status_code == 200, result.text
-    assert balance(client, card) == 2000 and balance(client, cash) == 0
+    assert balance(client, card) == 2000
+    assert [a["id"] for a in client.get("/api/accounts").json()] == [card]
 
 
 def test_invalid_receipt_posting_rolls_back_entire_setting_and_move(client, accounts):

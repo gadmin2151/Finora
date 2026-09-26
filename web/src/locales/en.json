@@ -1015,5 +1015,19 @@
   "Перенос чеков доступен только в общем режиме": "Receipts can only be moved in combined mode",
   "Не удалось сверить проводку чека. Перенос отменён": "The receipt posting could not be reconciled. No receipts were moved",
   "Сначала выберите другой основной счёт в настройках учёта": "Choose another primary account in money tracking settings first",
-  "Измените основной счёт в настройках учёта": "Change the primary account in money tracking settings"
+  "Измените основной счёт в настройках учёта": "Change the primary account in money tracking settings",
+  "Указать текущий остаток": "Set current balance",
+  "Сохранить текущий остаток": "Save current balance",
+  "Общий кошелёк · MDL": "Combined wallet · MDL",
+  "По данным Finora": "Balance in Finora",
+  "Сколько денег сейчас · {0}": "Actual balance now · {0}",
+  "Введите фактическую сумму. Дальнейшие доходы и расходы будут считаться от неё. История операций сохранится.": "Enter the amount you have now. Future income and expenses will change this balance. Your transaction history is preserved.",
+  "Укажите общую сумму в MDL: наличные и карты вместе. Разница будет записана на основной счёт «{0}».": "Enter the total in MDL, including cash and cards. The difference will be recorded in your primary account “{0}”.",
+  "Дополнительные параметры": "Additional options",
+  "Режим учёта изменился. Закройте окно и откройте корректировку заново.": "Money tracking mode changed. Close this dialog and open the balance adjustment again.",
+  "Один счёт для наличных и карты. Укажите фактический остаток — дальнейший расчёт продолжится от него.": "One account for cash and cards. Set your actual balance to use as the starting point for future transactions.",
+  "Единый счёт": "Single account",
+  "Один счёт MDL: объединяются остатки, чеки и вся история операций.": "One MDL account: balances, receipts and all transaction history are merged.",
+  "При объединении все счета MDL станут одним: остатки складываются, операции и планы переносятся на основной счёт. Суммы, категории и оригиналы чеков сохраняются. Другие валюты остаются отдельно.": "Merging combines all MDL accounts into one: balances are added, and transactions and plans move to the primary account. Amounts, categories and original receipts are preserved. Other currencies stay separate.",
+  "Чтобы снова вести счета отдельно, включите раздельный режим и создайте новые счета. Объединённая история останется на основном счёте.": "To keep accounts separate again, switch to separate mode and create new accounts. The merged history stays in the primary account."
 }

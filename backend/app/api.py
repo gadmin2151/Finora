@@ -234,6 +234,10 @@ def accounts(for_payment: bool = False, user: m.Organization = SCOPE, db: Sessio
 
 @router.post("/accounts")
 def add_account(data: s.AccountInput, user: m.Organization = SCOPE, db: Session = DB):
+    if accounting.accounting_settings(db, user.id)["mode"] == "combined":
+        fail(
+            "В режиме «Всё вместе» используется один счёт. Для нового счёта включите раздельный учёт"
+        )
     account = m.Account(
         organization_id=user.id,
         **data.model_dump(exclude={"opening_balance"}),
@@ -257,6 +261,25 @@ def adjust_balance(
         "account": account,
         "previous_balance_minor": before,
         "adjustment_minor": difference,
+    }
+    db.commit()
+    return result
+
+
+@router.post("/wallet/balance-adjustment")
+def adjust_wallet_balance(
+    data: s.WalletBalanceAdjustment, user: m.Organization = SCOPE, db: Session = DB
+):
+    tx, before, difference = ledger.adjust_wallet_balance(db, user.id, data)
+    result = {
+        "transaction": transaction_dict(tx),
+        "previous_balance_minor": before,
+        "adjustment_minor": difference,
+        "balance_minor": sum(
+            row["balance_minor"]
+            for row in account_balances(db, user.id)
+            if row["currency"] == "MDL"
+        ),
     }
     db.commit()
     return result

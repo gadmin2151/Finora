@@ -30,7 +30,6 @@ fun AccountingSettings(state: AppState, vm: FinoraViewModel) {
                 key(state.organization?.id, config.version) {
                     var mode by remember { mutableStateOf(config.mode) }
                     var account by remember { mutableStateOf(config.default_account_id) }
-                    var move by remember { mutableStateOf(false) }
                     var open by remember { mutableStateOf(false) }
                     val enabled = state.organization?.isAdmin == true && !state.busy
                     listOf("separate", "combined").forEach { value ->
@@ -100,18 +99,6 @@ fun AccountingSettings(state: AppState, vm: FinoraViewModel) {
                                 }
                         }
                     }
-                    if (mode == "combined" && state.organization?.isAdmin == true) {
-                        Row(
-                            Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Checkbox(move, { move = it }, enabled = enabled)
-                            Text(
-                                tr(Message.ACCOUNTING_MOVE_RECEIPTS),
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                        }
-                    }
                     Text(
                         tr(Message.ACCOUNTING_HISTORY_HINT),
                         color = Muted,
@@ -122,7 +109,7 @@ fun AccountingSettings(state: AppState, vm: FinoraViewModel) {
                             {
                                 vm.saveAccounting(
                                     config.copy(mode = mode, default_account_id = account),
-                                    mode == "combined" && move,
+                                    mode == "combined",
                                 )
                             },
                             enabled =

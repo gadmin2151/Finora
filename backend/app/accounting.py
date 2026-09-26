@@ -2,7 +2,7 @@
 
 from collections import defaultdict
 
-from sqlalchemy import select
+from sqlalchemy import case, delete, or_, select, update
 
 from . import models as m
 from .finance import audit, fail, lock_organization, owned
@@ -16,6 +16,96 @@ def accounting_settings(db, organization_id: str):
         "default_account_id": prefs.default_account_id,
         "version": prefs.accounting_version,
     }
+
+
+def merge_mdl_accounts(db, organization_id: str, primary: m.Account) -> int:
+    """Move all ledger references and opening balances before removing empty source accounts."""
+    sources = list(
+        db.scalars(
+            select(m.Account)
+            .where(
+                m.Account.organization_id == organization_id,
+                m.Account.currency == "MDL",
+                m.Account.id != primary.id,
+            )
+            .order_by(m.Account.id)
+            .with_for_update()
+        )
+    )
+    if not sources:
+        return 0
+    source_ids = [row.id for row in sources]
+    opening = primary.opening_minor + sum(row.opening_minor for row in sources)
+    if abs(opening) > 100000000000:
+        fail("Общий начальный остаток превышает допустимую сумму")
+    # Includes voided transactions and trashed receipts, so restoring them stays valid.
+    db.execute(
+        update(m.Transaction)
+        .where(
+            m.Transaction.organization_id == organization_id,
+            or_(
+                m.Transaction.account_id.in_(source_ids),
+                m.Transaction.target_account_id.in_(source_ids),
+            ),
+        )
+        .values(
+            account_id=case(
+                (m.Transaction.account_id.in_(source_ids), primary.id),
+                else_=m.Transaction.account_id,
+            ),
+            target_account_id=case(
+                (m.Transaction.target_account_id.in_(source_ids), primary.id),
+                else_=m.Transaction.target_account_id,
+            ),
+            version=m.Transaction.version + 1,
+        )
+    )
+    db.execute(
+        update(m.Posting)
+        .where(
+            m.Posting.account_id.in_(source_ids),
+            m.Posting.transaction_id.in_(
+                select(m.Transaction.id).where(m.Transaction.organization_id == organization_id)
+            ),
+        )
+        .values(account_id=primary.id)
+    )
+    for model in (m.Receipt, m.Bill):
+        db.execute(
+            update(model)
+            .where(model.organization_id == organization_id, model.account_id.in_(source_ids))
+            .values(account_id=primary.id, version=model.version + 1)
+        )
+    db.execute(
+        update(m.Preferences)
+        .where(m.Preferences.organization_id == organization_id)
+        .values(default_account_id=primary.id)
+    )
+    for row in sources:
+        audit(
+            db,
+            organization_id,
+            "account.merged",
+            row.id,
+            {
+                "target_account_id": primary.id,
+                "name": row.name,
+                "currency": row.currency,
+                "kind": row.kind,
+                "opening_minor": row.opening_minor,
+                "archived": row.archived,
+                "color": row.color,
+                "created_at": row.created_at.isoformat(),
+            },
+        )
+    primary.opening_minor = opening
+    db.flush()
+    db.execute(
+        delete(m.Account).where(
+            m.Account.organization_id == organization_id, m.Account.id.in_(source_ids)
+        )
+    )
+    return len(sources)
 
 
 def save_accounting(db, organization_id: str, data: AccountingInput):
@@ -38,7 +128,7 @@ def save_accounting(db, organization_id: str, data: AccountingInput):
         fail("Перенос чеков доступен только в общем режиме")
     before = accounting_settings(db, organization_id)
     moved = 0
-    if data.move_existing_receipts:
+    if data.mode == "combined":
         # Lock the scope before receipts, matching the confirmation/deletion lock order.
         receipt_query = select(m.Receipt).where(
             m.Receipt.organization_id == organization_id,
@@ -98,6 +188,7 @@ def save_accounting(db, organization_id: str, data: AccountingInput):
                 },
             )
             moved += 1
+    merged = merge_mdl_accounts(db, organization_id, account) if data.mode == "combined" else 0
     prefs.accounting_mode = data.mode
     prefs.default_account_id = data.default_account_id
     prefs.accounting_version += 1
@@ -110,7 +201,12 @@ def save_accounting(db, organization_id: str, data: AccountingInput):
             "before": before,
             "after": accounting_settings(db, organization_id),
             "receipts_moved": moved,
+            "accounts_merged": merged,
         },
     )
     db.flush()
-    return {**accounting_settings(db, organization_id), "receipts_moved": moved}
+    return {
+        **accounting_settings(db, organization_id),
+        "receipts_moved": moved,
+        "accounts_merged": merged,
+    }

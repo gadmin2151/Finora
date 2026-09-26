@@ -10,7 +10,6 @@ export function AccountingSettings({ initial }: { initial: Preferences }) {
   const { accounts, organization, toast } = useApp();
   const [mode, setMode] = useState(initial.accounting_mode);
   const [account, setAccount] = useState(initial.default_account_id ?? "");
-  const [move, setMove] = useState(false);
   const action = useAction(
     () =>
       send<{ receipts_moved: number }>(
@@ -19,12 +18,11 @@ export function AccountingSettings({ initial }: { initial: Preferences }) {
           mode,
           default_account_id: account || null,
           version: initial.accounting_version,
-          move_existing_receipts: mode === "combined" && move,
+          move_existing_receipts: mode === "combined",
         },
         "PUT",
       ),
     () => {
-      setMove(false);
       toast(t("Настройки сохранены"));
     },
   );
@@ -68,7 +66,7 @@ export function AccountingSettings({ initial }: { initial: Preferences }) {
                 <small>
                   {value === "combined"
                     ? t(
-                        "Общий остаток. Новые операции и чеки в MDL — на основном счёте.",
+                        "Один счёт MDL: объединяются остатки, чеки и вся история операций.",
                       )
                     : t(
                         "Выбирайте счёт при покупке, получении дохода и возврате долга.",
@@ -103,26 +101,14 @@ export function AccountingSettings({ initial }: { initial: Preferences }) {
                 ))}
             </select>
           </Field>
-          {mode === "combined" && (
-            <label className="balance-effect">
-              <input
-                type="checkbox"
-                checked={move}
-                onChange={(e) => setMove(e.target.checked)}
-              />
-              <span>
-                {t("Перенести существующие чеки MDL на основной счёт")}
-              </span>
-            </label>
-          )}
           <p className="muted">
             {t(
-              "Суммы, товары и оригиналы чеков сохраняются. Перенос не создаёт повторных расходов. Другие валюты учитываются отдельно.",
+              "При объединении все счета MDL станут одним: остатки складываются, операции и планы переносятся на основной счёт. Суммы, категории и оригиналы чеков сохраняются. Другие валюты остаются отдельно.",
             )}
           </p>
           <p className="muted">
             {t(
-              "Раздельный режим можно вернуть в любой момент. Перенесённые чеки останутся на основном счёте, история других операций сохранится.",
+              "Чтобы снова вести счета отдельно, включите раздельный режим и создайте новые счета. Объединённая история останется на основном счёте.",
             )}
           </p>
         </fieldset>

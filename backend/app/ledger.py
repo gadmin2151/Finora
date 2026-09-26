@@ -7,6 +7,7 @@ from sqlalchemy import delete, func, select, update
 from . import models as m
 from .finance import (
     account_balance,
+    account_balances,
     audit,
     create_transaction,
     debt_remaining,
@@ -26,13 +27,39 @@ from .schemas import (
     DebtPayment,
     TransactionEdit,
     TransactionInput,
+    WalletBalanceAdjustment,
 )
 
 
-def adjust_account_balance(db, organization_id: str, account_id: str, data: BalanceAdjustment):
+def adjust_wallet_balance(db, organization_id: str, data: WalletBalanceAdjustment):
+    """Reconcile the displayed MDL total, including balances on historical accounts."""
+    lock_organization(db, organization_id)
+    prefs = db.scalar(
+        select(m.Preferences)
+        .where(m.Preferences.organization_id == organization_id)
+        .execution_options(populate_existing=True)
+    )
+    if (
+        not prefs
+        or prefs.accounting_mode != "combined"
+        or prefs.accounting_version != data.expected_accounting_version
+    ):
+        fail("Настройки учёта изменились. Обновите данные и повторите", 409)
+    if not prefs.default_account_id:
+        fail("Выберите основной счёт MDL в настройках учёта", 409)
+    account = owned(db, m.Account, prefs.default_account_id, organization_id)
+    if account.archived or account.currency != "MDL":
+        fail("Выберите основной счёт MDL в настройках учёта", 409)
+    return adjust_account_balance(db, organization_id, account.id, data, wallet=True)
+
+
+def adjust_account_balance(
+    db, organization_id: str, account_id: str, data: BalanceAdjustment, *, wallet: bool = False
+):
     """Record only the difference; never overwrite the account's opening balance."""
     lock_organization(db, organization_id)
     account = owned(db, m.Account, account_id, organization_id, True)
+    action = "wallet.balance_adjusted" if wallet else "account.balance_adjusted"
     target = minor(data.target_balance)
     fingerprint = hashlib.sha256(
         json.dumps(
@@ -50,7 +77,7 @@ def adjust_account_balance(db, organization_id: str, account_id: str, data: Bala
             select(m.Audit).where(
                 m.Audit.organization_id == organization_id,
                 m.Audit.entity_id == prior.id,
-                m.Audit.action == "account.balance_adjusted",
+                m.Audit.action == action,
             )
         )
         if not entry or entry.details.get("request_hash") != fingerprint:
@@ -60,8 +87,18 @@ def adjust_account_balance(db, organization_id: str, account_id: str, data: Bala
         return prior, entry.details["previous_balance_minor"], entry.details["adjustment_minor"]
     if account.archived:
         fail("Счёт находится в архиве")
-    before = account_balance(db, account)
+    before = (
+        sum(
+            row["balance_minor"]
+            for row in account_balances(db, organization_id)
+            if row["currency"] == "MDL"
+        )
+        if wallet
+        else account_balance(db, account)
+    )
     if before != data.expected_balance_minor:
+        if wallet:
+            fail("Остаток кошелька изменился. Обновите данные и проверьте сумму корректировки", 409)
         fail("Остаток счёта изменился. Обновите данные и проверьте сумму корректировки", 409)
     difference = target - before
     if difference == 0:
@@ -89,7 +126,7 @@ def adjust_account_balance(db, organization_id: str, account_id: str, data: Bala
     audit(
         db,
         organization_id,
-        "account.balance_adjusted",
+        action,
         tx.id,
         {
             "account_id": account.id,

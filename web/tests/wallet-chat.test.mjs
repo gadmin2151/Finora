@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { AssistantMarkdown, assistantLink } from "../src/AssistantMarkdown.ts";
-import { correctionTarget, moneyMinor, minorDecimal } from "../src/wallet.ts";
+import { combinedBalanceTarget, correctionTarget, moneyMinor, minorDecimal } from "../src/wallet.ts";
 import {
   categoryPurchasesHash,
   purchaseHashFilters,
@@ -98,4 +98,21 @@ test("assistant Markdown does not execute HTML, load images or create unsafe lin
     "mailto:hello@example.com",
   ])
     assert.equal(assistantLink(url), url);
+});
+
+
+test("combined wallet reconciliation matches all MDL balances without mixing currencies", () => {
+  const accounts = [
+    { id: "primary", currency: "MDL", archived: false, balance_minor: -1000 },
+    { id: "cash", currency: "MDL", archived: false, balance_minor: 10000 },
+    { id: "old", currency: "MDL", archived: true, balance_minor: 500 },
+    { id: "euro", currency: "EUR", archived: false, balance_minor: 90000 },
+  ];
+  const prefs = { accounting_mode: "combined", default_account_id: "primary", accounting_version: 2 };
+  assert.equal(combinedBalanceTarget(accounts, prefs).balance_minor, 9500);
+  assert.equal(combinedBalanceTarget(accounts, prefs).accounting_version, 2);
+  assert.equal(combinedBalanceTarget(accounts, { ...prefs, accounting_mode: "separate" }), null);
+  assert.equal(combinedBalanceTarget(accounts, { ...prefs, default_account_id: "old" }), null);
+  assert.equal(combinedBalanceTarget(accounts, { ...prefs, default_account_id: "missing" }), null);
+  assert.equal(combinedBalanceTarget(accounts, { ...prefs, default_account_id: "euro" }), null);
 });

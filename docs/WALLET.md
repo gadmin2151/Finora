@@ -8,7 +8,9 @@
 
 ### Уточнить остаток
 
-Выберите счёт и действие: **добавить**, **списать** или **указать фактический остаток**. Перед сохранением проверьте итоговую сумму.
+На страницах **Обзор** и **Счета** нажмите **«Указать текущий остаток»**. Введите фактическую сумму сейчас и сохраните. Дальнейшие поступления и списания считаются от неё. Например, после сверки на 1 000 MDL покупка на 100 MDL оставит 900 MDL. Дополнительные параметры позволяют прибавить/списать сумму, изменить дату, указать примечание или учесть разницу в доходах/расходах.
+
+В режиме «Всё вместе» счета MDL объединяются физически: переносятся все движения, планы и начальные остатки. Опустевшие счета удаляются после переноса ссылок, включая архивные чеки и отменённые операции. В истории остаётся аудит объединения. При возврате к раздельному учёту можно создать новые счета; старые автоматически не воссоздаются.
 
 - **Только корректировка** меняет остаток, не увеличивая доходы или расходы месяца.
 - **Как доход/расход** включает положительную разницу в доходы, отрицательную — в расходы.
@@ -27,7 +29,7 @@
 
 A repayment of 5,000 MDL increases the destination account by 5,000 MDL. It does not become new monthly income. The wallet and monthly income minus expenses therefore show different things; do not record the repayment again as income.
 
-Choose an account to **add**, **subtract**, or **set its actual balance**. Review the resulting amount before saving. A balance-only correction does not affect monthly income or expenses. The optional income/expense mode records a positive difference as income and a negative difference as expense. Corrections create auditable transactions; they do not overwrite the opening balance. A stale balance is rejected, retries are idempotent, and only organization administrators can adjust it.
+Use **Set current balance** on Overview or Accounts, enter the amount you have now, and save. Future transactions start from that balance. Additional options allow adding/subtracting an amount, a date and a note. Review the resulting amount before saving. A balance-only correction does not affect monthly income or expenses. The optional income/expense mode records a positive difference as income and a negative difference as expense. Corrections create auditable transactions; they do not overwrite the opening balance. A stale balance is rejected, retries are idempotent, and only organization administrators can adjust it.
 
 Select a spending category to see its confirmed receipt items for the selected month, with pagination. Manually entered expenses without receipt items affect category totals but do not create products. Chat displays Markdown safely and opens at the latest message while allowing uninterrupted reading of older messages.
 
@@ -48,3 +50,6 @@ Select a spending category to see its confirmed receipt items for the selected m
 ```
 
 `effect` is `adjustment` or `income_expense`. Non-MDL accounts require an exchange rate. The response contains `transaction`, `account`, `previous_balance_minor`, and signed `adjustment_minor`. A stale balance or conflicting idempotency key returns 409. Invalid or unchanged amounts are rejected. Existing account, dashboard, and transaction fields remain available; dashboard additionally exposes `wallet`. No database migration is required.
+
+
+`POST /api/wallet/balance-adjustment` accepts the same fields plus required `expected_accounting_version` from `/api/settings/accounting`. It reconciles the combined MDL total and records the difference on the primary account. The response includes `transaction`, `previous_balance_minor`, `adjustment_minor`, and the current `balance_minor`. Concurrent balance or accounting-mode changes return 409; the user refreshes and reviews before retrying. Source account IDs from older clients are accepted for new payments only when an organization-scoped merge audit proves ownership. In combined mode `POST /api/accounts` is rejected; choose separate mode first.

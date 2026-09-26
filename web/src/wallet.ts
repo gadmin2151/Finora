@@ -1,4 +1,39 @@
+import type { Account, Preferences } from "./types";
+
 export type BalanceMode = "add" | "subtract" | "set";
+
+export type BalanceTarget = {
+  account: Account;
+  balance_minor: number;
+  accounting_version?: number;
+};
+
+/** Match the dashboard total, including historical and archived MDL accounts. */
+export function combinedBalanceTarget(
+  accounts: Account[],
+  prefs?: Pick<
+    Preferences,
+    "accounting_mode" | "default_account_id" | "accounting_version"
+  >,
+): BalanceTarget | null {
+  if (prefs?.accounting_mode !== "combined") return null;
+  const account = accounts.find(
+    (item) =>
+      item.id === prefs.default_account_id &&
+      !item.archived &&
+      item.currency === "MDL",
+  );
+  if (!account) return null;
+  return {
+    account,
+    balance_minor: accounts.reduce(
+      (total, item) =>
+        total + (item.currency === "MDL" ? item.balance_minor : 0),
+      0,
+    ),
+    accounting_version: prefs.accounting_version,
+  };
+}
 
 /** Parse user input in minor units without floating-point arithmetic. */
 export function moneyMinor(input: string): number | null {

@@ -121,6 +121,25 @@
   font-size: 13px;
   line-height: 1.6;
 }
+.account-correct {
+  margin-top: 16px;
+  width: 100%;
+}
+.balance-options {
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+  margin-top: 16px;
+}
+.balance-options summary {
+  cursor: pointer;
+  color: var(--ink-accent);
+  font-size: 14px;
+}
+.balance-options .balance-effect + p {
+  font-size: 13px;
+  color: var(--ink-muted);
+  margin: 10px 0 16px;
+}
 button.category-drilldown {
   width: 100%;
   background: none;

@@ -170,10 +170,30 @@ def account_balances(db: Session, organization_id: str):
 
 def payment_account(db: Session, organization_id: str, account_id: str):
     """Keep ownership/currency checks even for old clients selecting cash in combined mode."""
-    account = owned(db, m.Account, account_id, organization_id)
+    account = db.scalar(
+        select(m.Account).where(
+            m.Account.id == account_id, m.Account.organization_id == organization_id
+        )
+    )
+    prefs = db.scalar(select(m.Preferences).where(m.Preferences.organization_id == organization_id))
+    if account is None and prefs and prefs.accounting_mode == "combined":
+        # An older phone may still send a source ID. Only redirect an audited merge
+        # in this organization, never an arbitrary or another organization's ID.
+        merged = db.scalar(
+            select(m.Audit.id)
+            .where(
+                m.Audit.organization_id == organization_id,
+                m.Audit.entity_id == account_id,
+                m.Audit.action == "account.merged",
+            )
+            .limit(1)
+        )
+        if merged:
+            account = owned(db, m.Account, prefs.default_account_id, organization_id)
+    if account is None:
+        fail("Запись не найдена", 404)
     if account.archived:
         fail("Счёт находится в архиве")
-    prefs = db.scalar(select(m.Preferences).where(m.Preferences.organization_id == organization_id))
     if prefs and prefs.accounting_mode == "combined" and account.currency == "MDL":
         if not prefs.default_account_id:
             fail("Выберите основной счёт MDL в настройках учёта", 409)

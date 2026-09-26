@@ -99,6 +99,10 @@ class BalanceAdjustment(Strict):
     idempotency_key: str = Field(min_length=8, max_length=100)
 
 
+class WalletBalanceAdjustment(BalanceAdjustment):
+    expected_accounting_version: int = Field(strict=True, ge=1)
+
+
 class CategoryInput(Strict):
     name: str = Field(min_length=1, max_length=100)
     color: str = Field(default="#16a69b", pattern=r"^#[0-9a-fA-F]{6}$")

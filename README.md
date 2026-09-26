@@ -27,7 +27,9 @@ The **current wallet** includes debt repayments and shows balances separately fr
 
 ## Cash and cards: your choice
 
-Choose **Settings → Money tracking** on the web, or open your **profile → Money tracking** on Android. An organization can keep accounts separate or show one combined wallet. In combined mode, new MDL receipts, income and debt movements use the selected primary MDL account. Other currencies stay separate. Admins can move existing MDL receipts without duplicating expenses or changing their items, totals or originals. Historical non-receipt transactions stay on their original accounts and remain included in the combined balance. Switching back does not undo a receipt move.
+Choose **Settings → Money tracking** on the web, or **profile → Money tracking** on Android. **All together** merges every MDL account into the primary account: opening balances are added, transactions, receipts and plans are reassigned, and the empty source accounts are removed. Amounts, categories and receipt originals stay intact. New transactions use the single account. Switch to separate mode to create new accounts; the merged history stays on the primary account. Existing foreign-currency accounts remain separate without automatic conversion.
+
+Use **Set current balance** on Overview or Accounts to enter how much you actually have now. Future transactions change that balance. The difference is an auditable correction rather than monthly income or expense; opening balances and transaction history are not overwritten.
 
 ## Make the little purchases add up to insight
 

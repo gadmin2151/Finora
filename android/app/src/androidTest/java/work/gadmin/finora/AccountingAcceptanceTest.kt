@@ -27,7 +27,7 @@ class AccountingAcceptanceTest {
     @get:Rule val rule = createComposeRule()
 
     @Test
-    fun adminCanChooseCombinedModeAndReceiptMoveOnPhone() {
+    fun adminCanChooseSingleAccountModeOnPhone() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         assumeTrue(Build.MODEL.startsWith("sdk_gphone"))
         assumeTrue(!File(context.noBackupFilesDir, "session.enc").exists())
@@ -55,8 +55,12 @@ class AccountingAcceptanceTest {
                 }
             }
             rule.onNodeWithText("All together").performClick()
-            rule.onNodeWithText("Move existing MDL receipts to the primary account").assertExists()
-            rule.onNode(isToggleable()).performScrollTo().performClick().assertIsOn()
+            rule
+                .onNodeWithText(
+                    "One MDL account: balances, receipts and all transactions are merged."
+                )
+                .assertExists()
+            rule.onNode(isToggleable()).assertDoesNotExist()
             rule.onNodeWithText("Confirm and save").performScrollTo().assertIsEnabled()
             rule.onRoot().captureToImage().asAndroidBitmap().let { bitmap ->
                 File(context.filesDir, "accounting-settings.png").outputStream().use {

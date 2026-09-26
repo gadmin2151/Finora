@@ -2,6 +2,8 @@ import { t, getLocale } from "../i18n";
 import { CategoryRefresh } from "../CategoryRefresh";
 import { ProfileSettings } from "../Profile";
 import { AccountingSettings } from "../AccountingSettings";
+import { BalanceAdjustment } from "../BalanceAdjustment";
+import { combinedBalanceTarget, type BalanceTarget } from "../wallet";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -15,6 +17,7 @@ import {
   Pencil,
   Plus,
   ShieldCheck,
+  SlidersHorizontal,
   Sparkles,
   Trash2,
   Wallet,
@@ -41,8 +44,10 @@ import {
 } from "../ui";
 
 export function Accounts() {
-  const { accounts, toast } = useApp();
+  const { accounts, toast, prefs } = useApp();
+  const combined = prefs?.accounting_mode === "combined";
   const [editing, setEditing] = useState<Account | "new" | null>(null);
+  const [correcting, setCorrecting] = useState<BalanceTarget | null>(null);
   const archive = useAction(
     (id: string) => send(`/accounts/${id}/archive`),
     () => toast(t("Статус счёта обновлён")),
@@ -55,14 +60,25 @@ export function Accounts() {
       <PageHeading
         eyebrow={t("ВСЕ ДЕНЬГИ В ОДНОМ МЕСТЕ")}
         title={t("Ваши счета")}
-        text={t(
-          "Наличные, карты и накопления. Переводы между своими счетами не считаются расходами.",
-        )}
+        text={
+          combined
+            ? t(
+                "Один счёт для наличных и карты. Укажите фактический остаток — дальнейший расчёт продолжится от него.",
+              )
+            : t(
+                "Наличные, карты и накопления. Переводы между своими счетами не считаются расходами.",
+              )
+        }
         actions={
-          <button className="button primary" onClick={() => setEditing("new")}>
-            <Plus size={18} />
-            {t("Новый счёт")}
-          </button>
+          !combined && (
+            <button
+              className="button primary"
+              onClick={() => setEditing("new")}
+            >
+              <Plus size={18} />
+              {t("Новый счёт")}
+            </button>
+          )
         }
       />
       <div className="account-totals">
@@ -91,15 +107,17 @@ export function Accounts() {
                 <Wallet size={24} />
               </span>
               <Badge>
-                {a.archived
-                  ? t("Архив")
-                  : (
-                      {
-                        cash: t("Наличные"),
-                        card: t("Карта"),
-                        savings: t("Накопления"),
-                      } as Record<string, string>
-                    )[a.kind]}
+                {combined && a.id === prefs?.default_account_id
+                  ? t("Единый счёт")
+                  : a.archived
+                    ? t("Архив")
+                    : (
+                        {
+                          cash: t("Наличные"),
+                          card: t("Карта"),
+                          savings: t("Накопления"),
+                        } as Record<string, string>
+                      )[a.kind]}
               </Badge>
             </div>
             <h2>{a.name}</h2>
@@ -109,23 +127,46 @@ export function Accounts() {
             <p>
               {t("Начальный остаток:")} {amount(a.opening_minor, a.currency)}
             </p>
+            {!a.archived && (
+              <button
+                className="button secondary account-correct"
+                onClick={() =>
+                  setCorrecting(
+                    combined && a.id === prefs?.default_account_id
+                      ? combinedBalanceTarget(accounts, prefs)
+                      : { account: a, balance_minor: a.balance_minor },
+                  )
+                }
+              >
+                <SlidersHorizontal size={17} />
+                {t("Указать текущий остаток")}
+              </button>
+            )}
             <div className="account-footer">
               <button className="text-button" onClick={() => setEditing(a)}>
                 <Pencil size={15} />
                 {t("Изменить")}
               </button>
-              <button
-                className="text-button muted"
-                disabled={archive.isPending}
-                onClick={() => archive.mutate(a.id)}
-              >
-                <Archive size={15} />
-                {a.archived ? t("Восстановить") : t("В архив")}
-              </button>
+              {!(combined && a.id === prefs?.default_account_id) && (
+                <button
+                  className="text-button muted"
+                  disabled={archive.isPending}
+                  onClick={() => archive.mutate(a.id)}
+                >
+                  <Archive size={15} />
+                  {a.archived ? t("Восстановить") : t("В архив")}
+                </button>
+              )}
             </div>
           </article>
         ))}
       </div>
+      {correcting && (
+        <BalanceAdjustment
+          target={correcting}
+          onClose={() => setCorrecting(null)}
+        />
+      )}
       <div className="notice">
         {t(
           "Остатки разных валют не складываются без курса. Доходы и расходы в отчётах пересчитываются в MDL по курсу, указанному при создании операции.",

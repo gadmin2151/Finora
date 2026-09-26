@@ -299,5 +299,8 @@
   "Перенос чеков доступен только в общем режиме": "Receipts can only be moved in combined mode",
   "Не удалось сверить проводку чека. Перенос отменён": "The receipt posting could not be reconciled. No receipts were moved",
   "Сначала выберите другой основной счёт в настройках учёта": "Choose another primary account in money tracking settings first",
-  "Измените основной счёт в настройках учёта": "Change the primary account in money tracking settings"
+  "Измените основной счёт в настройках учёта": "Change the primary account in money tracking settings",
+  "Остаток кошелька изменился. Обновите данные и проверьте сумму корректировки": "The wallet balance has changed. Refresh the data and check the adjustment amount",
+  "В режиме «Всё вместе» используется один счёт. Для нового счёта включите раздельный учёт": "Combined mode uses one account. Switch to separate mode to add a new account",
+  "Общий начальный остаток превышает допустимую сумму": "The combined opening balance exceeds the allowed amount"
 }
