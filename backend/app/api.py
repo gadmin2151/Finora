@@ -292,6 +292,14 @@ def edit_account(key: str, data: s.AccountInput, user: m.Organization = SCOPE, d
     prefs = accounting.accounting_settings(db, user.id)
     if (
         prefs["mode"] == "combined"
+        and prefs["default_account_id"] != key
+        and data.currency == "MDL"
+    ):
+        fail(
+            "В режиме «Всё вместе» используется один счёт. Для нового счёта включите раздельный учёт"
+        )
+    if (
+        prefs["mode"] == "combined"
         and prefs["default_account_id"] == key
         and data.currency != "MDL"
     ):

@@ -101,6 +101,12 @@ def test_merge_moves_every_account_reference_and_preserves_balances_and_reports(
         audits = list(db.scalars(select(m.Audit).where(m.Audit.action == "account.merged")))
         assert len(audits) == 2 and all(a.actor_id == owner["id"] for a in audits)
     assert client.post("/api/accounts", json={"name": "Another"}).status_code == 422
+    assert (
+        client.put(
+            f"/api/accounts/{euros}", json={"name": "Another MDL", "currency": "MDL"}
+        ).status_code
+        == 422
+    )
     assert configure(client, card).json()["accounts_merged"] == 0
     assert balance(client, card) == 38300
     # Cached source IDs remain safe for the existing mobile client, but unknown IDs do not.
