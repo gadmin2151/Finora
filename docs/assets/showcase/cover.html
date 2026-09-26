@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Finora — repository cover</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        background: #0d1814;
+        font-family: Arial, Helvetica, sans-serif;
+      }
+      .cover {
+        position: relative;
+        width: 1280px;
+        height: 640px;
+        overflow: hidden;
+        color: #f1f6ef;
+        background:
+          radial-gradient(ellipse at 77% 32%, #285240 0, transparent 52%),
+          linear-gradient(120deg, #101c17, #14291f);
+      }
+      .cover:after {
+        content: "";
+        position: absolute;
+        inset: 28px;
+        border: 1px solid #b4e4c915;
+        border-radius: 24px;
+        pointer-events: none;
+      }
+      .orbit {
+        position: absolute;
+        border: 1px solid #b4e4c91c;
+        border-radius: 50%;
+        width: 590px;
+        height: 590px;
+        top: -225px;
+        right: -130px;
+      }
+      .orbit.second {
+        width: 730px;
+        height: 730px;
+        top: -295px;
+        right: -200px;
+      }
+      .brand {
+        position: absolute;
+        left: 62px;
+        top: 52px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+      .brand img {
+        width: 68px;
+        height: 68px;
+        border-radius: 50%;
+      }
+      .wordmark {
+        font-weight: 750;
+        font-size: 41px;
+        letter-spacing: -2px;
+      }
+      .dot {
+        color: #91dfb9;
+      }
+      .subbrand {
+        margin-top: 4px;
+        font-size: 10px;
+        letter-spacing: 3.8px;
+        color: #b4cbbd;
+      }
+      .copy {
+        position: absolute;
+        left: 66px;
+        top: 183px;
+        width: 455px;
+      }
+      .eyebrow {
+        font-size: 11px;
+        letter-spacing: 3px;
+        color: #eed394;
+        font-weight: 700;
+      }
+      .copy h1 {
+        font-size: 60px;
+        line-height: 1.08;
+        letter-spacing: -2.9px;
+        margin: 25px 0 22px;
+        font-weight: 720;
+      }
+      .copy h1 span {
+        color: #baf0d1;
+      }
+      .copy p {
+        font-size: 19px;
+        line-height: 1.55;
+        color: #b9d0c0;
+        margin: 0;
+        max-width: 420px;
+      }
+      .tags {
+        display: flex;
+        gap: 9px;
+        margin-top: 28px;
+      }
+      .tags span {
+        border: 1px solid #c5f4dc29;
+        background: #e5fff509;
+        border-radius: 50px;
+        padding: 9px 15px;
+        font-size: 12px;
+        color: #d6e9dc;
+      }
+      .browser {
+        position: absolute;
+        left: 554px;
+        top: 172px;
+        width: 649px;
+        height: 362px;
+        border: 1px solid #77998666;
+        border-radius: 13px;
+        overflow: hidden;
+        background: #111b17;
+        box-shadow: 0 28px 65px #0006;
+        transform: rotate(-2deg);
+      }
+      .bar {
+        height: 27px;
+        background: #21362b;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding-left: 12px;
+      }
+      .bar i {
+        display: block;
+        border-radius: 50%;
+        width: 5px;
+        height: 5px;
+        background: #789387;
+      }
+      .bar span {
+        margin: auto;
+        padding-right: 32px;
+        font-size: 8px;
+        letter-spacing: 1px;
+        color: #a9c2b3;
+      }
+      .browser img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      .phone {
+        position: absolute;
+        left: 995px;
+        top: 100px;
+        width: 211px;
+        height: 459px;
+        padding: 6px;
+        background: #12221a;
+        border: 2px solid #7eac9666;
+        border-radius: 30px;
+        overflow: hidden;
+        box-shadow: 0 28px 54px #0008;
+        transform: rotate(4deg);
+      }
+      .phone img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: top;
+        border-radius: 23px;
+        display: block;
+      }
+      .footer {
+        position: absolute;
+        left: 66px;
+        right: 66px;
+        bottom: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-top: 1px solid #b3d6c020;
+        padding-top: 18px;
+        font-size: 11px;
+        letter-spacing: 1.1px;
+        color: #91af9e;
+      }
+      .footer strong {
+        color: #bfd9ca;
+        font-weight: 500;
+      }
+      .footer small {
+        font-size: 10px;
+        color: #718f7d;
+      }
+    </style>
+  </head>
+  <body>
+    <main
+      class="cover"
+      aria-label="Finora Personal Finance. Your money. A clearer picture. Self-hosted, web and Android. Screens use demonstration data."
+    >
+      <div class="orbit"></div>
+      <div class="orbit second"></div>
+      <div class="brand">
+        <img
+          src="../../../web/public/finora-icon.png"
+          alt="Finora origami wallet"
+        />
+        <div>
+          <div class="wordmark">finora<span class="dot">.</span></div>
+          <div class="subbrand">PERSONAL FINANCE</div>
+        </div>
+      </div>
+      <section class="copy">
+        <div class="eyebrow">OPEN SOURCE · SELF-HOSTED</div>
+        <h1>Your money.<br /><span>A clearer picture.</span></h1>
+        <p>
+          Receipts, budgets &amp; everyday decisions.<br />On your own server.
+        </p>
+        <div class="tags">
+          <span>Web + Android</span><span>Optional AI</span
+          ><span>Docker Compose</span>
+        </div>
+      </section>
+      <div class="browser">
+        <div class="bar">
+          <i></i><i></i><i></i><span>YOUR PERSONAL FINANCE WORKSPACE</span>
+        </div>
+        <img
+          src="web-dark.jpg"
+          alt="Actual Finora web dashboard with fictional financial data"
+        />
+      </div>
+      <div class="phone">
+        <img
+          src="android-capture.png"
+          alt="Actual Finora Android receipt capture screen"
+        />
+      </div>
+      <footer class="footer">
+        <strong>Built for clarity. Designed to be yours.</strong
+        ><small>DEMONSTRATION DATA</small
+        ><span>github.com/gadmin2151/Finora</span>
+      </footer>
+    </main>
+  </body>
+</html>
