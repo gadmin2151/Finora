@@ -2,6 +2,7 @@ import asyncio
 import io
 from datetime import date
 
+import pytest
 from PIL import Image
 from sqlalchemy import select
 
@@ -172,3 +173,66 @@ def test_member_cannot_correct_another_authors_receipt(client, accounts, owner):
 def test_phone_upload_rejects_unassociated_text_and_private_source(client):
     assert upload(client, page_url="").status_code == 422
     assert upload(client, page_url="https://127.0.0.1/receipt").status_code == 422
+
+
+@pytest.mark.parametrize(
+    ("purchase_date", "total", "currency", "expected_date", "expected_total", "warning"),
+    [
+        ("", "235.08", "EUR", None, 23508, "дат"),
+        ("2025-02-30", "235.08", "MDL", None, 23508, "дат"),
+        ("2025-09-25", "", "MDL", "2025-09-25", None, "итог"),
+        ("2025-09-25", "NaN", "MDL", "2025-09-25", None, "итог"),
+        ("2025-09-25", "0", "MDL", "2025-09-25", None, "итог"),
+        ("2025-09-25", "1000000001", "MDL", "2025-09-25", None, "итог"),
+        ("2025-09-25", "235.08", "???", "2025-09-25", 23508, "валют"),
+    ],
+)
+def test_recognized_fields_survive_other_missing_fields_and_reprocessing(
+    client,
+    owner,
+    monkeypatch,
+    purchase_date,
+    total,
+    currency,
+    expected_date,
+    expected_total,
+    warning,
+):
+    member(owner)
+    parsed = receipts.parse_mev(PAGE_TEXT)
+    parsed.update(purchased_on=purchase_date, total=total, currency=currency)
+    parsed["items"][0].update(unit_price="235.08", total="235.08")
+    # Even a provider claiming a fully readable receipt must not bypass field validation.
+    parsed.update(readable=True, warnings=[])
+    monkeypatch.setattr(receipts, "parse_mev", lambda _: parsed)
+    rid = upload(client).json()["receipt"]["id"]
+    with SessionLocal() as db:
+        row = db.get(m.Receipt, rid)
+        row.total_minor, row.purchased_on = 9900, date(2024, 1, 1)
+        db.commit()
+    for _ in range(2):
+        asyncio.run(receipts.process_receipt(rid))
+        preview = client.get(f"/api/receipts/{rid}").json()
+        assert preview["total_minor"] == expected_total
+        assert preview["purchased_on"] == expected_date
+        assert preview["currency"] == (currency if currency != "???" else "MDL")
+        assert preview["items"][0]["total_minor"] == 23508
+        assert any(warning in item.lower() for item in preview["warnings"])
+        assert "Сумма товаров не совпала с итогом чека" not in preview["warnings"]
+        assert preview["status"] == "review"
+        assert client.get("/api/transactions").json()["total"] == 0
+
+
+def test_photo_total_is_preserved_when_receipt_date_is_outside_photo(client, owner, monkeypatch):
+    member(owner)
+    monkeypatch.setattr(receipts, "local_ocr", lambda _: PAGE_TEXT.replace("25-09-2025", ""))
+    response = upload(client, page_url="", page_text="", review_required="true")
+    rid = response.json()["receipt"]["id"]
+    asyncio.run(receipts.process_receipt(rid))
+    preview = client.get(f"/api/receipts/{rid}").json()
+    assert preview["purchased_on"] is None
+    assert preview["total_minor"] == 1200
+    assert preview["items"][0]["total_minor"] == 1200
+    assert "Сумма товаров не совпала с итогом чека" not in preview["warnings"]
+    assert preview["status"] == "review"
+    assert client.get("/api/transactions").json()["total"] == 0

@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import java.time.LocalDate
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import work.gadmin.finora.AppState
@@ -121,6 +122,19 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
                         form.date,
                         { form = form.copy(date = it.take(10)) },
                         enabled = enabled,
+                        trailingIcon = {
+                            TextButton(
+                                {
+                                    form = form.copy(date = LocalDate.now().toString())
+                                    error = null
+                                },
+                                Modifier.padding(end = 4.dp),
+                                enabled = enabled,
+                                contentPadding = PaddingValues(horizontal = 8.dp),
+                            ) {
+                                Text("Сегодня", style = MaterialTheme.typography.labelLarge)
+                            }
+                        },
                     )
                     ChoiceField(
                         "Валюта",
@@ -311,12 +325,14 @@ private fun EditField(
     modifier: Modifier = Modifier,
     number: Boolean = false,
     enabled: Boolean,
+    trailingIcon: @Composable (() -> Unit)? = null,
 ) {
     OutlinedTextField(
         value,
         onChange,
         modifier.fillMaxWidth(),
         label = { Text(label) },
+        trailingIcon = trailingIcon,
         singleLine = true,
         enabled = enabled,
         keyboardOptions =

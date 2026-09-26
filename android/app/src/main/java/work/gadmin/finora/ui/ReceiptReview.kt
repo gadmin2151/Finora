@@ -83,11 +83,24 @@ fun ReceiptReview(state: AppState, receipt: Receipt, vm: FinoraViewModel) {
                     Modifier.fillMaxWidth(),
                     enabled = !state.busy && complete && accounts.any { it.id == accountId },
                 )
-                if (!complete)
+                if (!complete) {
+                    val problems = buildList {
+                        if (receipt.purchased_on == null) add("Укажите дату покупки.")
+                        if (receipt.merchant.isBlank()) add("Укажите магазин.")
+                        if (receipt.items.isEmpty()) add("Добавьте позиции чека.")
+                        if (receipt.total_minor == null || receipt.total_minor <= 0)
+                            add("Укажите итог чека.")
+                        else if (
+                            receipt.items.isNotEmpty() &&
+                                receipt.items.sumOf { it.total_minor } != receipt.total_minor
+                        )
+                            add("Сумма позиций отличается от итога чека.")
+                    }
                     Text(
-                        "Не все данные распознаны или суммы расходятся. Нажмите «Исправить данные и позиции».",
+                        problems.joinToString(" ") + " Нажмите «Исправить данные и позиции».",
                         color = MaterialTheme.colorScheme.error,
                     )
+                }
                 if (accounts.isEmpty())
                     Text(
                         "Добавьте счёт в валюте ${receipt.currency} через веб-версию.",

@@ -32,6 +32,7 @@ Move the Android camera from the top of a receipt to the bottom. **Long receipt*
 - **One workspace per organization.** Share finances with your household or team. Switch organizations before adding a receipt. Administrators manage money and people; members add receipts, comment and explore statistics.
 - **Income, expenses and obligations.** Track accounts, transfers, refunds, recurring and occasional income, monthly budgets, scheduled bills and partial debt repayments.
 - **Receipts you can inspect.** Scan a QR, take up to four photos of one receipt, or upload images. Review the merchant, date, currency, items, categories and total before confirming a mobile import.
+- **Partial recognition stays useful.** A missing date does not discard the printed total or item list. Android identifies missing fields and offers a **Today** shortcut in the receipt date field; confirmation remains explicit.
 - **Useful product history.** Filter by product, category, merchant, date, account, currency or unit. Compare prices actually paid across different receipts, including line discounts.
 - **Ask your finances a question.** “Compare groceries in August and September.” “Find my LAPTE purchases.” “Where was it cheaper?” The assistant uses validated, read-only reports and keeps conversation context.
 - **Your choice of AI.** OpenAI with a server-side API key, optional Ollama on CPU/RAM, or no AI. Manual finance and preset reports work without an AI provider.

@@ -1055,22 +1055,38 @@ async def process_receipt(receipt_id: str):
         receipt.status = "review"
         receipt.version += 1
         valid = parsed.readable and not parsed.warnings
+        # Extraction is partial: a cropped/missing date must not discard a visible TOTAL.
+        # Clear previous values so a retry cannot silently retain an older extraction.
+        receipt.purchased_on = None
+        receipt.total_minor = None
+        receipt.currency = (
+            parsed.currency if parsed.currency in {"MDL", "EUR", "USD", "RON"} else "MDL"
+        )
+        if parsed.currency not in {"MDL", "EUR", "USD", "RON"}:
+            valid = False
+            receipt.warnings = [*receipt.warnings, "Проверьте валюту чека"]
         try:
             receipt.purchased_on = date.fromisoformat(parsed.purchased_on)
-            receipt.currency = (
-                parsed.currency if parsed.currency in {"MDL", "EUR", "USD", "RON"} else "MDL"
-            )
-            if parsed.currency not in {"MDL", "EUR", "USD", "RON"}:
+            if receipt.purchased_on > today() or receipt.purchased_on.year < 1990:
                 valid = False
-            receipt.total_minor = minor(parsed.total)
-            if (
-                receipt.total_minor <= 0
-                or receipt.purchased_on > today()
-                or receipt.purchased_on.year < 1990
-            ):
-                valid = False
+                receipt.warnings = [*receipt.warnings, "Проверьте дату покупки"]
+        except ValueError:
+            valid = False
+            receipt.warnings = [
+                *receipt.warnings,
+                "Дата покупки не распознана. Укажите дату с чека.",
+            ]
+        try:
+            total_minor = minor(parsed.total)
+            if not 0 < total_minor <= 100_000_000_000:
+                raise ValueError
+            receipt.total_minor = total_minor
         except (ValueError, ArithmeticError, HTTPException):
             valid = False
+            receipt.warnings = [
+                *receipt.warnings,
+                "Итог чека не распознан. Укажите напечатанную сумму.",
+            ]
         db.execute(delete(m.ReceiptItem).where(m.ReceiptItem.receipt_id == receipt.id))
         classification = category_context(db, organization_id)
         for line in parsed.items:
@@ -1119,9 +1135,12 @@ async def process_receipt(receipt_id: str):
                 ]
         db.flush()
         details = receipt_dict(db, receipt)
-        if (
-            not details["items"]
-            or sum(i["total_minor"] for i in details["items"]) != receipt.total_minor
+        if not details["items"]:
+            valid = False
+            receipt.warnings = [*receipt.warnings, "Товары не распознаны. Добавьте позиции чека."]
+        elif (
+            receipt.total_minor is not None
+            and sum(i["total_minor"] for i in details["items"]) != receipt.total_minor
         ):
             valid = False
             receipt.warnings = [*receipt.warnings, "Сумма товаров не совпала с итогом чека"]

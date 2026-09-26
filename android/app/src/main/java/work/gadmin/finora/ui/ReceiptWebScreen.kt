@@ -121,6 +121,7 @@ private suspend fun WebView.awaitDocumentDraw() {
 @Suppress("DEPRECATION")
 private suspend fun ReceiptDocumentView.captureDocument(): Pair<String, List<File>> {
     dismissOptionalCookies()
+    evaluateJavascript(mevReceiptCleanup, null)
     awaitDocumentDraw()
     val text = documentText()
     val rawHeight = ceil(contentHeight * scale.toDouble()).toInt().coerceAtLeast(height)
@@ -366,7 +367,13 @@ fun ReceiptWebScreen(
                             }
 
                             override fun onPageFinished(view: WebView, target: String) {
-                                ready = error == null && !crashed
+                                view.evaluateJavascript(mevReceiptCleanup) {
+                                    ready = error == null && !crashed
+                                }
+                            }
+
+                            override fun onPageCommitVisible(view: WebView, target: String) {
+                                view.evaluateJavascript(mevReceiptCleanup, null)
                             }
 
                             override fun onReceivedError(
