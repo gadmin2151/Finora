@@ -17,6 +17,7 @@ class ReceiptRegistration : Closeable {
         val points: List<Point>,
         val descriptors: Mat,
         val paper: android.graphics.RectF,
+        val octaves: IntArray,
     ) : Closeable {
         override fun close() = descriptors.release()
     }
@@ -80,6 +81,7 @@ class ReceiptRegistration : Closeable {
                     ((bounds.x + bounds.width) * sx).toFloat(),
                     ((bounds.y + bounds.height) * sy).toFloat(),
                 ),
+                keys.toList().map { it.octave }.toIntArray(),
             )
         } catch (error: Exception) {
             descriptors.release()
@@ -144,10 +146,26 @@ class ReceiptRegistration : Closeable {
                 val b = next.points[pair.queryIdx]
                 Point(a.x - b.x, a.y - b.y)
             }
-            val dx = offsets.map { it.x }.sorted()[offsets.size / 2]
-            val dy = offsets.map { it.y }.sorted()[offsets.size / 2]
+            val fullResolution = inliers.mapNotNull { index ->
+                val pair = pairs[index]
+                if (previous.octaves[pair.trainIdx] == 0 && next.octaves[pair.queryIdx] == 0) {
+                    val a = previous.points[pair.trainIdx]
+                    val b = next.points[pair.queryIdx]
+                    Point(a.x - b.x, a.y - b.y)
+                } else null
+            }
+            val precise = fullResolution.takeIf { it.size >= 12 } ?: offsets
+            val dx = precise.map { it.x }.sorted()[precise.size / 2]
+            val dy = precise.map { it.y }.sorted()[precise.size / 2]
             val errors = offsets.map { hypot(it.x - dx, it.y - dy) }.sorted()
-            if (errors[errors.size / 2] < .35 && errors[(errors.size * .85).toInt()] < 1.0) {
+            val exactSupport =
+                fullResolution.size >= 12 &&
+                    fullResolution.count { hypot(it.x - dx, it.y - dy) < .15 } >=
+                        fullResolution.size * .85
+            if (
+                (errors[errors.size / 2] < .35 && errors[(errors.size * .85).toInt()] < 1.0) ||
+                    (exactSupport && errors[(errors.size * .85).toInt()] < 2.0)
+            ) {
                 val translation =
                     ReceiptTransform(
                         floatArrayOf(1f, 0f, dx.toFloat(), 0f, 1f, dy.toFloat(), 0f, 0f, 1f)

@@ -13,7 +13,7 @@ A short receipt can be finished after the first accepted frame. Gallery import a
 
 ## Paper mask and image quality
 
-The scanner finds the connected bright paper region, fills internal printed holes and masks the surrounding desk before matching features. It outputs grayscale paper, not a hard binary threshold, preserving faint thermal ink and anti-aliased letters. The final common view is cropped to the detected paper bounds. Bright objects touching the receipt, strong shadows, folds or large loss of overlap can still require reframing and visual review.
+The scanner finds the connected bright paper region, fills internal printed holes and masks the surrounding desk before matching features. Paper brightness is estimated along the image so a shaded footer is retained. Long boundary lines are used only when the paper side is consistently brighter than the background; aligned printed letters must not become crop edges. It outputs grayscale paper, not a hard binary threshold, preserving faint thermal ink and anti-aliased letters. The final common view is cropped to the detected paper bounds. Bright objects touching the receipt, strong shadows, folds or large loss of overlap can still require reframing and visual review.
 
 ## Implementation and limits
 

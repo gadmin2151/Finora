@@ -351,12 +351,50 @@ class LongReceiptAcceptanceTest {
                 }
                 val result = session.finish()
                 val output = BitmapFactory.decodeFile(result.path)
-                assertTrue(abs(output.height - source.height) < 15)
                 result.copyTo(
                     File(context.filesDir, "private-long-receipt-result.jpg"),
                     overwrite = true,
                 )
-                output.recycle()
+                assertTrue(
+                    "Output ${output.width}x${output.height}; source ${source.width}x${source.height}",
+                    abs(output.height - source.height) < 15,
+                )
+                try {
+                    // The supplied photo's QR is not reliably decodable even before masking.
+                    // Compare its actual dark strokes instead, including the shaded footer.
+                    var bestMissing = Int.MAX_VALUE
+                    var samples = 0
+                    for (shift in 0..source.width - output.width) {
+                        var missing = 0
+                        samples = 0
+                        for (y in source.height * 82 / 100 until source.height - 20 step 2) {
+                            for (x in 100 until 650 step 2) {
+                                if (Color.red(source.getPixel(x, y)) >= 110) continue
+                                samples++
+                                var darkest = 255
+                                for (dy in -1..1) for (dx in -1..1) {
+                                    darkest =
+                                        minOf(
+                                            darkest,
+                                            Color.red(output.getPixel(x - shift + dx, y + dy)),
+                                        )
+                                }
+                                if (darkest > 145) missing++
+                            }
+                        }
+                        bestMissing = minOf(bestMissing, missing)
+                    }
+                    assertTrue(
+                        "The fixture must contain enough printed footer detail",
+                        samples > 500,
+                    )
+                    assertTrue(
+                        "Paper masking erased footer/QR strokes: $bestMissing/$samples",
+                        bestMissing < samples * .02,
+                    )
+                } finally {
+                    output.recycle()
+                }
             }
         } finally {
             source.recycle()
