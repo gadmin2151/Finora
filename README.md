@@ -15,7 +15,9 @@
 
 ## Light, dark, or your system · 1.9
 
-Finora follows your device theme by default. Choose **System**, **Light**, or **Dark** using the sun/moon button in the web toolbar (also in Settings), or your avatar → **Appearance** on Android. Each browser or phone remembers its own choice across sessions and organizations. No server configuration or database migration is needed.
+Finora follows your device theme by default. The sun/moon button in the web toolbar switches directly between **Light** and **Dark** with one click. Choose **System**, **Light**, or **Dark** in your web profile, or your avatar → **Appearance** on Android. Each browser or phone remembers its own choice across sessions and organizations. No server configuration or database migration is needed.
+
+Organization administrators can **repay part**, **repay in full**, or **increase a debt** on both web and Android. Each movement records an account, date and optional note, updates the remaining balance and stays in transaction history without becoming income or expense. Increasing a closed debt reopens it. Retries cannot duplicate payments; full repayment detects a changed balance before posting. No database migration is required.
 
 ## Organizations, people and receipt originals
 

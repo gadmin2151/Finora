@@ -192,13 +192,16 @@ export function Budgets() {
 }
 
 export function Debts() {
-  const { toast } = useApp();
+  const { toast, isAdmin } = useApp();
   const query = useQuery({
     queryKey: ["debts"],
     queryFn: () => api<Debt[]>("/debts"),
   });
   const [creating, setCreating] = useState(false);
-  const [repaying, setRepaying] = useState<Debt | null>(null);
+  const [movement, setMovement] = useState<{
+    debt: Debt;
+    mode: DebtMovementMode;
+  } | null>(null);
   const [direction, setDirection] = useState("all");
   const [closed, setClosed] = useState(false);
   const totals = (type: string) => {
@@ -225,10 +228,15 @@ export function Debts() {
         title="Долги без неловкости"
         text="Помните, кому дали и у кого заняли. Частичные возвраты учитываются автоматически."
         actions={
-          <button className="button primary" onClick={() => setCreating(true)}>
-            <Plus size={18} />
-            Записать долг
-          </button>
+          isAdmin && (
+            <button
+              className="button primary"
+              onClick={() => setCreating(true)}
+            >
+              <Plus size={18} />
+              Записать долг
+            </button>
+          )
         }
       />
       <div className="two-cards">
@@ -318,13 +326,33 @@ export function Debts() {
                         : "Открыт"}
                   </Badge>
                 </div>
-                {d.remaining_minor > 0 && (
-                  <button
-                    className="button secondary"
-                    onClick={() => setRepaying(d)}
-                  >
-                    Возврат
-                  </button>
+                {isAdmin && (
+                  <div className="debt-actions">
+                    {d.remaining_minor > 0 && (
+                      <>
+                        <button
+                          className="button secondary"
+                          onClick={() =>
+                            setMovement({ debt: d, mode: "partial" })
+                          }
+                        >
+                          Погасить частично
+                        </button>
+                        <button
+                          className="button secondary"
+                          onClick={() => setMovement({ debt: d, mode: "full" })}
+                        >
+                          <Check size={16} /> Погасить полностью
+                        </button>
+                      </>
+                    )}
+                    <button
+                      className="text-button"
+                      onClick={() => setMovement({ debt: d, mode: "increase" })}
+                    >
+                      <Plus size={16} /> Увеличить долг
+                    </button>
+                  </div>
                 )}
               </div>
             ))}
@@ -335,10 +363,15 @@ export function Debts() {
             title="Всё спокойно"
             text="Здесь будут ваши долги и возвраты. Выдача и получение долга не считаются расходом и доходом."
             action={
-              <button className="text-button" onClick={() => setCreating(true)}>
-                <Plus size={17} />
-                Добавить запись
-              </button>
+              isAdmin && (
+                <button
+                  className="text-button"
+                  onClick={() => setCreating(true)}
+                >
+                  <Plus size={17} />
+                  Добавить запись
+                </button>
+              )
             }
           />
         )}
@@ -352,13 +385,20 @@ export function Debts() {
           }}
         />
       )}{" "}
-      {repaying && (
-        <RepaymentForm
-          debt={repaying}
-          onClose={() => setRepaying(null)}
+      {movement && (
+        <DebtMovementForm
+          debt={movement.debt}
+          mode={movement.mode}
+          onClose={() => setMovement(null)}
           onDone={() => {
-            setRepaying(null);
-            toast("Возврат учтён");
+            setMovement(null);
+            toast(
+              movement.mode === "increase"
+                ? "Долг увеличен"
+                : movement.mode === "full"
+                  ? "Долг полностью погашен"
+                  : "Погашение учтено",
+            );
           }}
         />
       )}
@@ -507,42 +547,57 @@ function DebtForm({
   );
 }
 
-function RepaymentForm({
+type DebtMovementMode = "partial" | "full" | "increase";
+
+function DebtMovementForm({
   debt,
+  mode,
   onClose,
   onDone,
 }: {
   debt: Debt;
+  mode: DebtMovementMode;
   onClose: () => void;
   onDone: () => void;
 }) {
   const { accounts } = useApp();
-  const [value, setValue] = useState(decimal(debt.remaining_minor));
-  const [account, setAccount] = useState("");
+  const increasing = mode === "increase";
+  const full = mode === "full";
+  const [value, setValue] = useState(full ? decimal(debt.remaining_minor) : "");
+  const [account, setAccount] = useState(
+    accounts.find((a) => !a.archived && a.currency === debt.currency)?.id ?? "",
+  );
   const [date, setDate] = useState(today());
   const [rate, setRate] = useState("");
+  const [note, setNote] = useState("");
   const [requestKey] = useState(key);
   const action = useAction(
     () =>
-      send(`/debts/${debt.id}/repay`, {
+      send(`/debts/${debt.id}/${increasing ? "increase" : "repay"}`, {
         amount: value,
         account_id: account,
         occurred_on: date,
         fx_rate: debt.currency === "MDL" ? null : rate,
+        note,
+        ...(increasing ? {} : { full }),
         idempotency_key: requestKey,
       }),
     onDone,
   );
   return (
     <Modal
-      title={`Возврат: ${debt.person}`}
-      description={`Осталось ${amount(debt.remaining_minor, debt.currency)}. Можно вернуть часть суммы.`}
+      title={`${increasing ? "Увеличить долг" : full ? "Погасить полностью" : "Погасить частично"}: ${debt.person}`}
+      description={`Остаток ${amount(debt.remaining_minor, debt.currency)}. ${increasing ? "Укажите дополнительную сумму. Передача денег изменит баланс выбранного счёта." : full ? "Весь остаток будет погашен после подтверждения." : "Укажите сумму фактического возврата."}`}
       onClose={onClose}
     >
       <Form onSubmit={() => action.mutate(undefined)}>
         <div className="form-grid">
           <Field label={`Сумма · ${debt.currency}`}>
-            <MoneyInput value={value} onChange={setValue} autoFocus />
+            {full ? (
+              <input value={value} readOnly aria-readonly="true" />
+            ) : (
+              <MoneyInput value={value} onChange={setValue} autoFocus />
+            )}
           </Field>
           <Field label="Дата">
             <input
@@ -556,7 +611,7 @@ function RepaymentForm({
           </Field>
           <Field
             label={
-              debt.direction === "lent"
+              (debt.direction === "lent") !== increasing
                 ? "Получено на счёт"
                 : "Списать со счёта"
             }
@@ -581,10 +636,24 @@ function RepaymentForm({
               />
             </Field>
           )}
+          <Field label="Примечание · необязательно" wide>
+            <textarea
+              rows={2}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              maxLength={3000}
+            />
+          </Field>
         </div>
         <ErrorBox error={action.error} />
         <footer className="modal-footer">
-          <Submit pending={action.isPending}>Записать возврат</Submit>
+          <Submit pending={action.isPending}>
+            {increasing
+              ? "Увеличить долг"
+              : full
+                ? "Погасить весь остаток"
+                : "Записать погашение"}
+          </Submit>
         </footer>
       </Form>
     </Modal>

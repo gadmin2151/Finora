@@ -340,6 +340,8 @@ def test_shared_receipts_comments_and_isolated_organizations(
         ("POST", "/accounts"),
         ("POST", "/bills"),
         ("POST", "/debts"),
+        ("POST", "/debts/fake/increase"),
+        ("POST", "/debts/fake/repay"),
         ("PUT", "/budgets"),
         ("POST", "/income/templates"),
         ("POST", "/receipts/fake/confirm"),

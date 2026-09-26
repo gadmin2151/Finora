@@ -82,6 +82,7 @@ enum class FinanceEditKind {
     RECEIVE,
     DEBT,
     REPAY,
+    INCREASE_DEBT,
 }
 
 val incomeRecurrences =
@@ -114,6 +115,7 @@ data class FinanceEdit(
     val mode: String = "new",
     val transactionId: String? = null,
     val remainingMinor: Long? = null,
+    val fullRepayment: Boolean = false,
     // A failed/uncertain request keeps this key: retrying cannot post the money twice.
     val requestKey: String = UUID.randomUUID().toString(),
 ) {
@@ -124,7 +126,9 @@ data class FinanceEdit(
                 FinanceEditKind.PLAN -> if (id == null) "Источник дохода" else "Изменить источник"
                 FinanceEditKind.RECEIVE -> "Получить доход"
                 FinanceEditKind.DEBT -> "Записать долг"
-                FinanceEditKind.REPAY -> "Возврат долга"
+                FinanceEditKind.REPAY ->
+                    if (fullRepayment) "Погасить полностью" else "Погасить частично"
+                FinanceEditKind.INCREASE_DEBT -> "Увеличить долг"
             }
 
     fun command(accounts: List<Account>): FinanceCommand {
@@ -135,6 +139,11 @@ data class FinanceEdit(
                 amountValue.movePointRight(2).longValueExact() <= requireNotNull(remainingMinor)
             ) {
                 "Сумма возврата превышает остаток долга"
+            }
+            require(
+                !fullRepayment || amountValue.movePointRight(2).longValueExact() == remainingMinor
+            ) {
+                "Для полного погашения укажите весь остаток долга"
             }
         }
         require(currency in setOf("MDL", "EUR", "USD", "RON")) { "Выберите валюту" }
@@ -185,10 +194,13 @@ data class FinanceEdit(
                     put("note", note.trim())
                 }
                 FinanceEditKind.RECEIVE,
-                FinanceEditKind.REPAY -> {
+                FinanceEditKind.REPAY,
+                FinanceEditKind.INCREASE_DEBT -> {
                     put("occurred_on", posted)
                     if (kind == FinanceEditKind.RECEIVE)
                         put("transaction_id", transactionId?.let(::JsonPrimitive) ?: JsonNull)
+                    else put("note", note.trim())
+                    if (kind == FinanceEditKind.REPAY) put("full", fullRepayment)
                 }
             }
         }
@@ -199,6 +211,7 @@ data class FinanceEdit(
                 FinanceEditKind.RECEIVE -> "/api/income/occurrences/${requireNotNull(id)}/receive"
                 FinanceEditKind.DEBT -> "/api/debts"
                 FinanceEditKind.REPAY -> "/api/debts/${requireNotNull(id)}/repay"
+                FinanceEditKind.INCREASE_DEBT -> "/api/debts/${requireNotNull(id)}/increase"
             }
         return FinanceCommand(
             path,

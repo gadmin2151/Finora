@@ -418,6 +418,13 @@ def repay_debt(key: str, data: s.DebtPayment, user: m.Organization = SCOPE, db: 
     return transaction_dict(tx)
 
 
+@router.post("/debts/{key}/increase")
+def increase_debt(key: str, data: s.DebtMovement, user: m.Organization = SCOPE, db: Session = DB):
+    tx = ledger.increase_debt(db, user.id, key, data)
+    db.commit()
+    return transaction_dict(tx)
+
+
 @router.get("/bills")
 def bills(month: str, user: m.Organization = SCOPE, db: Session = DB):
     result = bills_for_month(db, user.id, month)

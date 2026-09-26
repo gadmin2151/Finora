@@ -42,7 +42,7 @@ import {
   currentMonth,
   monthLabel,
 } from "./ui";
-import { AppearanceMenu } from "./Appearance";
+import { AppearanceToggle } from "./Appearance";
 import { BrandMark } from "./BrandMark";
 import TransactionForm from "./TransactionForm";
 import Sidebar from "./Sidebar";
@@ -557,7 +557,7 @@ function Workspace({
             </strong>
           </div>
           <div className="topbar-actions">
-            <AppearanceMenu />
+            <AppearanceToggle />
             <div className="month-control">
               <button
                 className="icon-button"

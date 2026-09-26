@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useId } from "react";
 import { Check, Monitor, Moon, Sun } from "lucide-react";
 import { useAppearance, type ThemePreference } from "./themeStore";
 
@@ -8,13 +8,11 @@ const choices = [
   { value: "dark", title: "Тёмная", icon: Moon },
 ] as const;
 
-export function AppearanceSettings({ compact = false }: { compact?: boolean }) {
+export function AppearanceSettings() {
   const { preference, dark, setTheme } = useAppearance();
   const id = useId();
   return (
-    <fieldset
-      className={`appearance-settings ${compact ? "compact" : "panel"}`}
-    >
+    <fieldset className="appearance-settings panel">
       <legend>Оформление</legend>
       <p>Выберите тему, в которой вам комфортно.</p>
       <div className="appearance-choices">
@@ -58,54 +56,22 @@ export function AppearanceSettings({ compact = false }: { compact?: boolean }) {
   );
 }
 
-export function AppearanceMenu() {
-  const [open, setOpen] = useState(false);
-  const { dark } = useAppearance();
-  const root = useRef<HTMLDivElement>(null);
-  const trigger = useRef<HTMLButtonElement>(null);
-  const id = useId();
-  useEffect(() => {
-    if (!open) return;
-    root.current?.querySelector<HTMLInputElement>("input:checked")?.focus();
-    const outside = (event: PointerEvent) => {
-      if (!root.current?.contains(event.target as Node)) setOpen(false);
-    };
-    const escape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setOpen(false);
-        trigger.current?.focus();
-      }
-    };
-    document.addEventListener("pointerdown", outside);
-    document.addEventListener("keydown", escape);
-    return () => {
-      document.removeEventListener("pointerdown", outside);
-      document.removeEventListener("keydown", escape);
-    };
-  }, [open]);
+export function AppearanceToggle() {
+  const { dark, setTheme } = useAppearance();
+  const label = dark ? "Включить светлую тему" : "Включить тёмную тему";
   return (
-    <div
-      className="appearance-menu"
-      ref={root}
-      onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
-      }}
+    <button
+      type="button"
+      className="icon-button appearance-trigger"
+      aria-label={label}
+      title={label}
+      onClick={() => setTheme(dark ? "light" : "dark")}
     >
-      <button
-        className="icon-button appearance-trigger"
-        ref={trigger}
-        aria-label="Выбрать тему оформления"
-        aria-expanded={open}
-        aria-controls={id}
-        onClick={() => setOpen(!open)}
-      >
-        {dark ? <Moon size={20} /> : <Sun size={20} />}
-      </button>
-      {open && (
-        <div className="appearance-popover" id={id}>
-          <AppearanceSettings compact />
-        </div>
+      {dark ? (
+        <Moon size={20} aria-hidden="true" />
+      ) : (
+        <Sun size={20} aria-hidden="true" />
       )}
-    </div>
+    </button>
   );
 }

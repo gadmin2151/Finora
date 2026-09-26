@@ -64,6 +64,37 @@ class FinanceFormTest {
     }
 
     @Test
+    fun fullRepaymentSendsTheReviewedBalanceAndRejectsPartialAmount() {
+        val form =
+            form(FinanceEditKind.REPAY)
+                .copy(
+                    id = "debt",
+                    remainingMinor = 1250,
+                    fullRepayment = true,
+                    note = "Paid in full",
+                )
+        val command = form.command(accounts)
+        assertTrue(command.body!!["full"]!!.jsonPrimitive.boolean)
+        assertEquals("Paid in full", command.body["note"]!!.jsonPrimitive.content)
+        rejected { form.copy(amount = "5").command(accounts) }
+        assertEquals(command, form.command(accounts))
+    }
+
+    @Test
+    fun debtIncreaseCanReopenClosedDebtAndKeepsItsAccountCurrency() {
+        val form =
+            form(FinanceEditKind.INCREASE_DEBT)
+                .copy(id = "debt", remainingMinor = 0, note = "Extra loan")
+        val command = form.command(accounts)
+        assertEquals("/api/debts/debt/increase", command.path)
+        assertEquals("Extra loan", command.body!!["note"]!!.jsonPrimitive.content)
+        assertFalse(command.body.containsKey("full"))
+        assertEquals(command, form.command(accounts))
+        rejected { form.copy(accountId = "euro").command(accounts) }
+        rejected { form.copy(accountId = "old").command(accounts) }
+    }
+
+    @Test
     fun plansAllowFutureDatesAndCarryVersionWhenEditing() {
         val form =
             form(FinanceEditKind.PLAN)

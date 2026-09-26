@@ -795,9 +795,13 @@
     text-align: left;
     margin-left: 56px;
   }
-  .debt-row > .button {
-    margin-left: auto;
-    font-size: 13px;
+  .debt-actions {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .debt-actions > button {
+    flex: 1 1 auto;
   }
   .debt-row p,
   .debt-row small,

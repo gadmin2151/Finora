@@ -10,8 +10,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -469,33 +467,49 @@ fun FinanceContent(
                     )
                     if (debt.note.isNotBlank())
                         Text(debt.note, style = MaterialTheme.typography.bodySmall)
-                    if (admin && debt.remaining_minor > 0)
-                        OutlinedButton(
-                            {
-                                actions.open(
-                                    FinanceEdit(
-                                        FinanceEditKind.REPAY,
-                                        id = debt.id,
-                                        name = debt.person,
-                                        amount = editableMoney(debt.remaining_minor),
-                                        currency = debt.currency,
-                                        accountId =
-                                            validFinanceAccount(data.accounts, debt.currency),
-                                        direction = debt.direction,
-                                        remainingMinor = debt.remaining_minor,
-                                    )
+                    if (admin) {
+                        fun openMovement(increase: Boolean = false, full: Boolean = false) {
+                            actions.open(
+                                FinanceEdit(
+                                    if (increase) FinanceEditKind.INCREASE_DEBT
+                                    else FinanceEditKind.REPAY,
+                                    id = debt.id,
+                                    name = debt.person,
+                                    amount = if (full) editableMoney(debt.remaining_minor) else "",
+                                    currency = debt.currency,
+                                    accountId = validFinanceAccount(data.accounts, debt.currency),
+                                    direction = debt.direction,
+                                    remainingMinor = debt.remaining_minor,
+                                    fullRepayment = full,
                                 )
-                            },
+                            )
+                        }
+                        if (debt.remaining_minor > 0) {
+                            OutlinedButton(
+                                { openMovement() },
+                                Modifier.fillMaxWidth(),
+                                enabled = !busy,
+                            ) {
+                                Text("Погасить частично")
+                            }
+                            OutlinedButton(
+                                { openMovement(full = true) },
+                                Modifier.fillMaxWidth(),
+                                enabled = !busy,
+                            ) {
+                                Text("Погасить полностью")
+                            }
+                        }
+                        TextButton(
+                            { openMovement(increase = true) },
                             Modifier.fillMaxWidth(),
                             enabled = !busy,
                         ) {
-                            Text(
-                                "Записать возврат",
-                                Modifier.semantics {
-                                    contentDescription = "Возврат долга ${debt.person}"
-                                },
-                            )
+                            LineIcon(Glyph.PLUS)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Увеличить долг")
                         }
+                    }
                 }
             }
         }

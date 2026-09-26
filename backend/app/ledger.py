@@ -13,7 +13,14 @@ from .finance import (
     owned,
     rate_for,
 )
-from .schemas import BillPayment, DebtInput, DebtPayment, TransactionEdit, TransactionInput
+from .schemas import (
+    BillPayment,
+    DebtInput,
+    DebtMovement,
+    DebtPayment,
+    TransactionEdit,
+    TransactionInput,
+)
 
 
 def add_debt(db, organization_id: str, data: DebtInput):
@@ -67,6 +74,22 @@ def add_debt(db, organization_id: str, data: DebtInput):
 
 
 def repay_debt(db, organization_id: str, debt_id: str, data: DebtPayment):
+    return _debt_movement(db, organization_id, debt_id, data, repayment=True, full=data.full)
+
+
+def increase_debt(db, organization_id: str, debt_id: str, data: DebtMovement):
+    return _debt_movement(db, organization_id, debt_id, data, repayment=False)
+
+
+def _debt_movement(
+    db,
+    organization_id: str,
+    debt_id: str,
+    data: DebtMovement,
+    *,
+    repayment: bool,
+    full: bool = False,
+):
     lock_organization(db, organization_id)
     debt = owned(db, m.Debt, debt_id, organization_id, True)
     account = owned(db, m.Account, data.account_id, organization_id)
@@ -78,8 +101,16 @@ def repay_debt(db, organization_id: str, debt_id: str, data: DebtPayment):
             m.Transaction.idempotency_key == data.idempotency_key,
         )
     )
-    if not prior and minor(data.amount) > debt_remaining(db, debt):
-        fail("Сумма возврата превышает остаток долга")
+    if repayment and not prior:
+        remaining = debt_remaining(db, debt)
+        if full and minor(data.amount) != remaining:
+            fail("Остаток долга изменился. Обновите список и повторите полное погашение", 409)
+        if minor(data.amount) > remaining:
+            fail("Сумма возврата превышает остаток долга")
+    if repayment:
+        kind = "debt_repayment_in" if debt.direction == "lent" else "debt_repayment_out"
+    else:
+        kind = "debt_lend" if debt.direction == "lent" else "debt_borrow"
     return create_transaction(
         db,
         organization_id,
@@ -89,9 +120,10 @@ def repay_debt(db, organization_id: str, debt_id: str, data: DebtPayment):
             occurred_on=data.occurred_on,
             fx_rate=data.fx_rate,
             merchant=debt.person,
+            note=data.note,
             idempotency_key=data.idempotency_key,
         ),
-        internal_kind="debt_repayment_in" if debt.direction == "lent" else "debt_repayment_out",
+        internal_kind=kind,
         debt_id=debt.id,
     )
 

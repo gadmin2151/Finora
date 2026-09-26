@@ -231,7 +231,9 @@ class FinanceController(
             when (form.kind) {
                 FinanceEditKind.PLAN -> "Источник дохода сохранён"
                 FinanceEditKind.DEBT -> "Долг записан"
-                FinanceEditKind.REPAY -> "Возврат учтён"
+                FinanceEditKind.REPAY ->
+                    if (form.fullRepayment) "Долг полностью погашен" else "Погашение учтено"
+                FinanceEditKind.INCREASE_DEBT -> "Долг увеличен"
                 else -> "Доход сохранён"
             },
             editor = true,

@@ -141,12 +141,24 @@ class DebtInput(Strict):
     idempotency_key: str = Field(min_length=8, max_length=100)
 
 
-class DebtPayment(Strict):
+class DebtMovement(Strict):
     amount: Money = Field(gt=0, le=1000000000)
     account_id: str
     occurred_on: date
     fx_rate: Decimal | None = Field(default=None, gt=0, le=100000)
+    note: str = Field(default="", max_length=3000)
     idempotency_key: str = Field(min_length=8, max_length=100)
+
+    @field_validator("occurred_on")
+    @classmethod
+    def valid_date(cls, value: date) -> date:
+        if value.year < 1990 or value.year > 2100:
+            raise ValueError("Дата должна быть между 1990 и 2100 годом")
+        return value
+
+
+class DebtPayment(DebtMovement):
+    full: bool = False
 
 
 class BillInput(Strict):

@@ -33,7 +33,9 @@ fun FinanceEditor(
     var discard by remember { mutableStateOf(false) }
     val enabled = !busy
     val existing = form.kind == FinanceEditKind.DEBT && form.mode == "existing"
-    val fixedCurrency = form.kind in setOf(FinanceEditKind.RECEIVE, FinanceEditKind.REPAY)
+    val fixedCurrency =
+        form.kind in
+            setOf(FinanceEditKind.RECEIVE, FinanceEditKind.REPAY, FinanceEditKind.INCREASE_DEBT)
     val accounts = data.accounts.filter { it.currency == form.currency && !it.archived }
     Dialog(
         onDismissRequest = { if (enabled) discard = true },
@@ -80,7 +82,10 @@ fun FinanceEditor(
                                 when (form.kind) {
                                     FinanceEditKind.PLAN -> "Сохранить источник"
                                     FinanceEditKind.DEBT -> "Сохранить долг"
-                                    FinanceEditKind.REPAY -> "Подтвердить возврат"
+                                    FinanceEditKind.REPAY ->
+                                        if (form.fullRepayment) "Погасить весь остаток"
+                                        else "Записать погашение"
+                                    FinanceEditKind.INCREASE_DEBT -> "Увеличить долг"
                                     FinanceEditKind.RECEIVE -> "Подтвердить поступление"
                                     FinanceEditKind.INCOME -> "Сохранить доход"
                                 },
@@ -107,7 +112,12 @@ fun FinanceEditor(
                         )
                     FinanceEditKind.REPAY ->
                         InfoCard(
-                            "${form.name}\nОсталось ${money(form.remainingMinor ?: 0, form.currency)}. Можно вернуть часть суммы.",
+                            "${form.name}\nОстаток ${money(form.remainingMinor ?: 0, form.currency)}. ${if (form.fullRepayment) "Долг будет закрыт после подтверждения." else "Укажите сумму фактического возврата."}",
+                            Glyph.USER,
+                        )
+                    FinanceEditKind.INCREASE_DEBT ->
+                        InfoCard(
+                            "${form.name}\nОстаток ${money(form.remainingMinor ?: 0, form.currency)}. Укажите дополнительную сумму: она увеличит долг и изменит баланс выбранного счёта.",
                             Glyph.USER,
                         )
                     FinanceEditKind.RECEIVE ->
@@ -147,7 +157,7 @@ fun FinanceEditor(
                 FinanceText(
                     "Сумма · ${form.currency}",
                     form.amount,
-                    enabled,
+                    enabled && !form.fullRepayment,
                     number = true,
                     max = 24,
                 ) {
@@ -190,9 +200,15 @@ fun FinanceEditor(
                 }
                 if (!existing) {
                     FinanceChoice(
-                        if (form.kind == FinanceEditKind.REPAY && form.direction == "borrowed")
-                            "Списать со счёта"
-                        else "Счёт",
+                        when {
+                            form.kind == FinanceEditKind.REPAY ->
+                                if (form.direction == "borrowed") "Списать со счёта"
+                                else "Получено на счёт"
+                            form.kind == FinanceEditKind.INCREASE_DEBT ->
+                                if (form.direction == "lent") "Списать со счёта"
+                                else "Получено на счёт"
+                            else -> "Счёт"
+                        },
                         form.accountId,
                         accounts.map { it.id to "${it.name} · ${it.currency}" },
                         enabled,
@@ -249,7 +265,15 @@ fun FinanceEditor(
                     ) {
                         change(form.copy(dueDate = it))
                     }
-                if (form.kind in setOf(FinanceEditKind.INCOME, FinanceEditKind.DEBT)) {
+                if (
+                    form.kind in
+                        setOf(
+                            FinanceEditKind.INCOME,
+                            FinanceEditKind.DEBT,
+                            FinanceEditKind.REPAY,
+                            FinanceEditKind.INCREASE_DEBT,
+                        )
+                ) {
                     OutlinedTextField(
                         form.note,
                         { change(form.copy(note = it.take(3000))) },

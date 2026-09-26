@@ -327,54 +327,20 @@
 .theme-miniature.system em:last-child {
   background: #25352d;
 }
-.appearance-menu {
-  position: relative;
-  flex-shrink: 0;
-}
 .appearance-trigger {
+  flex-shrink: 0;
   width: 40px;
   height: 40px;
   border: 1px solid var(--border);
   border-radius: 12px;
   color: var(--muted);
 }
-.appearance-popover {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 14px);
-  width: 378px;
-  max-width: calc(100vw - 24px);
-  border-radius: 20px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  box-shadow: 0 18px 55px #0003;
-  z-index: 100;
-}
-.appearance-settings.compact {
-  margin: 0;
-  padding: 23px;
-}
-.appearance-popover .appearance-choices {
-  gap: 8px;
-}
-.appearance-popover .appearance-choice {
-  padding: 7px 7px 32px;
-}
-.appearance-popover .appearance-label {
-  font-size: 11px;
-  gap: 4px;
-}
-/* Keep the chooser above page content, including animated route stacking contexts. */
+/* Keep toolbar controls above animated page content. */
 .topbar {
   position: relative;
   z-index: 40;
 }
 @media (max-width: 650px) {
-  .appearance-popover {
-    position: fixed;
-    right: 12px;
-    top: 80px;
-  }
   .appearance-settings {
     padding: 20px;
   }

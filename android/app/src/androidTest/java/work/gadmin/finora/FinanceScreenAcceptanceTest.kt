@@ -115,13 +115,13 @@ class FinanceScreenAcceptanceTest {
             }
             awaitText("QA UI debt")
             rule
-                .onNodeWithContentDescription("Возврат долга QA UI debt")
+                .onNodeWithText("Погасить частично")
                 .performScrollTo()
                 .performClick()
             rule.onNodeWithText("Сумма · MDL").performTextReplacement("10")
-            rule.onNodeWithText("Подтвердить возврат").assertIsDisplayed().performClick()
+            rule.onNodeWithText("Записать погашение").assertIsDisplayed().performClick()
             rule.waitUntil(40_000) {
-                rule.onAllNodesWithText("Подтвердить возврат").fetchSemanticsNodes().isEmpty()
+                rule.onAllNodesWithText("Записать погашение").fetchSemanticsNodes().isEmpty()
             }
             rule.onNodeWithText("QA UI debt").performScrollTo().assertIsDisplayed()
             snapshot("finance-debts.png")
