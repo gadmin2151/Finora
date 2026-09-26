@@ -36,6 +36,7 @@ from .finance import (
     minor,
     money,
     owned,
+    payment_account,
     rate_for,
     today,
 )
@@ -871,7 +872,7 @@ def confirm_receipt(db, organization_id: str, receipt: m.Receipt, data: ReceiptC
         fail("Дождитесь окончания распознавания", 409)
     if data.version != receipt.version:
         fail("Чек уже изменился. Обновите его", 409)
-    account = owned(db, m.Account, data.account_id, organization_id)
+    account = payment_account(db, organization_id, data.account_id)
     if account.currency != data.currency:
         fail("Валюта счёта должна совпадать с валютой чека")
     total = minor(data.total)

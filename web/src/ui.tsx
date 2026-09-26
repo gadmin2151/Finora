@@ -1,5 +1,6 @@
 import { t, getLanguage, getLocale } from "./i18n";
 import { pluralIndex } from "./i18nCore";
+import { useApp } from "./context";
 import {
   useEffect,
   useId,
@@ -344,9 +345,26 @@ export function AccountSelect({
   optional?: boolean;
   currency?: string;
 }) {
+  const { prefs } = useApp();
+  const combined = prefs?.accounting_mode === "combined";
+  const primary = accounts.find(
+    (a) =>
+      a.id === prefs?.default_account_id && !a.archived && a.currency === "MDL",
+  );
+  const current = accounts.find((a) => a.id === value);
+  const resolved =
+    combined &&
+    primary &&
+    (!value || current?.currency === "MDL") &&
+    (!currency || currency === "MDL")
+      ? primary.id
+      : value;
+  useEffect(() => {
+    if (resolved !== value) onChange(resolved);
+  }, [resolved, value, onChange]);
   return (
     <select
-      value={value}
+      value={resolved}
       onChange={(e) => onChange(e.target.value)}
       required={!optional}
     >
@@ -354,7 +372,12 @@ export function AccountSelect({
         {optional ? t("Выбрать позже") : t("Выберите счёт")}
       </option>
       {accounts
-        .filter((a) => !a.archived && (!currency || a.currency === currency))
+        .filter(
+          (a) =>
+            !a.archived &&
+            (!currency || a.currency === currency) &&
+            (!combined || a.currency !== "MDL" || a.id === primary?.id),
+        )
         .map((a) => (
           <option key={a.id} value={a.id}>
             {a.name} · {a.currency}

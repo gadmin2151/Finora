@@ -243,6 +243,32 @@ class ApiClient(val server: String, savedCookie: String? = null) {
 
     suspend fun accounts(org: String): List<Account> = get("/api/accounts", org)
 
+    suspend fun paymentAccounts(org: String): List<Account> =
+        get("/api/accounts?for_payment=true", org)
+
+    suspend fun accounting(org: String): AccountingConfig = get("/api/settings/accounting", org)
+
+    suspend fun saveAccounting(org: String, config: AccountingConfig, moveReceipts: Boolean) {
+        execute(
+            request(
+                "/api/settings/accounting",
+                org,
+                "PUT",
+                jsonBody(
+                    buildJsonObject {
+                        put("mode", config.mode)
+                        put(
+                            "default_account_id",
+                            config.default_account_id?.let(::JsonPrimitive) ?: JsonNull,
+                        )
+                        put("version", config.version)
+                        put("move_existing_receipts", moveReceipts)
+                    }
+                ),
+            )
+        )
+    }
+
     suspend fun categories(org: String): List<Category> = get("/api/categories", org)
 
     suspend fun purchases(org: String, category: String, month: String, offset: Int): PurchasePage {

@@ -282,7 +282,14 @@ class Preferences(Owned, Base):
     monthly_request_limit: Mapped[int] = mapped_column(Integer, default=200)
     auto_post: Mapped[bool] = mapped_column(Boolean, default=True)
     default_account_id: Mapped[str | None] = mapped_column(ForeignKey("accounts.id"))
-    __table_args__ = (UniqueConstraint("organization_id"),)
+    accounting_mode: Mapped[str] = mapped_column(
+        String(12), default="separate", server_default="separate"
+    )
+    accounting_version: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+    __table_args__ = (
+        UniqueConstraint("organization_id"),
+        CheckConstraint("accounting_mode IN ('separate', 'combined')", name="ck_accounting_mode"),
+    )
 
 
 class AIUsage(Owned, Base):

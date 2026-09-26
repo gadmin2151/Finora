@@ -37,6 +37,7 @@ fun ProfileScreen(state: AppState, vm: FinoraViewModel) {
         item { Text(tr(Message.YOUR_PROFILE), style = MaterialTheme.typography.headlineLarge) }
         item { LanguageSettings() }
         item { AppearanceSettings() }
+        item { AccountingSettings(state, vm) }
         item {
             Surface(color = SurfaceColor, shape = RoundedCornerShape(26.dp)) {
                 Column(

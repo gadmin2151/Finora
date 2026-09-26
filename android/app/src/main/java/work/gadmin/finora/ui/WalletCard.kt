@@ -25,6 +25,8 @@ import work.gadmin.finora.localization.*
 fun WalletCard(state: AppState, vm: FinoraViewModel) {
     val data by vm.wallet.state.collectAsStateWithLifecycle()
     val accounts = state.dashboard?.accounts.orEmpty()
+    var details by remember { mutableStateOf(false) }
+    val combined = state.accounting?.combined == true
     Surface(color = HeroStart, shape = RoundedCornerShape(28.dp)) {
         Column(
             Modifier.fillMaxWidth()
@@ -48,6 +50,7 @@ fun WalletCard(state: AppState, vm: FinoraViewModel) {
                 BrandMark(Modifier.size(48.dp))
             }
             if (accounts.isEmpty()) Text(tr(Message.NO_WALLET_ACCOUNTS), color = HeroInk)
+            if (combined) Text(tr(Message.ACCOUNTING_COMBINED), color = Mint)
             walletTotals(accounts).forEach { (currency, amount) ->
                 Text(
                     money(amount, currency),
@@ -56,7 +59,17 @@ fun WalletCard(state: AppState, vm: FinoraViewModel) {
                 )
             }
             HorizontalDivider(color = Mint.copy(alpha = .2f))
-            accounts.forEach { account ->
+            if (combined)
+                TextButton({ details = !details }) {
+                    Text(
+                        tr(
+                            if (details) Message.ACCOUNTING_HIDE_ACCOUNTS
+                            else Message.ACCOUNTING_SHOW_ACCOUNTS
+                        ),
+                        color = Mint,
+                    )
+                }
+            (if (combined && !details) emptyList() else accounts).forEach { account ->
                 Row(
                     Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,

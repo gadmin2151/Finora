@@ -2,6 +2,33 @@ package work.gadmin.finora.localization
 
 /** App-owned copy only; user names, receipt content and chat history are never translated. */
 enum class Message(val english: String, val russian: String) {
+    ACCOUNTING_TITLE("Money tracking", "Учёт денег"),
+    ACCOUNTING_SCOPE(
+        "Shared by %1\$s, the website and your phone.",
+        "Общая настройка для %1\$s, сайта и телефона.",
+    ),
+    ACCOUNTING_COMBINED("All together", "Всё вместе"),
+    ACCOUNTING_SEPARATE("Cash and cards separately", "Наличные и карты отдельно"),
+    ACCOUNTING_COMBINED_HINT(
+        "One balance. New MDL transactions use the primary account.",
+        "Общий остаток. Новые операции MDL — на основном счёте.",
+    ),
+    ACCOUNTING_SEPARATE_HINT(
+        "Choose an account for purchases, income and debt repayments.",
+        "Выбирайте счёт для покупок, доходов и возвратов долгов.",
+    ),
+    ACCOUNTING_PRIMARY("Primary MDL account", "Основной счёт MDL"),
+    ACCOUNTING_MOVE_RECEIPTS(
+        "Move existing MDL receipts to the primary account",
+        "Перенести существующие чеки MDL на основной счёт",
+    ),
+    ACCOUNTING_HISTORY_HINT(
+        "Amounts, items and originals are preserved. Other currencies stay separate. Switching back will not undo receipt moves.",
+        "Суммы, товары и оригиналы сохраняются. Другие валюты — отдельно. Возврат к раздельному режиму не отменяет перенос чеков.",
+    ),
+    ACCOUNTING_SAVED("Money tracking settings saved", "Настройки учёта сохранены"),
+    ACCOUNTING_SHOW_ACCOUNTS("Show accounts", "Показать счета"),
+    ACCOUNTING_HIDE_ACCOUNTS("Hide accounts", "Скрыть счета"),
     MANUAL_RECEIPT("Manual receipt", "Чек вручную"),
     MANUAL_RECEIPT_HELP(
         "Enter the store and items. No photo, QR code or bank transaction is required. Saving records the expense on the selected account. The total is calculated from the items; adjust line totals for discounts.",

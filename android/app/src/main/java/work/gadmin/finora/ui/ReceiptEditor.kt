@@ -37,8 +37,8 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
                 ),
         ) {
             mutableStateOf(
-                if (manual) ReceiptForm.manual(state.accounts, state.draft.accountId)
-                else ReceiptForm.from(requireNotNull(receipt), state.accounts)
+                if (manual) ReceiptForm.manual(state.paymentAccounts, state.draft.accountId)
+                else ReceiptForm.from(requireNotNull(receipt), state.paymentAccounts)
             )
         }
     var error by remember { mutableStateOf<String?>(null) }
@@ -182,16 +182,16 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
                                         if (currency == "MDL") "1" else ""
                                     } else form.fxRate,
                                 accountId =
-                                    state.accounts
+                                    state.paymentAccounts
                                         .firstOrNull { it.currency == currency && !it.archived }
                                         ?.id,
                             )
                     }
                     ChoiceField(
                         tr(Message.ACCOUNT),
-                        state.accounts.firstOrNull { it.id == form.accountId }?.name
+                        state.paymentAccounts.firstOrNull { it.id == form.accountId }?.name
                             ?: tr(Message.CHOOSE_AN_ACCOUNT),
-                        state.accounts
+                        state.paymentAccounts
                             .filter { !it.archived && it.currency == form.currency }
                             .map { it.id to it.name },
                         enabled,
@@ -335,7 +335,7 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
                         form.items.size,
                         form.total,
                         form.currency,
-                        state.accounts.firstOrNull { it.id == form.accountId }?.name,
+                        state.paymentAccounts.firstOrNull { it.id == form.accountId }?.name,
                     )
                 )
             },

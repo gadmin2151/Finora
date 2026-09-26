@@ -25,6 +25,10 @@
 
 The **current wallet** includes debt repayments and shows balances separately from monthly income. Adjust an account with an auditable add/subtract/set action, and open spending categories to explore their receipt items. [Wallet and chat guide →](docs/WALLET.md)
 
+## Cash and cards: your choice
+
+Choose **Settings → Money tracking** on the web, or open your **profile → Money tracking** on Android. An organization can keep accounts separate or show one combined wallet. In combined mode, new MDL receipts, income and debt movements use the selected primary MDL account. Other currencies stay separate. Admins can move existing MDL receipts without duplicating expenses or changing their items, totals or originals. Historical non-receipt transactions stay on their original accounts and remain included in the combined balance. Switching back does not undo a receipt move.
+
 ## Make the little purchases add up to insight
 
 A bank balance tells you how much is left. Finora helps you understand **what you bought, where the money went, and what is still coming up**. Keep the receipt, explore the items behind the total, and share the same picture with your household or team.

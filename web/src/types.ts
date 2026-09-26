@@ -141,6 +141,8 @@ export type Preferences = {
   monthly_request_limit: number;
   auto_post: boolean;
   default_account_id: string | null;
+  accounting_mode: "separate" | "combined";
+  accounting_version: number;
   usage: { requests: number; input_tokens: number; output_tokens: number };
   secure_cookies: boolean;
 };

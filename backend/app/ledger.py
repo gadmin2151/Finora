@@ -15,6 +15,7 @@ from .finance import (
     minor,
     money,
     owned,
+    payment_account,
     rate_for,
 )
 from .schemas import (
@@ -83,6 +84,7 @@ def adjust_account_balance(db, organization_id: str, account_id: str, data: Bala
             note=data.note,
             idempotency_key=data.idempotency_key,
         ),
+        route_account=False,
     )
     audit(
         db,
@@ -131,7 +133,7 @@ def add_debt(db, organization_id: str, data: DebtInput):
     if data.mode == "new":
         if not data.account_id:
             fail("Выберите счёт, с которого выдали или на который получили деньги")
-        account = owned(db, m.Account, data.account_id, organization_id)
+        account = payment_account(db, organization_id, data.account_id)
         if account.currency != data.currency:
             fail("Валюты долга и счёта должны совпадать")
         create_transaction(
@@ -172,7 +174,7 @@ def _debt_movement(
 ):
     lock_organization(db, organization_id)
     debt = owned(db, m.Debt, debt_id, organization_id, True)
-    account = owned(db, m.Account, data.account_id, organization_id)
+    account = payment_account(db, organization_id, data.account_id)
     if account.currency != debt.currency:
         fail("Валюта счёта должна совпадать с валютой долга")
     prior = db.scalar(
@@ -221,7 +223,7 @@ def pay_bill(db, organization_id: str, occurrence_id: str, data: BillPayment):
     )
     if existing:
         return existing
-    account = owned(db, m.Account, data.account_id, organization_id)
+    account = payment_account(db, organization_id, data.account_id)
     if account.currency != occurrence.currency:
         fail("Валюта счёта должна совпадать с валютой платежа")
     if data.transaction_id:

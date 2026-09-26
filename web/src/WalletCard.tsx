@@ -17,12 +17,17 @@ import {
 import { correctionTarget, minorDecimal, type BalanceMode } from "./wallet";
 
 export function WalletCard({ dashboard }: { dashboard: Dashboard }) {
-  const { isAdmin, navigate } = useApp();
+  const { isAdmin, navigate, prefs } = useApp();
+  const [details, setDetails] = useState(false);
+  const combined = prefs?.accounting_mode === "combined";
   const [selected, setSelected] = useState("");
   const [editing, setEditing] = useState<Account | null>(null);
   const wallet = dashboard.wallet ?? dashboard;
   const accounts = wallet.accounts;
-  const account = accounts.find((value) => value.id === selected);
+  const account =
+    !combined || details
+      ? accounts.find((value) => value.id === selected)
+      : undefined;
   const balances = account
     ? [[account.currency, account.balance_minor] as const]
     : Object.entries(wallet.balances);
@@ -34,21 +39,31 @@ export function WalletCard({ dashboard }: { dashboard: Dashboard }) {
         </span>
         <Wallet size={20} />
       </div>
-      <label className="wallet-account">
-        <span className="sr-only">{t("Выбрать счёт кошелька")}</span>
-        <select
-          value={account?.id ?? ""}
-          onChange={(event) => setSelected(event.target.value)}
-        >
-          <option value="">{t("Все счета")}</option>
-          {accounts.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.name} · {item.currency}
-              {item.archived ? ` · ${t("Архив")}` : ""}
-            </option>
-          ))}
-        </select>
-      </label>
+      {combined && (
+        <div className="between">
+          <span>{t("Всё вместе")}</span>
+          <button className="text-button" onClick={() => setDetails(!details)}>
+            {details ? t("Скрыть счета") : t("Показать счета")}
+          </button>
+        </div>
+      )}
+      {(!combined || details) && (
+        <label className="wallet-account">
+          <span className="sr-only">{t("Выбрать счёт кошелька")}</span>
+          <select
+            value={account?.id ?? ""}
+            onChange={(event) => setSelected(event.target.value)}
+          >
+            <option value="">{t("Все счета")}</option>
+            {accounts.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name} · {item.currency}
+                {item.archived ? ` · ${t("Архив")}` : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       <div className="wallet-balances" aria-live="polite">
         {balances.length ? (
           balances.map(([currency, value]) => (
@@ -76,11 +91,14 @@ export function WalletCard({ dashboard }: { dashboard: Dashboard }) {
             {t("Уточнить остаток")}
           </button>
         )}
-        {isAdmin && !account && accounts.length > 0 && (
-          <span className="stat-note">
-            {t("Выберите счёт, чтобы уточнить его остаток.")}
-          </span>
-        )}
+        {isAdmin &&
+          !account &&
+          accounts.length > 0 &&
+          (!combined || details) && (
+            <span className="stat-note">
+              {t("Выберите счёт, чтобы уточнить его остаток.")}
+            </span>
+          )}
         <button
           className="balance-link"
           onClick={() => navigate(isAdmin ? "accounts" : "transactions")}

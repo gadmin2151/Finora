@@ -19,7 +19,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy import delete, func, or_, select
 from sqlalchemy.orm import Session
 
-from . import ai, ledger
+from . import accounting, ai, ledger
 from . import models as m
 from . import schemas as s
 from .category_refresh import install_daily_categories, refresh_receipt_categories
@@ -37,6 +37,7 @@ from .finance import (
     minor,
     month_range,
     owned,
+    payment_account,
     recommendations,
     transaction_dict,
 )
@@ -214,8 +215,21 @@ def get_dashboard(month: str, user: m.Organization = SCOPE, db: Session = DB):
 
 
 @router.get("/accounts")
-def accounts(user: m.Organization = SCOPE, db: Session = DB):
-    return account_balances(db, user.id)
+def accounts(for_payment: bool = False, user: m.Organization = SCOPE, db: Session = DB):
+    rows = account_balances(db, user.id)
+    if for_payment:
+        prefs = accounting.accounting_settings(db, user.id)
+        rows = [
+            row
+            for row in rows
+            if not row["archived"]
+            and (
+                prefs["mode"] != "combined"
+                or row["currency"] != "MDL"
+                or row["id"] == prefs["default_account_id"]
+            )
+        ]
+    return rows
 
 
 @router.post("/accounts")
@@ -252,6 +266,13 @@ def adjust_balance(
 def edit_account(key: str, data: s.AccountInput, user: m.Organization = SCOPE, db: Session = DB):
     lock_organization(db, user.id)
     row = owned(db, m.Account, key, user.id)
+    prefs = accounting.accounting_settings(db, user.id)
+    if (
+        prefs["mode"] == "combined"
+        and prefs["default_account_id"] == key
+        and data.currency != "MDL"
+    ):
+        fail("Сначала выберите другой основной счёт в настройках учёта")
     has_movements = db.scalar(
         select(func.count()).select_from(m.Posting).where(m.Posting.account_id == key)
     )
@@ -279,8 +300,11 @@ def archive_account(key: str, user: m.Organization = SCOPE, db: Session = DB):
     account = owned(db, m.Account, key, user.id)
     account.archived = not account.archived
     prefs = db.scalar(select(m.Preferences).where(m.Preferences.organization_id == user.id))
+    if account.archived and prefs.accounting_mode == "combined" and prefs.default_account_id == key:
+        fail("Сначала выберите другой основной счёт в настройках учёта")
     if account.archived and prefs.default_account_id == key:
         prefs.default_account_id = None
+        prefs.accounting_version += 1
     db.commit()
     return {"archived": account.archived}
 
@@ -605,9 +629,11 @@ def register_receipt(
 ):
     lock_organization(db, organization_id)
     if account_id:
-        account = owned(db, m.Account, account_id, organization_id)
-        if account.archived:
-            fail("Выберите действующий счёт")
+        account_id = payment_account(db, organization_id, account_id).id
+    else:
+        prefs = accounting.accounting_settings(db, organization_id)
+        if prefs["mode"] == "combined":
+            account_id = payment_account(db, organization_id, prefs["default_account_id"]).id
     prior = db.scalar(
         select(m.Receipt)
         .where(m.Receipt.organization_id == organization_id, m.Receipt.source_key == key)
@@ -1004,6 +1030,8 @@ def get_settings(user: m.Organization = SCOPE, db: Session = DB):
         "monthly_request_limit": p.monthly_request_limit,
         "auto_post": p.auto_post,
         "default_account_id": p.default_account_id,
+        "accounting_mode": p.accounting_mode,
+        "accounting_version": p.accounting_version,
         "usage": {"requests": usage[0], "input_tokens": usage[1], "output_tokens": usage[2]},
         "secure_cookies": settings().cookie_secure,
     }
@@ -1017,6 +1045,10 @@ def save_settings(data: s.PreferencesInput, user: m.Organization = SCOPE, db: Se
         if account.archived:
             fail("Выберите действующий счёт")
     row = db.scalar(select(m.Preferences).where(m.Preferences.organization_id == user.id))
+    if data.default_account_id != row.default_account_id:
+        if row.accounting_mode == "combined":
+            fail("Измените основной счёт в настройках учёта", 409)
+        row.accounting_version += 1
     for key in [
         "provider",
         "model",
@@ -1035,6 +1067,18 @@ def save_settings(data: s.PreferencesInput, user: m.Organization = SCOPE, db: Se
     audit(db, user.id, "settings.updated", row.id, {"provider": row.provider})
     db.commit()
     return {"ok": True}
+
+
+@router.get("/settings/accounting")
+def get_accounting(user: m.Organization = SCOPE, db: Session = DB):
+    return accounting.accounting_settings(db, user.id)
+
+
+@router.put("/settings/accounting")
+def update_accounting(data: s.AccountingInput, user: m.Organization = SCOPE, db: Session = DB):
+    result = accounting.save_accounting(db, user.id, data)
+    db.commit()
+    return result
 
 
 @router.get("/ai/models")

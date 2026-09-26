@@ -14,6 +14,7 @@ from .finance import (
     minor,
     month_range,
     owned,
+    payment_account,
     rate_for,
 )
 from .ledger import save_bill
@@ -172,7 +173,7 @@ def receive(db, organization_id: str, key: str, data: BillPayment):
     )
     if existing:
         return existing
-    account = owned(db, m.Account, data.account_id, organization_id)
+    account = payment_account(db, organization_id, data.account_id)
     if account.currency != occurrence.currency or account.archived:
         fail("Выберите действующий счёт в валюте дохода")
     if data.transaction_id:

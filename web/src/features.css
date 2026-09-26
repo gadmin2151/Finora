@@ -251,3 +251,15 @@
 [hidden] {
   display: none !important;
 }
+/* The shared accounting choice stays readable on narrow settings screens. */
+.accounting-fields {
+  border: 0;
+  padding: 0;
+  margin: 0 0 20px;
+  min-width: 0;
+  display: grid;
+  gap: 18px;
+}
+.accounting-modes {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+}

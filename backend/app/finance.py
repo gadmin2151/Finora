@@ -168,6 +168,21 @@ def account_balances(db: Session, organization_id: str):
     ]
 
 
+def payment_account(db: Session, organization_id: str, account_id: str):
+    """Keep ownership/currency checks even for old clients selecting cash in combined mode."""
+    account = owned(db, m.Account, account_id, organization_id)
+    if account.archived:
+        fail("Счёт находится в архиве")
+    prefs = db.scalar(select(m.Preferences).where(m.Preferences.organization_id == organization_id))
+    if prefs and prefs.accounting_mode == "combined" and account.currency == "MDL":
+        if not prefs.default_account_id:
+            fail("Выберите основной счёт MDL в настройках учёта", 409)
+        account = owned(db, m.Account, prefs.default_account_id, organization_id)
+        if account.archived or account.currency != "MDL":
+            fail("Выберите основной счёт MDL в настройках учёта", 409)
+    return account
+
+
 def create_transaction(
     db: Session,
     organization_id: str,
@@ -177,6 +192,7 @@ def create_transaction(
     receipt_id: str | None = None,
     occurrence_id: str | None = None,
     record_audit: bool = True,
+    route_account: bool = True,
 ):
     lock_organization(db, organization_id)
     fingerprint = hashlib.sha256(
@@ -203,7 +219,11 @@ def create_transaction(
         return old
     if data.occurred_on > today():
         fail("Будущие расходы добавляйте в план платежей")
-    account = owned(db, m.Account, data.account_id, organization_id)
+    account = (
+        payment_account(db, organization_id, data.account_id)
+        if route_account
+        else owned(db, m.Account, data.account_id, organization_id)
+    )
     if account.archived:
         fail("Счёт находится в архиве")
     amount = minor(data.amount)
@@ -216,7 +236,9 @@ def create_transaction(
     if kind == "transfer":
         if not data.target_account_id or data.target_account_id == account.id:
             fail("Выберите другой счёт для перевода")
-        target = owned(db, m.Account, data.target_account_id, organization_id)
+        target = payment_account(db, organization_id, data.target_account_id)
+        if target.id == account.id:
+            fail("В общем режиме перевод между наличными и картой не требуется")
         if target.archived:
             fail("Счёт назначения находится в архиве")
         if target.currency == account.currency:

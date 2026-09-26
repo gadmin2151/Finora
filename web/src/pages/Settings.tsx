@@ -1,6 +1,7 @@
 import { t, getLocale } from "../i18n";
 import { CategoryRefresh } from "../CategoryRefresh";
 import { ProfileSettings } from "../Profile";
+import { AccountingSettings } from "../AccountingSettings";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -259,6 +260,7 @@ export default function Settings() {
       >
         {[
           ["profile", t("Мой профиль"), Pencil],
+          ["accounting", t("Учёт денег"), Wallet],
           ["ai", t("AI и распознавание"), Sparkles],
           ["categories", t("Категории и правила"), Wallet],
           ["security", t("Безопасность"), ShieldCheck],
@@ -281,6 +283,12 @@ export default function Settings() {
       </div>
       {tab === "profile" ? (
         <ProfileSettings />
+      ) : tab === "accounting" ? (
+        prefs ? (
+          <AccountingSettings key={prefs.accounting_version} initial={prefs} />
+        ) : (
+          <Loading />
+        )
       ) : tab === "ai" ? (
         prefs ? (
           <AISettings initial={prefs} />
@@ -342,7 +350,10 @@ function AISettings({ initial }: { initial: Preferences }) {
           clear_key: clearKey,
           monthly_request_limit: limit,
           auto_post: automatic,
-          default_account_id: account || null,
+          default_account_id:
+            initial.accounting_mode === "combined"
+              ? initial.default_account_id
+              : account || null,
         },
         "PUT",
       ),

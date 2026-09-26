@@ -86,7 +86,7 @@ class FinanceController(
         val report = async { api.income(org, selectedMonth) }
         val plans = async { api.incomePlans(org) }
         val debts = async { api.debts(org) }
-        val accounts = async { api.accounts(org) }
+        val accounts = async { api.paymentAccounts(org) }
         val history = async { api.incomeHistory(org, selectedMonth) }
         val data =
             FinanceState(
@@ -148,7 +148,21 @@ class FinanceController(
         matching?.cancel()
         mutable.update {
             it.copy(
-                editor = form,
+                editor =
+                    if (
+                        mutable.value.accounts.any {
+                            it.id == form.accountId && it.currency == form.currency
+                        }
+                    )
+                        form
+                    else
+                        form.copy(
+                            accountId =
+                                mutable.value.accounts
+                                    .firstOrNull { a -> a.currency == form.currency && !a.archived }
+                                    ?.id
+                                    .orEmpty()
+                        ),
                 editorError = null,
                 matches = emptyList(),
                 matchesLoaded = false,

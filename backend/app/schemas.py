@@ -216,6 +216,13 @@ class RuleInput(Strict):
     category_id: str
 
 
+class AccountingInput(Strict):
+    mode: Literal["separate", "combined"]
+    default_account_id: str | None = None
+    version: int = Field(ge=1)
+    move_existing_receipts: bool = False
+
+
 class PreferencesInput(Strict):
     provider: Literal["disabled", "ollama", "openai"]
     model: str = Field(min_length=1, max_length=100, pattern=r"^[a-zA-Z0-9_.:/-]+$")

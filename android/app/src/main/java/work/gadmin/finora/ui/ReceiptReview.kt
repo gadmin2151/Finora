@@ -17,10 +17,13 @@ import work.gadmin.finora.localization.tr
 
 @Composable
 fun ReceiptReview(state: AppState, receipt: Receipt, vm: FinoraViewModel) {
-    val accounts = state.accounts.filter { it.currency == receipt.currency && !it.archived }
+    val accounts = state.paymentAccounts.filter { it.currency == receipt.currency && !it.archived }
     var accountId by
         rememberSaveable(receipt.id) {
-            mutableStateOf(receipt.account_id ?: accounts.firstOrNull()?.id)
+            mutableStateOf(
+                receipt.account_id?.takeIf { id -> accounts.any { it.id == id } }
+                    ?: accounts.firstOrNull()?.id
+            )
         }
     var menu by remember { mutableStateOf(false) }
     var confirm by remember { mutableStateOf(false) }

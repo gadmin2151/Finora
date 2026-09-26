@@ -53,6 +53,7 @@ data class AppState(
     val notice: String? = null,
     val draft: Draft = Draft(),
     val accounts: List<Account> = emptyList(),
+    val accounting: AccountingConfig? = null,
     val categories: List<Category> = emptyList(),
     val receipts: List<Receipt> = emptyList(),
     val receiptCount: Int = 0,
@@ -73,7 +74,10 @@ data class AppState(
     val chatLoading: Boolean = false,
     val chatHasOlder: Boolean = true,
     val chatSyncError: String? = null,
-)
+) {
+    val paymentAccounts: List<Account>
+        get() = (accounting ?: AccountingConfig()).paymentAccounts(accounts)
+}
 
 class FinoraViewModel(application: Application) : AndroidViewModel(application) {
     private val sessions = SessionStore(application)
@@ -323,6 +327,15 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
             Page.OVERVIEW -> loadDashboard()
             Page.CHAT -> loadChat()
             Page.FINANCES -> finance.load()
+            Page.PROFILE,
+            Page.CAPTURE ->
+                viewModelScope.launch {
+                    try {
+                        fetchWorkspace(requireNotNull(mutable.value.organization).id)
+                    } catch (error: Exception) {
+                        handleError(error)
+                    }
+                }
             else -> Unit
         }
     }
@@ -850,6 +863,7 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
                 current.page == Page.CHAT -> fetchChat(current)
                 current.page == Page.FINANCES -> finance.refresh()
                 else -> {
+                    fetchWorkspace(org.id)
                     val user = requireNotNull(api).me()
                     persist(user)
                     currentCoroutineContext().ensureActive()
@@ -870,10 +884,40 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
         val client = requireNotNull(api)
         val accounts = async { client.accounts(org) }
         val categories = async { client.categories(org) }
+        val accounting = async { client.accounting(org) }
         val resultAccounts = accounts.await().filterNot(Account::archived)
         val resultCategories = categories.await()
+        val resultAccounting = accounting.await()
         ensureActive()
-        mutable.update { it.copy(accounts = resultAccounts, categories = resultCategories) }
+        if (mutable.value.organization?.id == org)
+            mutable.update {
+                it.copy(
+                    accounts = resultAccounts,
+                    categories = resultCategories,
+                    accounting = resultAccounting,
+                    draft =
+                        it.draft.copy(
+                            accountId =
+                                resultAccounting.receiptAccount(it.draft.accountId, resultAccounts)
+                        ),
+                )
+            }
+    }
+
+    fun saveAccounting(config: AccountingConfig, moveReceipts: Boolean) = writeAction {
+        val org = requireNotNull(mutable.value.organization)
+        require(org.isAdmin)
+        try {
+            requireNotNull(api).saveAccounting(org.id, config, moveReceipts)
+        } catch (error: ApiException) {
+            if (error.code == 409) fetchWorkspace(org.id)
+            throw error
+        }
+        fetchWorkspace(org.id)
+        finance.reset()
+        loadReceipts()
+        loadDashboard()
+        mutable.update { it.copy(notice = tr(Message.ACCOUNTING_SAVED)) }
     }
 
     fun chatDraft(text: String) = mutable.update { it.copy(chatDraft = text.take(3000)) }
@@ -995,10 +1039,19 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
         val org = requireNotNull(current.organization).id
         val dashboard = async { client.dashboard(org, current.month) }
         val insights = async { client.insights(org, current.month) }
+        val accounting = async { client.accounting(org) }
         val result = dashboard.await()
         val resultInsights = insights.await()
+        val resultAccounting = accounting.await()
         ensureActive()
-        mutable.update { it.copy(dashboard = result, insights = resultInsights) }
+        if (mutable.value.organization?.id == org)
+            mutable.update {
+                it.copy(
+                    dashboard = result,
+                    insights = resultInsights,
+                    accounting = resultAccounting,
+                )
+            }
     }
 
     fun logout() = writeAction {

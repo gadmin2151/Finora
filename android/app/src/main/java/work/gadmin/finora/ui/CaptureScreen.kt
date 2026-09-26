@@ -177,7 +177,7 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
                                 LineIcon(Glyph.WALLET, size = 19.dp)
                                 Spacer(Modifier.width(8.dp))
                                 Text(
-                                    state.accounts
+                                    state.paymentAccounts
                                         .firstOrNull { it.id == state.draft.accountId }
                                         ?.name ?: tr(Message.SERVER_DEFAULT_ACCOUNT),
                                     Modifier.weight(1f),
@@ -192,7 +192,7 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
                                         accountMenu = false
                                     },
                                 )
-                                state.accounts
+                                state.paymentAccounts
                                     .filter { it.currency == "MDL" }
                                     .forEach { account ->
                                         DropdownMenuItem(
