@@ -878,6 +878,8 @@ async def process_receipt(receipt_id: str):
         if receipt is None or receipt.deleted_at or receipt.status == "posted":
             return
         receipt.status, receipt.error = "processing", None
+        if not receipt.file_names:
+            receipt.review_required = True
         organization_id, url, files = (
             receipt.organization_id,
             receipt.source_url,
@@ -908,36 +910,41 @@ async def process_receipt(receipt_id: str):
     if from_phone:
         extraction_provider = "phone_page"
     if url and not from_phone:
+        from .receipt_files import append_images
+
         try:
             mev_url(url)
             known_mev = True
         except ReceiptError:
             known_mev = False
-        try:
-            if known_mev:
+        if known_mev:
+            try:
                 raw_text = await fetch_mev(url)
                 result = parse_mev(raw_text)
-            else:
-                page = await capture_receipt_page(receipt_link(url))
+            except (ReceiptError, httpx.HTTPError):
+                warning = "MEV временно недоступен. Попробуйте сканирование с телефона или фото."
+        try:
+            page = await capture_receipt_page(receipt_link(url))
+            if not raw_text:
                 raw_text = page.text
-                filename = receipt_id + "-web.jpg"
-                directory = settings().data_dir / "receipts" / organization_id
-                directory.mkdir(parents=True, exist_ok=True, mode=0o700)
-                await asyncio.to_thread((directory / filename).write_bytes, page.image)
-                files = [filename]
-                with SessionLocal() as db:
-                    require_lease(db)
-                    current = db.get(m.Receipt, receipt_id)
-                    if current is None or current.deleted_at or current.status == "posted":
-                        return
-                    current.file_names = files
-                    current.review_required = True
-                    db.commit()
-                warning = "Чек получен со страницы по QR. Сверьте товары и итог со снимком перед подтверждением."
+            if result is None:
+                result = parse_mev(raw_text)
+            with SessionLocal() as db:
+                require_lease(db)
+                current = db.scalar(
+                    select(m.Receipt).where(m.Receipt.id == receipt_id).with_for_update()
+                )
+                if current is None or current.deleted_at or current.status == "posted":
+                    return
+                append_images(current, [page.image])
+                files = list(current.file_names)
+                current.review_required = True
+                db.commit()
+            warning = "Оригинал страницы сохранён. Сверьте товары и итог перед подтверждением."
         except (ReceiptError, WebReceiptError, httpx.HTTPError) as exc:
-            if not known_mev:
+            if not files and not result:
                 raise ReceiptError(str(exc)) from exc
-            warning = str(exc) if isinstance(exc, ReceiptError) else "MEV временно недоступен"
+            warning = "Не удалось сохранить снимок страницы. Прикрепите фото чека или сканируйте QR с телефона."
     images = []
     if (result is None or not result["readable"]) and files:
         images = [

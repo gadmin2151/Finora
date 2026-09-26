@@ -2,6 +2,11 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   KeyRound,
+  Building2,
+  Ban,
+  CheckCircle2,
+  Trash2,
+  RotateCcw,
   Pencil,
   Plus,
   Search,
@@ -10,6 +15,7 @@ import {
 } from "lucide-react";
 import { api, send, useAction } from "../api";
 import { useApp } from "../context";
+import { ManagementTabs } from "../ManagementTabs";
 import { Avatar } from "../Profile";
 import {
   Badge,
@@ -26,6 +32,7 @@ import {
 type Assignment = {
   organization_id: string;
   name?: string;
+  deleted_at?: string | null;
   role: "admin" | "user";
 };
 type ManagedUser = {
@@ -33,6 +40,7 @@ type ManagedUser = {
   username: string;
   name: string;
   is_active: boolean;
+  deleted_at: string | null;
   is_server_admin: boolean;
   avatar_url: string | null;
   sessions: number;
@@ -47,6 +55,8 @@ type AuditEntry = {
   created_at: string;
 };
 const auditLabels: Record<string, string> = {
+  "user.deleted": "Аккаунт перемещён в корзину",
+  "user.restored": "Аккаунт восстановлен без включения входа",
   "user.created": "Аккаунт создан",
   "user.updated": "Доступ и профиль обновлены",
   "user.password_reset": "Пароль сброшен, сеансы отозваны",
@@ -62,6 +72,11 @@ export default function Users() {
   const [status, setStatus] = useState("all");
   const [offset, setOffset] = useState(0);
   const [editing, setEditing] = useState<ManagedUser | "new" | null>(null);
+  const [editorTab, setEditorTab] = useState<"profile" | "access">("profile");
+  const [lifecycle, setLifecycle] = useState<{
+    member: ManagedUser;
+    action: "delete" | "restore" | "block" | "activate";
+  } | null>(null);
   const [reset, setReset] = useState<ManagedUser | null>(null);
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -84,14 +99,21 @@ export default function Users() {
     <>
       <PageHeading
         eyebrow="ЛЮДИ И ДОСТУП"
-        title="Ваша команда"
+        title="Пользователи"
         text="Все аккаунты сервера. Организации и права каждого человека — в одном месте."
         actions={
-          <button className="button primary" onClick={() => setEditing("new")}>
+          <button
+            className="button primary"
+            onClick={() => {
+              setEditorTab("profile");
+              setEditing("new");
+            }}
+          >
             <Plus size={18} /> Новый пользователь
           </button>
         }
       />
+      <ManagementTabs current="users" />
       <div className="notice">
         <ShieldCheck size={20} />
         <span>
@@ -119,9 +141,10 @@ export default function Users() {
               setOffset(0);
             }}
           >
-            <option value="all">Все аккаунты</option>
+            <option value="all">Все пользователи</option>
             <option value="active">Активные</option>
             <option value="blocked">Заблокированные</option>
+            <option value="deleted">Корзина</option>
           </select>
         </div>
         <ErrorBox error={list.error} />
@@ -145,7 +168,11 @@ export default function Users() {
                       <small>@{member.username}</small>
                     </div>
                     <Badge>
-                      {member.is_active ? "Активен" : "Заблокирован"}
+                      {member.deleted_at
+                        ? "В корзине"
+                        : member.is_active
+                          ? "Активен"
+                          : "Заблокирован"}
                     </Badge>
                   </div>
                   {member.is_server_admin && (
@@ -157,7 +184,10 @@ export default function Users() {
                     {member.memberships.length ? (
                       member.memberships.map((org) => (
                         <div key={org.organization_id}>
-                          <span>{org.name}</span>
+                          <span>
+                            {org.name}
+                            {org.deleted_at ? " · в корзине" : ""}
+                          </span>
                           <small>
                             {org.role === "admin"
                               ? "Администратор"
@@ -173,26 +203,82 @@ export default function Users() {
                     {member.sessions} активных сеансов · с{" "}
                     {new Date(member.created_at).toLocaleDateString("ru")}
                   </small>
-                  <div className="user-card-actions">
-                    <button
-                      className="button secondary"
-                      onClick={() => setEditing(member)}
-                    >
-                      <Pencil size={16} /> Управлять
-                    </button>
-                    <button
-                      className="icon-button"
-                      aria-label={`Сбросить пароль: ${member.username}`}
-                      title={
-                        member.id === user.id
-                          ? "Свой пароль меняется в настройках"
-                          : "Сбросить пароль"
-                      }
-                      disabled={member.id === user.id}
-                      onClick={() => setReset(member)}
-                    >
-                      <KeyRound size={19} />
-                    </button>
+                  <div className="user-card-actions management-user-actions">
+                    {member.deleted_at ? (
+                      <button
+                        className="button secondary"
+                        onClick={() =>
+                          setLifecycle({ member, action: "restore" })
+                        }
+                      >
+                        <RotateCcw size={16} /> Восстановить
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          className="button secondary"
+                          onClick={() => {
+                            setEditorTab("profile");
+                            setEditing(member);
+                          }}
+                        >
+                          <Pencil size={16} /> Профиль
+                        </button>
+                        <button
+                          className="button secondary"
+                          onClick={() => {
+                            setEditorTab("access");
+                            setEditing(member);
+                          }}
+                        >
+                          <Building2 size={16} /> Организации
+                        </button>
+                        <button
+                          className="button secondary"
+                          disabled={member.id === user.id}
+                          title={
+                            member.id === user.id
+                              ? "Свой пароль меняется в настройках профиля"
+                              : "Сбросить пароль"
+                          }
+                          onClick={() => setReset(member)}
+                        >
+                          <KeyRound size={16} /> Пароль
+                        </button>
+                        {!member.is_server_admin && (
+                          <>
+                            <button
+                              className="text-button"
+                              onClick={() =>
+                                setLifecycle({
+                                  member,
+                                  action: member.is_active
+                                    ? "block"
+                                    : "activate",
+                                })
+                              }
+                            >
+                              {member.is_active ? (
+                                <Ban size={16} />
+                              ) : (
+                                <CheckCircle2 size={16} />
+                              )}
+                              {member.is_active
+                                ? "Заблокировать"
+                                : "Включить вход"}
+                            </button>
+                            <button
+                              className="text-button negative"
+                              onClick={() =>
+                                setLifecycle({ member, action: "delete" })
+                              }
+                            >
+                              <Trash2 size={16} /> Удалить
+                            </button>
+                          </>
+                        )}
+                      </>
+                    )}
                   </div>
                 </article>
               ))}
@@ -225,10 +311,29 @@ export default function Users() {
           )
         )}
       </section>
+      {offset > 0 && list.data?.items.length === 0 && (
+        <button className="button secondary" onClick={() => setOffset(0)}>
+          К началу списка
+        </button>
+      )}
       {editing && (
         <UserEditor
+          initialTab={editorTab}
           member={editing === "new" ? null : editing}
           onClose={() => setEditing(null)}
+        />
+      )}
+      {lifecycle && (
+        <UserLifecycle
+          {...lifecycle}
+          onClose={() => setLifecycle(null)}
+          onCompleted={() => {
+            if (lifecycle.action === "restore") {
+              setStatus("blocked");
+              setOffset(0);
+            }
+            setLifecycle(null);
+          }}
         />
       )}
       {reset && <ResetPassword member={reset} onClose={() => setReset(null)} />}
@@ -237,13 +342,16 @@ export default function Users() {
 }
 
 function UserEditor({
+  initialTab,
   member,
   onClose,
 }: {
+  initialTab: "profile" | "access";
   member: ManagedUser | null;
   onClose: () => void;
 }) {
   const { toast } = useApp();
+  const [tab, setTab] = useState(initialTab);
   const [name, setName] = useState(member?.name ?? "");
   const [username, setUsername] = useState(member?.username ?? "");
   const [password, setPassword] = useState("");
@@ -294,160 +402,199 @@ function UserEditor({
       }}
       wide
     >
+      {member && (
+        <div className="segmented editor-tabs">
+          <button
+            className={tab === "profile" ? "selected" : ""}
+            onClick={() => setTab("profile")}
+          >
+            Профиль
+          </button>
+          <button
+            className={tab === "access" ? "selected" : ""}
+            onClick={() => setTab("access")}
+          >
+            Организации и доступ
+          </button>
+        </div>
+      )}
       <Form onSubmit={() => save.mutate(undefined)}>
         <fieldset disabled={save.isPending}>
-          <div className="form-grid">
-            <Field label="Имя">
-              <input
-                value={name}
-                required
-                maxLength={100}
-                onChange={(event) => setName(event.target.value)}
-                autoComplete="off"
-              />
-            </Field>
-            <Field label="Логин">
-              <input
-                value={username}
-                required
-                minLength={3}
-                maxLength={80}
-                pattern="[a-zA-Z0-9_.@-]+"
-                disabled={Boolean(member)}
-                onChange={(event) => setUsername(event.target.value)}
-                autoComplete="off"
-              />
-            </Field>
-          </div>
-          {!member && (
+          <section hidden={Boolean(member) && tab !== "profile"}>
             <div className="form-grid">
-              <Field label="Пароль · от 12 символов">
+              <Field label="Имя">
                 <input
-                  type="password"
-                  autoComplete="new-password"
+                  value={name}
                   required
-                  minLength={12}
-                  maxLength={256}
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
+                  maxLength={100}
+                  onChange={(event) => setName(event.target.value)}
+                  autoComplete="off"
                 />
               </Field>
-              <Field label="Повторите пароль">
+              <Field label="Логин">
                 <input
-                  type="password"
-                  autoComplete="new-password"
+                  value={username}
                   required
-                  value={repeat}
-                  onChange={(event) => setRepeat(event.target.value)}
+                  minLength={3}
+                  maxLength={80}
+                  pattern="[a-zA-Z0-9_.@-]+"
+                  disabled={Boolean(member)}
+                  onChange={(event) => setUsername(event.target.value)}
+                  autoComplete="off"
                 />
               </Field>
             </div>
-          )}
-          <label className="account-active">
+            {!member && (
+              <div className="form-grid">
+                <Field label="Пароль · от 12 символов">
+                  <input
+                    type="password"
+                    autoComplete="new-password"
+                    required
+                    minLength={12}
+                    maxLength={256}
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                  />
+                </Field>
+                <Field label="Повторите пароль">
+                  <input
+                    type="password"
+                    autoComplete="new-password"
+                    required
+                    value={repeat}
+                    onChange={(event) => setRepeat(event.target.value)}
+                  />
+                </Field>
+              </div>
+            )}
+          </section>
+          <section hidden={Boolean(member) && tab !== "access"}>
+            <label className="account-active">
+              <input
+                type="checkbox"
+                checked={active}
+                disabled={member?.is_server_admin}
+                onChange={(event) => setActive(event.target.checked)}
+              />
+              <span>Доступ к аккаунту включён</span>
+            </label>
+            {!active && (
+              <div className="notice">
+                Пользователь не сможет входить. При сохранении все его сеансы
+                будут завершены. Чеки и история сохранятся.
+              </div>
+            )}
+            <h3>
+              Организации ·{" "}
+              {assignments.filter((org) => !org.deleted_at).length}
+            </h3>
+            {assignments.some((org) => org.deleted_at) && (
+              <p className="management-hint">
+                Доступ к организациям в корзине сохранён и вернётся после их
+                восстановления.
+              </p>
+            )}
             <input
-              type="checkbox"
-              checked={active}
-              disabled={member?.is_server_admin}
-              onChange={(event) => setActive(event.target.checked)}
+              aria-label="Найти организацию для пользователя"
+              placeholder="Найти организацию"
+              value={filter}
+              onChange={(event) => setFilter(event.target.value)}
             />
-            <span>Доступ к аккаунту включён</span>
-          </label>
-          {!active && (
-            <div className="notice">
-              Пользователь не сможет входить. При сохранении все его сеансы
-              будут завершены. Чеки и история сохранятся.
-            </div>
-          )}
-          <h3>Организации · {assignments.length}</h3>
-          <input
-            aria-label="Найти организацию для пользователя"
-            placeholder="Найти организацию"
-            value={filter}
-            onChange={(event) => setFilter(event.target.value)}
-          />
-          <ErrorBox error={options.error} />
-          {options.isPending ? (
-            <Loading />
-          ) : (
-            <div className="user-org-picker">
-              {options.data
-                ?.filter((org) =>
-                  org.name
-                    .toLocaleLowerCase()
-                    .includes(filter.toLocaleLowerCase()),
-                )
-                .map((org) => {
-                  const selected = assignments.find(
-                    (item) => item.organization_id === org.id,
-                  );
-                  return (
-                    <div
-                      className={`user-org-choice ${selected ? "selected" : ""}`}
-                      key={org.id}
-                    >
-                      <label>
-                        <input
-                          type="checkbox"
-                          checked={Boolean(selected)}
-                          onChange={(event) =>
-                            setAssignments(
-                              event.target.checked
-                                ? [
-                                    ...assignments,
-                                    { organization_id: org.id, role: "user" },
-                                  ]
-                                : assignments.filter(
-                                    (item) => item.organization_id !== org.id,
-                                  ),
-                            )
-                          }
-                        />
-                        <strong>{org.name}</strong>
-                      </label>
-                      {selected && (
-                        <select
-                          aria-label={`Роль: ${org.name}`}
-                          value={selected.role}
-                          onChange={(event) =>
-                            setAssignments(
-                              assignments.map((item) =>
-                                item.organization_id === org.id
-                                  ? {
-                                      ...item,
-                                      role: event.target
-                                        .value as Assignment["role"],
-                                    }
-                                  : item,
-                              ),
-                            )
-                          }
-                        >
-                          <option value="user">Участник</option>
-                          <option value="admin">Администратор</option>
-                        </select>
-                      )}
-                    </div>
-                  );
-                })}
-            </div>
-          )}
-          <small>
-            Участник добавляет чеки, комментирует и смотрит статистику.
-            Администратор управляет финансами и участниками организации.
-          </small>
-          {!assignments.length && (
-            <div className="notice">
-              Без организации пользователь не увидит финансовые данные.
-            </div>
-          )}
+            <ErrorBox error={options.error} />
+            {options.isPending ? (
+              <Loading />
+            ) : (
+              <div className="user-org-picker">
+                {options.data
+                  ?.filter((org) =>
+                    org.name
+                      .toLocaleLowerCase()
+                      .includes(filter.toLocaleLowerCase()),
+                  )
+                  .map((org) => {
+                    const selected = assignments.find(
+                      (item) => item.organization_id === org.id,
+                    );
+                    return (
+                      <div
+                        className={`user-org-choice ${selected ? "selected" : ""}`}
+                        key={org.id}
+                      >
+                        <label>
+                          <input
+                            type="checkbox"
+                            checked={Boolean(selected)}
+                            onChange={(event) =>
+                              setAssignments(
+                                event.target.checked
+                                  ? [
+                                      ...assignments,
+                                      { organization_id: org.id, role: "user" },
+                                    ]
+                                  : assignments.filter(
+                                      (item) => item.organization_id !== org.id,
+                                    ),
+                              )
+                            }
+                          />
+                          <strong>{org.name}</strong>
+                        </label>
+                        {selected && (
+                          <select
+                            aria-label={`Роль: ${org.name}`}
+                            value={selected.role}
+                            onChange={(event) =>
+                              setAssignments(
+                                assignments.map((item) =>
+                                  item.organization_id === org.id
+                                    ? {
+                                        ...item,
+                                        role: event.target
+                                          .value as Assignment["role"],
+                                      }
+                                    : item,
+                                ),
+                              )
+                            }
+                          >
+                            <option value="user">Участник</option>
+                            <option value="admin">Администратор</option>
+                          </select>
+                        )}
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
+            <small>
+              Участник добавляет чеки, комментирует и смотрит статистику.
+              Администратор управляет финансами и участниками организации.
+            </small>
+            {!assignments.length && (
+              <div className="notice">
+                Без организации пользователь не увидит финансовые данные.
+              </div>
+            )}
+          </section>
         </fieldset>
         <ErrorBox error={save.error} />
-        <Submit
-          pending={save.isPending}
-          disabled={options.isPending || Boolean(options.error)}
-        >
-          Сохранить пользователя
-        </Submit>
+        <footer className="modal-footer">
+          <button
+            type="button"
+            className="button secondary"
+            disabled={save.isPending}
+            onClick={onClose}
+          >
+            Отмена
+          </button>
+          <Submit
+            pending={save.isPending}
+            disabled={options.isPending || Boolean(options.error)}
+          >
+            {member ? "Сохранить изменения" : "Создать пользователя"}
+          </Submit>
+        </footer>
       </Form>
       {member && (
         <details className="account-history">
@@ -532,6 +679,89 @@ function ResetPassword({
           Сбросить пароль и завершить сеансы
         </Submit>
       </Form>
+    </Modal>
+  );
+}
+
+function UserLifecycle({
+  member,
+  action,
+  onClose,
+  onCompleted,
+}: {
+  member: ManagedUser;
+  action: "delete" | "restore" | "block" | "activate";
+  onClose: () => void;
+  onCompleted: () => void;
+}) {
+  const { toast } = useApp();
+  const labels = {
+    delete: [
+      "Удалить пользователя?",
+      "Аккаунт попадёт в корзину, вход будет закрыт, а все сеансы завершатся. Чеки, комментарии и история сохранят авторство. Восстановление доступно в корзине.",
+      "Переместить в корзину",
+      "Пользователь перемещён в корзину",
+    ],
+    restore: [
+      "Восстановить пользователя?",
+      "Аккаунт и назначения организаций восстановятся. Вход останется заблокированным: проверьте доступ и нажмите «Включить вход».",
+      "Восстановить",
+      "Аккаунт восстановлен. Проверьте организации и включите вход.",
+    ],
+    block: [
+      "Заблокировать вход?",
+      "Пользователь выйдет на всех устройствах и не сможет войти до разблокировки. Его данные и права в организациях сохранятся.",
+      "Заблокировать",
+      "Вход заблокирован, сеансы завершены",
+    ],
+    activate: [
+      "Включить вход?",
+      "Пользователь сможет войти с текущим паролем и получит доступ к назначенным организациям.",
+      "Включить вход",
+      "Вход в аккаунт разрешён",
+    ],
+  }[action];
+  const mutation = useAction(
+    () =>
+      action === "delete"
+        ? send(`/admin/users/${member.id}`, undefined, "DELETE")
+        : action === "restore"
+          ? send(`/admin/users/${member.id}/restore`)
+          : send(
+              `/admin/users/${member.id}/status`,
+              { is_active: action === "activate" },
+              "PUT",
+            ),
+    () => {
+      toast(labels[3]);
+      onCompleted();
+    },
+  );
+  return (
+    <Modal
+      title={`${labels[0]} · ${member.name}`}
+      description={labels[1]}
+      onClose={() => {
+        if (!mutation.isPending) onClose();
+      }}
+    >
+      <ErrorBox error={mutation.error} />
+      <footer className="modal-footer">
+        <button
+          className="button secondary"
+          disabled={mutation.isPending}
+          onClick={onClose}
+        >
+          Отмена
+        </button>
+        <button
+          className={`button ${action === "delete" || action === "block" ? "danger" : "primary"}`}
+          disabled={mutation.isPending}
+          onClick={() => mutation.mutate(undefined)}
+        >
+          {mutation.isPending ? "Сохраняю…" : labels[2]}
+        </button>
+      </footer>
     </Modal>
   );
 }

@@ -2,6 +2,7 @@ import asyncio
 from uuid import uuid4
 
 import pytest
+from PIL import Image
 from sqlalchemy import select
 
 from app import ai
@@ -75,18 +76,23 @@ def test_photo_pipeline_validates_before_automatic_post(
         }, "ollama"
 
     monkeypatch.setattr(ai, "generate", extract)
+    monkeypatch.setattr("app.receipts.local_ocr", lambda images: "")
     with SessionLocal() as db:
         p = db.scalar(select(m.Preferences))
         p.provider = "ollama"
         receipt = m.Receipt(
             organization_id=owner["id"],
             source="photo",
+            file_names=["photo.jpg"],
             source_key=uuid4().hex,
             account_id=accounts[0]["id"],
         )
         db.add(receipt)
         db.commit()
         rid = receipt.id
+    directory = settings().data_dir / "receipts" / owner["id"]
+    directory.mkdir(parents=True, exist_ok=True)
+    Image.new("RGB", (100, 200), "white").save(directory / "photo.jpg", "JPEG")
     asyncio.run(process_receipt(rid))
     result = client.get(f"/api/receipts/{rid}").json()
     assert result["status"] == ("review" if uncertain else "posted")

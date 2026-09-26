@@ -19,6 +19,7 @@ class RequestBodyLimit:
             return
         path = scope["path"].rstrip("/")
         avatar = path == "/api/auth/avatar"
+        originals = path.startswith("/api/receipts/") and path.endswith("/originals")
         limit = MAX_AVATAR_REQUEST_BYTES if avatar else MAX_REQUEST_BYTES
         detail = "Выберите фотографию размером до 5 МБ" if avatar else "Слишком большой запрос"
         lengths = [value for name, value in scope["headers"] if name.lower() == b"content-length"]
@@ -27,7 +28,7 @@ class RequestBodyLimit:
             error = JSONResponse({"detail": "Некорректный размер запроса"}, status_code=400)
         elif lengths and int(lengths[0]) > limit:
             error = JSONResponse({"detail": detail}, status_code=413)
-        elif not lengths and scope["method"] == "POST" and path in UPLOAD_PATHS:
+        elif not lengths and scope["method"] == "POST" and (path in UPLOAD_PATHS or originals):
             error = JSONResponse({"detail": "Для загрузки требуется размер файла"}, status_code=411)
         if error is not None:
             await error(scope, receive, send)

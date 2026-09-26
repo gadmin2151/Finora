@@ -13,6 +13,12 @@
 
 ![Finora dashboard with fictional demonstration data](docs/assets/overview.png)
 
+## Organizations, people and receipt originals
+
+Manage organizations and users from connected **Organizations / Users** screens. Rename a workspace, invite members, choose roles, reset a password or block sign-in. Deletion moves an organization or account to a recoverable **Trash**; financial history and receipt images are retained. The server owner and the last active administrator of an active organization are protected. Restored accounts stay blocked until you explicitly enable sign-in.
+
+Receipt details include a private **Originals** gallery with zoom and download. Uploaded photos and electronic-page screenshots are retained independently of recognition and financial corrections; rescanning adds new originals without duplicating expenses. You can attach missing photos to older receipts. If a website is unavailable, upload a photo or use the Android scanner on the phone's network. An image that was never saved cannot be reconstructed from extracted text. [Management and retention guide](docs/MANAGEMENT.md).
+
 ## New in 1.7: income and debts on Android
 
 The native **Finances** tab handles occasional income, recurring schedules, received payments, lending, borrowing and partial repayments. Existing income can be linked to a planned payment without counting it twice. The five-item navigation puts the larger receipt-capture button in the middle; profile stays under the avatar. [Mobile finance guide](docs/MOBILE-FINANCE.md).

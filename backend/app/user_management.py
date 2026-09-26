@@ -35,10 +35,16 @@ def set_memberships(db: Session, user: m.User, desired: list[s.UserMembership], 
         for row in db.scalars(select(m.Membership).where(m.Membership.user_id == user.id))
     }
     for org_id in sorted(set(wanted) | set(existing)):
-        if db.get(m.Organization, org_id) is None:
+        organization = db.get(m.Organization, org_id)
+        if organization is None:
             fail("Организация не найдена", 404)
         lock_organization(db, org_id)
+        db.refresh(organization)
         old = existing.get(org_id)
+        if organization.deleted_at:
+            if org_id in wanted and (old is None or old.role != wanted[org_id]):
+                fail("Сначала восстановите организацию из корзины", 409)
+            continue
         if old and old.role == "admin" and (not active or wanted.get(org_id) != "admin"):
             others = db.scalar(
                 select(func.count())
@@ -49,6 +55,7 @@ def set_memberships(db: Session, user: m.User, desired: list[s.UserMembership], 
                     m.Membership.role == "admin",
                     m.Membership.user_id != user.id,
                     m.User.is_active.is_(True),
+                    m.User.deleted_at.is_(None),
                 )
             )
             if not others:
@@ -89,7 +96,7 @@ def create_account(db: Session, actor: m.User, data: s.UserCreate) -> m.User:
 def edit_account(db: Session, actor: m.User, user: m.User, data: s.UserEdit):
     lock_accounts(db, actor)
     user = lock_user_credentials(db, user.id)
-    if user is None:
+    if user is None or user.deleted_at:
         fail("Пользователь не найден", 404)
     if user.is_server_admin and not data.is_active:
         fail("Владельца сервера нельзя заблокировать", 409)
@@ -114,11 +121,42 @@ def edit_account(db: Session, actor: m.User, user: m.User, data: s.UserEdit):
 def reset_password(db: Session, actor: m.User, user: m.User, password: str):
     lock_accounts(db, actor)
     user = lock_user_credentials(db, user.id)
-    if user is None:
+    if user is None or user.deleted_at:
         fail("Пользователь не найден", 404)
     if user.id == actor.id:
         fail("Свой пароль измените в настройках профиля", 409)
     user.password_hash = hasher.hash(password)
     db.execute(delete(m.Session).where(m.Session.user_id == user.id))
     account_audit(db, actor, user, "user.password_reset")
+    db.commit()
+
+
+def delete_account(db: Session, actor: m.User, user: m.User):
+    lock_accounts(db, actor)
+    user = lock_user_credentials(db, user.id)
+    if user is None or user.deleted_at:
+        fail("Пользователь не найден", 404)
+    if user.is_server_admin:
+        fail("Владельца сервера нельзя удалить", 409)
+    memberships = [
+        s.UserMembership(organization_id=row.organization_id, role=row.role)
+        for row in db.scalars(select(m.Membership).where(m.Membership.user_id == user.id))
+    ]
+    set_memberships(db, user, memberships, False)
+    user.deleted_at = m.now()
+    user.is_active = False
+    db.execute(delete(m.Session).where(m.Session.user_id == user.id))
+    account_audit(db, actor, user, "user.deleted")
+    db.commit()
+
+
+def restore_account(db: Session, actor: m.User, user: m.User):
+    lock_accounts(db, actor)
+    user = lock_user_credentials(db, user.id)
+    if user is None or user.deleted_at is None:
+        fail("Пользователь не найден в корзине", 404)
+    user.deleted_at = None
+    # Restore identity and assignments without silently re-enabling sign-in.
+    user.is_active = False
+    account_audit(db, actor, user, "user.restored")
     db.commit()

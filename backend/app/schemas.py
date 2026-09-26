@@ -49,6 +49,10 @@ class UserMembership(Strict):
     role: Literal["admin", "user"] = "user"
 
 
+class UserStatus(Strict):
+    is_active: bool
+
+
 class UserEdit(Strict):
     name: str = Field(min_length=1, max_length=100)
     is_active: bool = True

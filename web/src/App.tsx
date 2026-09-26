@@ -223,6 +223,7 @@ function Login() {
 
 function OrganizationGate({ user }: { user: User }) {
   const [selected, setSelected] = useState("");
+  const [managing, setManaging] = useState(false);
   const [changing, setChanging] = useState(false);
   const [failure, setFailure] = useState<unknown>(null);
   const organization = user.organizations.find((org) => org.id === selected);
@@ -231,7 +232,7 @@ function OrganizationGate({ user }: { user: User }) {
     onSuccess: clearSession,
   });
   async function switchOrganization(id: string) {
-    if (id === selected) return;
+    if (id === selected && organization && !managing) return;
     setChanging(true);
     setFailure(null);
     try {
@@ -243,6 +244,7 @@ function OrganizationGate({ user }: { user: User }) {
         predicate: (query) => query.queryKey[0] !== "me",
       });
       setSelected(id);
+      setManaging(false);
     } catch (error) {
       setFailure(error);
     } finally {
@@ -255,6 +257,18 @@ function OrganizationGate({ user }: { user: User }) {
         <Logo />
         <Loading text="Открываю организацию…" />
       </div>
+    );
+  if (managing || (!organization && Boolean(selected)))
+    return (
+      <ManagementLobby
+        user={user}
+        switchOrganization={switchOrganization}
+        onBack={() => {
+          setSelected("");
+          setManaging(false);
+          setOrganization("");
+        }}
+      />
     );
   if (!organization)
     return (
@@ -292,6 +306,16 @@ function OrganizationGate({ user }: { user: User }) {
         )}
         <ErrorBox error={failure ?? logout.error} />
         <button
+          className="button secondary"
+          onClick={() => {
+            setOrganization("");
+            setManaging(true);
+          }}
+        >
+          <Building2 size={18} /> Управление организациями
+          {user.is_server_admin ? " и пользователями" : ""}
+        </button>
+        <button
           className="text-button"
           disabled={logout.isPending}
           onClick={() => logout.mutate()}
@@ -307,6 +331,68 @@ function OrganizationGate({ user }: { user: User }) {
       organization={organization}
       switchOrganization={switchOrganization}
     />
+  );
+}
+
+function ManagementLobby({
+  user,
+  switchOrganization,
+  onBack,
+}: {
+  user: User;
+  switchOrganization: (id: string) => Promise<void>;
+  onBack: () => void;
+}) {
+  const [tab, setTab] = useState<Route>("organizations");
+  const [message, setMessage] = useState("");
+  return (
+    <AppContext.Provider
+      value={{
+        user,
+        organization: { id: "", name: "Управление", role: "user" },
+        isAdmin: false,
+        switchOrganization,
+        month: currentMonth(),
+        accounts: [],
+        categories: [],
+        navigate: (route) =>
+          setTab(
+            route === "users" && user.is_server_admin
+              ? "users"
+              : "organizations",
+          ),
+        open: () => {},
+        toast: setMessage,
+      }}
+    >
+      <main className="management-lobby">
+        <header className="management-lobby-header">
+          <Logo />
+          <button className="button secondary" onClick={onBack}>
+            <ChevronLeft size={18} /> К выбору организации
+          </button>
+        </header>
+        {message && (
+          <div className="notice" role="status">
+            {message}
+            <button
+              className="icon-button"
+              aria-label="Закрыть уведомление"
+              onClick={() => setMessage("")}
+            >
+              <X size={16} />
+            </button>
+          </div>
+        )}
+        <Suspense fallback={<Loading />}>
+          {tab === "users" && user.is_server_admin ? (
+            <Users />
+          ) : (
+            <Organizations />
+          )}
+        </Suspense>
+      </main>
+    </AppContext.Provider>
   );
 }
 

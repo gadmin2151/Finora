@@ -1,3 +1,4 @@
+import { ReceiptOriginals } from "./ReceiptOriginals";
 import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -117,7 +118,7 @@ export function UploadReceipt({ onClose }: { onClose: () => void }) {
             onClick={() => setMode("link")}
           >
             <Link2 size={17} />
-            Ссылка MEV
+            Ссылка из QR-кода
           </button>
         </div>
         {mode === "photo" ? (
@@ -536,7 +537,7 @@ function ReceiptForm({
         <Badge status={receipt.status} />
         {receipt.source_url && (
           <a href={receipt.source_url} target="_blank" rel="noreferrer">
-            Оригинал MEV ↗
+            Открыть сайт чека ↗
           </a>
         )}
       </div>
@@ -547,16 +548,8 @@ function ReceiptForm({
         </div>
       ))}
       <Form onSubmit={() => action.mutate(undefined)}>
-        <div className={receipt.files.length ? "receipt-layout" : ""}>
-          {receipt.files.length > 0 && (
-            <aside className="receipt-images">
-              {receipt.files.map((url, n) => (
-                <a href={url} key={url} target="_blank" rel="noreferrer">
-                  <img src={url} alt={`Фото чека ${n + 1}`} />
-                </a>
-              ))}
-            </aside>
-          )}
+        <div className="receipt-layout">
+          <ReceiptOriginals receipt={receipt} />
           <div>
             <fieldset disabled={readonly}>
               <div className="form-grid">

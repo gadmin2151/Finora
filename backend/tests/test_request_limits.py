@@ -112,7 +112,14 @@ def test_declared_oversize_rejected_before_reading():
 
 @pytest.mark.parametrize(
     "path",
-    ["/api/receipts/upload", "/api/receipts/upload/", "/api/auth/avatar", "/api/auth/avatar/"],
+    [
+        "/api/receipts/upload",
+        "/api/receipts/upload/",
+        "/api/auth/avatar",
+        "/api/auth/avatar/",
+        "/api/receipts/example/originals",
+        "/api/receipts/example/originals/",
+    ],
 )
 def test_upload_length_contract_including_aliases(path):
     status, _, reads = send_chunks(body_app(), [], path=path)

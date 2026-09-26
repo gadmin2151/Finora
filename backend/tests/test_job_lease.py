@@ -1,5 +1,5 @@
 import asyncio
-from datetime import timedelta
+from datetime import UTC, timedelta
 
 import pytest
 
@@ -53,7 +53,10 @@ def test_running_work_heartbeats_and_stops_renewing_after_completion(owner, monk
         await asyncio.sleep(0.15)
         with SessionLocal() as db:
             stamp = db.get(m.Job, job.id).started_at
-            assert stamp > job.started_at + timedelta(minutes=9)
+            # SQLite drops timezone metadata; both values represent UTC.
+            assert stamp.replace(tzinfo=UTC) > job.started_at.replace(tzinfo=UTC) + timedelta(
+                minutes=9
+            )
 
     monkeypatch.setattr(worker, "answer", long_answer)
     asyncio.run(worker.run_job(job, heartbeat_seconds=0.02))

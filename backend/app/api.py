@@ -40,6 +40,7 @@ from .finance import (
     transaction_dict,
 )
 from .organizations import identity
+from .receipt_files import append_images
 from .receipts import ReceiptError, confirm_receipt, image_bytes, mev_url, receipt_dict
 from .security import (
     current_organization,
@@ -107,7 +108,13 @@ def login(data: s.Login, request: Request, response: Response, db: Session = DB)
     valid = verify_password(data.password, verified_hash)
     if valid and user:
         user = lock_user_credentials(db, user.id)
-    if not valid or not user or not user.is_active or user.password_hash != verified_hash:
+    if (
+        not valid
+        or not user
+        or not user.is_active
+        or user.deleted_at
+        or user.password_hash != verified_hash
+    ):
         db.add_all([m.LoginAttempt(key=key) for key in keys])
         db.commit()
         fail("Неверный логин или пароль", 401)
@@ -552,9 +559,9 @@ def register_receipt(
         if account.archived:
             fail("Выберите действующий счёт")
     prior = db.scalar(
-        select(m.Receipt).where(
-            m.Receipt.organization_id == organization_id, m.Receipt.source_key == key
-        )
+        select(m.Receipt)
+        .where(m.Receipt.organization_id == organization_id, m.Receipt.source_key == key)
+        .with_for_update()
     )
     if prior:
         if prior.deleted_at:
@@ -563,13 +570,19 @@ def register_receipt(
             source == "phone_page"
             and prior.status == "review"
             and prior.error
-            and not prior.file_names
             and (
                 prior.created_by == db.info.get("actor_id")
                 or db.info.get("membership_role") == "admin"
             )
         )
         if not retry_page:
+            if images and (
+                prior.created_by == db.info.get("actor_id")
+                or db.info.get("membership_role") == "admin"
+            ):
+                if append_images(prior, images):
+                    audit(db, organization_id, "receipt.originals_added", prior.id)
+                db.commit()
             return {"receipt": receipt_dict(db, prior), "duplicate": True}
     receipt = prior or m.Receipt(
         organization_id=organization_id,
@@ -592,19 +605,12 @@ def register_receipt(
     if page_text is not None:
         receipt.original = {"phone_page_text": page_text}
     db.flush()
-    files = []
-    directory = settings().data_dir / "receipts" / organization_id
-    directory.mkdir(parents=True, exist_ok=True, mode=0o700)
-    for n, content in enumerate(images):
-        filename = receipt.id + f"-{n}.jpg"
-        (directory / filename).write_bytes(content)
-        files.append(filename)
-    receipt.file_names = files
+    append_images(receipt, images)
     db.add(
         m.Message(
             organization_id=organization_id,
             role="user",
-            text="Фото чека" if files else "Чек по QR-ссылке",
+            text="Фото чека" if receipt.file_names else "Чек по QR-ссылке",
             receipt_id=receipt.id,
         )
     )
@@ -677,6 +683,32 @@ async def upload_receipt(
         review_required or bool(page_url),
         page_text if page_url else None,
     )
+
+
+@router.post("/receipts/{key}/originals")
+async def add_receipt_originals(
+    key: str,
+    files: list[UploadFile] = File(),
+    user: m.Organization = SCOPE,
+    db: Session = DB,
+):
+    import asyncio
+
+    if not 1 <= len(files) <= 4:
+        fail("Выберите от 1 до 4 фотографий или снимков страницы")
+    receipt = owned(db, m.Receipt, key, user.id, lock=True)
+    if db.info.get("membership_role") != "admin" and receipt.created_by != db.info.get("actor_id"):
+        fail("Дополнять оригиналы чужого чека может администратор", 403)
+    images = []
+    for upload in files:
+        raw = await upload.read(settings().max_upload_mb * 1024 * 1024 + 1)
+        content, _ = await asyncio.to_thread(image_bytes, raw)
+        images.append(content)
+    added = append_images(receipt, images)
+    if added:
+        audit(db, user.id, "receipt.originals_added", receipt.id, {"count": added})
+    db.commit()
+    return receipt_dict(db, receipt)
 
 
 @router.post("/receipts/link")

@@ -97,7 +97,7 @@ def current_user(request: Request, db: Session = Depends(get_db)) -> m.User:
             raise HTTPException(403, "Обновите страницу и повторите действие")
     request.state.session = session
     user = db.get(m.User, session.user_id)
-    if user is None or not user.is_active:
+    if user is None or not user.is_active or user.deleted_at:
         raise HTTPException(401, "Войдите в свой аккаунт")
     db.info["actor_id"] = user.id
     return user
@@ -113,7 +113,11 @@ def current_organization(
     request: Request, user: m.User = Depends(current_user), db: Session = Depends(get_db)
 ) -> m.Organization:
     key = request.headers.get("x-organization-id") or request.query_params.get("organization_id")
-    memberships = select(m.Membership).where(m.Membership.user_id == user.id)
+    memberships = (
+        select(m.Membership)
+        .join(m.Organization)
+        .where(m.Membership.user_id == user.id, m.Organization.deleted_at.is_(None))
+    )
     if key:
         memberships = memberships.where(m.Membership.organization_id == key)
     rows = list(db.scalars(memberships.limit(2)))
@@ -124,6 +128,20 @@ def current_organization(
     membership = rows[0]
     path = request.scope.get("route").path
     writes = request.method not in {"GET", "HEAD", "OPTIONS"}
+    query = select(m.Organization).where(m.Organization.id == membership.organization_id)
+    organization = db.scalar(
+        (query.with_for_update() if writes else query).execution_options(populate_existing=True)
+    )
+    if organization is None or organization.deleted_at:
+        raise HTTPException(403, "Организация находится в корзине")
+    if writes:
+        membership = db.scalar(
+            select(m.Membership)
+            .where(m.Membership.user_id == user.id, m.Membership.organization_id == organization.id)
+            .execution_options(populate_existing=True)
+        )
+        if membership is None:
+            raise HTTPException(403, "Нет доступа к этой организации")
     receipt_add = path in {"/api/receipts/upload", "/api/receipts/link"}
     if receipt_add and not key:
         raise HTTPException(409, "Перед добавлением чека выберите организацию")
@@ -133,10 +151,11 @@ def current_organization(
             "/api/receipts/{key}/comments",
             "/api/receipts/{key}/accept",
             "/api/receipts/{key}/review",
+            "/api/receipts/{key}/originals",
         }
         admin_read = path.startswith(("/api/ai/", "/api/audit", "/api/export", "/api/rules"))
         if (writes and not allowed_write) or admin_read:
             raise HTTPException(403, "Это действие доступно администратору организации")
     request.state.membership = membership
     db.info["membership_role"] = membership.role
-    return db.get(m.Organization, membership.organization_id)
+    return organization

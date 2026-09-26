@@ -8,8 +8,16 @@ from .avatars import MAX_AVATAR_BYTES, profile_photo
 from .db import get_db
 from .finance import fail
 from .organizations import identity
-from .security import current_user, server_admin
-from .user_management import account_audit, create_account, edit_account, reset_password
+from .security import current_user, lock_user_credentials, server_admin
+from .user_management import (
+    account_audit,
+    create_account,
+    delete_account,
+    edit_account,
+    lock_accounts,
+    reset_password,
+    restore_account,
+)
 
 router = APIRouter(prefix="/api")
 DB = Depends(get_db)
@@ -27,13 +35,15 @@ def get_account(db: Session, key: str) -> m.User:
 @router.get("/admin/users")
 def users(
     q: str = Query("", max_length=80),
-    status: str = Query("all", pattern="^(all|active|blocked)$"),
+    status: str = Query("all", pattern="^(all|active|blocked|deleted)$"),
     offset: int = Query(0, ge=0),
     limit: int = Query(25, ge=1, le=100),
     owner: m.User = OWNER,
     db: Session = DB,
 ):
-    query = select(m.User)
+    query = select(m.User).where(
+        m.User.deleted_at.is_not(None) if status == "deleted" else m.User.deleted_at.is_(None)
+    )
     if q.strip():
         query = query.where(
             or_(
@@ -41,7 +51,7 @@ def users(
                 m.User.name.icontains(q.strip(), autoescape=True),
             )
         )
-    if status != "all":
+    if status in {"active", "blocked"}:
         query = query.where(m.User.is_active.is_(status == "active"))
     total = db.scalar(select(func.count()).select_from(query.subquery()))
     rows = list(
@@ -50,13 +60,24 @@ def users(
     ids = [row.id for row in rows]
     memberships: dict[str, list] = {key: [] for key in ids}
     for row in db.execute(
-        select(m.Membership.user_id, m.Organization.id, m.Organization.name, m.Membership.role)
+        select(
+            m.Membership.user_id,
+            m.Organization.id,
+            m.Organization.name,
+            m.Membership.role,
+            m.Organization.deleted_at,
+        )
         .join(m.Organization)
         .where(m.Membership.user_id.in_(ids))
         .order_by(m.Organization.name)
     ).mappings():
         memberships[row["user_id"]].append(
-            {"organization_id": row["id"], "name": row["name"], "role": row["role"]}
+            {
+                "organization_id": row["id"],
+                "name": row["name"],
+                "role": row["role"],
+                "deleted_at": row["deleted_at"],
+            }
         )
     sessions = dict(
         db.execute(
@@ -73,6 +94,7 @@ def users(
                 "username": row.username,
                 "name": row.name,
                 "is_active": row.is_active,
+                "deleted_at": row.deleted_at,
                 "is_server_admin": row.is_server_admin,
                 "created_at": row.created_at,
                 "avatar_url": f"/api/users/{row.id}/avatar?v={row.avatar_version}"
@@ -90,7 +112,9 @@ def users(
 def organization_options(
     q: str = Query("", max_length=100), owner: m.User = OWNER, db: Session = DB
 ):
-    query = select(m.Organization.id, m.Organization.name)
+    query = select(m.Organization.id, m.Organization.name).where(
+        m.Organization.deleted_at.is_(None)
+    )
     if q.strip():
         query = query.where(m.Organization.name.icontains(q.strip(), autoescape=True))
     return [
@@ -112,6 +136,37 @@ def update(key: str, data: s.UserEdit, owner: m.User = OWNER, db: Session = DB):
 @router.post("/admin/users/{key}/password")
 def password(key: str, data: s.PasswordReset, owner: m.User = OWNER, db: Session = DB):
     reset_password(db, owner, get_account(db, key), data.password)
+    return {"ok": True}
+
+
+@router.delete("/admin/users/{key}")
+def remove(key: str, owner: m.User = OWNER, db: Session = DB):
+    delete_account(db, owner, get_account(db, key))
+    return {"ok": True}
+
+
+@router.put("/admin/users/{key}/status")
+def status(key: str, data: s.UserStatus, owner: m.User = OWNER, db: Session = DB):
+    lock_accounts(db, owner)
+    account = lock_user_credentials(db, key)
+    if account is None or account.deleted_at:
+        fail("Пользователь не найден", 404)
+    assignments = [
+        s.UserMembership(organization_id=row.organization_id, role=row.role)
+        for row in db.scalars(select(m.Membership).where(m.Membership.user_id == key))
+    ]
+    edit_account(
+        db,
+        owner,
+        account,
+        s.UserEdit(name=account.name, is_active=data.is_active, memberships=assignments),
+    )
+    return {"ok": True}
+
+
+@router.post("/admin/users/{key}/restore")
+def restore(key: str, owner: m.User = OWNER, db: Session = DB):
+    restore_account(db, owner, get_account(db, key))
     return {"ok": True}
 
 

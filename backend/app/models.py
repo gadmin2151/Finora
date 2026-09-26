@@ -45,6 +45,7 @@ class User(Identity, Base):
     password_hash: Mapped[str] = mapped_column(Text)
     is_server_admin: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     avatar_version: Mapped[str | None] = mapped_column(String(36))
     avatar_data: Mapped[bytes | None] = mapped_column(LargeBinary, deferred=True)
 
@@ -60,6 +61,7 @@ class UserAudit(Identity, Base):
 class Organization(Identity, Base):
     __tablename__ = "organizations"
     name: Mapped[str] = mapped_column(String(100))
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class Membership(Identity, Base):

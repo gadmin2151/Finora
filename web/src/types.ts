@@ -109,6 +109,7 @@ export type ReceiptItem = {
 };
 export type Receipt = {
   id: string;
+  created_by?: string | null;
   source: string;
   source_url: string | null;
   merchant: string;
