@@ -3,8 +3,10 @@ package work.gadmin.finora
 import android.app.Application
 import android.graphics.Bitmap
 import androidx.compose.runtime.*
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.text.AnnotatedString
 import androidx.lifecycle.ViewModelStore
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -60,8 +62,10 @@ class ReceiptReviewAcceptanceTest {
             rule.onNodeWithText("Укажите итог чека.", substring = true).assertDoesNotExist()
             rule.onNodeWithText("Всё верно · подтвердить").assertIsNotEnabled()
             rule.runOnIdle { editing = true }
-            val date = rule.onNode(hasSetTextAction() and hasText("Дата · ГГГГ-ММ-ДД"))
-            date.assertTextContains("")
+            val date = rule.onNodeWithText("Дата · ГГГГ-ММ-ДД")
+            date.assert(
+                SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString(""))
+            )
             rule.onNodeWithText("Сегодня").performScrollTo().performClick()
             date.assertTextContains(LocalDate.now().toString())
             date.performTextReplacement("2025-09-25")
