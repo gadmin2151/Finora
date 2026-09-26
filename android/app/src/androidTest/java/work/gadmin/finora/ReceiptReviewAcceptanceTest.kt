@@ -3,6 +3,8 @@ package work.gadmin.finora
 import android.app.Application
 import android.graphics.Bitmap
 import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.SoftwareKeyboardController
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -43,12 +45,16 @@ class ReceiptReviewAcceptanceTest {
                 accounts = listOf(Account("cash", "Наличные", "MDL")),
             )
         try {
-            rule.setContent { FinoraTheme { ReceiptEditor(state, vm) } }
+            var keyboard: SoftwareKeyboardController? = null
+            rule.setContent {
+                keyboard = LocalSoftwareKeyboardController.current
+                FinoraTheme { ReceiptEditor(state, vm) }
+            }
             fun input(label: String, value: String) {
                 val field = hasSetTextAction() and hasText(label)
                 rule.onNode(hasScrollToIndexAction()).performScrollToNode(field)
                 rule.onNode(field).performTextReplacement(value)
-                androidx.test.espresso.Espresso.closeSoftKeyboard()
+                rule.runOnIdle { keyboard?.hide() }
                 rule.waitForIdle()
             }
             input("Магазин", "TEST MARKET")
@@ -61,7 +67,10 @@ class ReceiptReviewAcceptanceTest {
             rule.onNodeWithText("1 позиций · сумма строк: 40.00 MDL").assertExists()
             rule.onNodeWithText("Подтвердить и сохранить").performClick()
             rule.onNodeWithText("Сохранить чек и расход?").assertExists()
-            rule.onNodeWithText("TEST MARKET", substring = true).assertExists()
+            rule
+                .onNode(hasText("TEST MARKET", substring = true) and !hasSetTextAction())
+                .assertIsDisplayed()
+                .assertTextContains("40.00 MDL", substring = true)
             InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()?.let { image
                 ->
                 File(context.filesDir, "receipt-manual.png").outputStream().use {
