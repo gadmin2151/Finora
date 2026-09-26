@@ -28,7 +28,9 @@ fun LongReceiptReview(
                 withContext(Dispatchers.IO) {
                     BitmapFactory.decodeFile(
                         file.path,
-                        BitmapFactory.Options().apply { inPreferredConfig = Bitmap.Config.RGB_565 },
+                        BitmapFactory.Options().apply {
+                            inPreferredConfig = Bitmap.Config.ARGB_8888
+                        },
                     )
                 }
         }

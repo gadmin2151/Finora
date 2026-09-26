@@ -89,7 +89,7 @@ class DraftStore(private val context: Context, scope: String) {
             }
             val options =
                 BitmapFactory.Options().apply {
-                    inPreferredConfig = Bitmap.Config.RGB_565
+                    inPreferredConfig = Bitmap.Config.ARGB_8888
                     inSampleSize = 1
                     while (
                         maxOf(bounds.outWidth, bounds.outHeight) / inSampleSize > 16_000 ||
@@ -111,7 +111,7 @@ class DraftStore(private val context: Context, scope: String) {
                 Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
             try {
                 output.outputStream().use {
-                    require(oriented.compress(Bitmap.CompressFormat.JPEG, 92, it))
+                    require(oriented.compress(Bitmap.CompressFormat.JPEG, 97, it))
                 }
             } finally {
                 if (oriented !== bitmap) oriented.recycle()

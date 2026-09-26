@@ -137,16 +137,20 @@ fun LongReceiptCamera(
                 .setTargetRotation(rotation)
                 .setResolutionSelector(
                     ResolutionSelector.Builder()
+                        .setAspectRatioStrategy(
+                            androidx.camera.core.resolutionselector.AspectRatioStrategy
+                                .RATIO_16_9_FALLBACK_AUTO_STRATEGY
+                        )
                         .setResolutionStrategy(
                             ResolutionStrategy(
-                                android.util.Size(1920, 1440),
+                                android.util.Size(3840, 2160),
                                 ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER,
                             )
                         )
                         .build()
                 )
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
+                .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
                 .build()
         analysis.setAnalyzer(controller.executor, controller::analyze)
         if (viewportSize.width > 0 && viewportSize.height > 0 && result == null) {

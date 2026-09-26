@@ -15,7 +15,7 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 const val LONG_RECEIPT_MAX_HEIGHT = 14_000
-const val LONG_RECEIPT_MAX_WIDTH = 960
+const val LONG_RECEIPT_MAX_WIDTH = 1920
 private const val MAX_SEGMENTS = 160
 
 data class ScanProgress(
@@ -154,7 +154,7 @@ class LongReceiptSession(cache: File) : Closeable {
     private fun append(next: Pending) {
         val seam = if (segments.isEmpty()) originTop else chooseSeam(next)
         val file = File(directory, "${segments.size}.jpg")
-        file.outputStream().use { check(next.bitmap.compress(Bitmap.CompressFormat.JPEG, 95, it)) }
+        file.outputStream().use { check(next.bitmap.compress(Bitmap.CompressFormat.JPEG, 98, it)) }
         segments.add(Segment(file, next.transform, seam))
         val corners = next.transform.corners(frameWidth, frameHeight)
         commonLeft = max(commonLeft, max(corners[0].x, corners[3].x))
@@ -212,11 +212,15 @@ class LongReceiptSession(cache: File) : Closeable {
             pending = null
             append(it)
         }
-        val width = (min(commonRight, paperRight) - max(commonLeft, paperLeft)).toInt()
+        val paperWidth = min(commonRight, paperRight) - max(commonLeft, paperLeft)
+        val paperHeight = totalHeight - originTop
+        val maxPixels = minOf(16_000_000L, Runtime.getRuntime().maxMemory() / 24).toDouble()
+        val scale = minOf(1.0, kotlin.math.sqrt(maxPixels / (paperWidth * paperHeight)))
+        val width = (paperWidth * scale).toInt().coerceAtLeast(1)
         val bitmap = render(width)
         val output = File(directory, "receipt.jpg")
         try {
-            output.outputStream().use { check(bitmap.compress(Bitmap.CompressFormat.JPEG, 94, it)) }
+            output.outputStream().use { check(bitmap.compress(Bitmap.CompressFormat.JPEG, 97, it)) }
             check(output.length() <= 15L * 1024 * 1024) {
                 "Снимок слишком большой. Снимите чек двумя частями"
             }
@@ -231,7 +235,7 @@ class LongReceiptSession(cache: File) : Closeable {
         val right = min(commonRight, paperRight)
         val factor = width / (right - left)
         val height = ceil((totalHeight - originTop) * factor).toInt().coerceAtLeast(1)
-        val result = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565)
+        val result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(result)
         canvas.drawColor(Color.WHITE)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
@@ -252,7 +256,7 @@ class LongReceiptSession(cache: File) : Closeable {
         for ((index, segment) in segments.withIndex()) {
             val options =
                 BitmapFactory.Options().apply {
-                    inPreferredConfig = Bitmap.Config.RGB_565
+                    inPreferredConfig = Bitmap.Config.ARGB_8888
                     while (frameWidth / (inSampleSize.coerceAtLeast(1) * 2) > width) inSampleSize =
                         inSampleSize.coerceAtLeast(1) * 2
                 }

@@ -149,6 +149,40 @@ class LongReceiptAcceptanceTest {
     }
 
     @Test
+    fun highResolutionScanPreservesWidthAndSmoothPaperTones() {
+        val source = paper(width = 1440, height = 3600)
+        val canvas = Canvas(source)
+        val paint = Paint()
+        for (x in 900 until 1200) {
+            val gray = 190 + (x - 900) / 5
+            paint.color = Color.rgb(gray, gray, gray)
+            canvas.drawRect(x.toFloat(), 100f, x + 1f, 300f, paint)
+        }
+        val store = DraftStore(context, "quality-test-${UUID.randomUUID()}")
+        LongReceiptSession(context.cacheDir).use { session ->
+            try {
+                for (top in listOf(0, 400, 800, 1200, 1600)) {
+                    val progress = session.offer(Bitmap.createBitmap(source, 0, top, 1440, 2000))
+                    assertFalse(progress.message, progress.warning)
+                }
+                val result = session.finish()
+                val photo = store.photo(store.importPhoto(result))
+                val output = requireNotNull(BitmapFactory.decodeFile(photo.path))
+                try {
+                    assertTrue("High resolution was lost: ${output.width}", output.width >= 1420)
+                    val tones = (910 until 1190).map { Color.red(output.getPixel(it, 200)) }.toSet()
+                    assertTrue("Paper shades were quantized: ${tones.size}", tones.size >= 40)
+                } finally {
+                    output.recycle()
+                }
+            } finally {
+                source.recycle()
+                store.clear()
+            }
+        }
+    }
+
+    @Test
     fun continuousCaptureBuildsPreviewBeforeDone() {
         val source = paper(height = 2500)
         val live = CountDownLatch(1)

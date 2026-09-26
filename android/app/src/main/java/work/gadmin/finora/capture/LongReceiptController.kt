@@ -172,47 +172,56 @@ class LongReceiptController(
     companion object {
         /** ImageProxy.cropRect is shared with the preview through CameraX ViewPort. */
         fun cropFrame(frame: ImageProxy): Bitmap {
-            val raw = frame.toBitmap()
+            require(frame.format == android.graphics.ImageFormat.YUV_420_888)
+            val rect = frame.cropRect
+            val degrees = frame.imageInfo.rotationDegrees
+            val sideways = degrees == 90 || degrees == 270
+            val width =
+                (rect.width() * if (sideways) SCAN_WINDOW_HEIGHT else SCAN_WINDOW_WIDTH)
+                    .roundToInt()
+            val height =
+                (rect.height() * if (sideways) SCAN_WINDOW_WIDTH else SCAN_WINDOW_HEIGHT)
+                    .roundToInt()
+            val left = rect.left + (rect.width() - width) / 2
+            val top = rect.top + (rect.height() - height) / 2
+            // Paper needs luminance only. Copy the selected window directly from YUV;
+            // converting a complete 4K frame to RGBA for every preview frame wastes RAM/CPU.
+            val plane = frame.planes[0]
+            val buffer = plane.buffer.duplicate()
+            val base = buffer.position()
+            val row = ByteArray((width - 1) * plane.pixelStride + 1)
+            val pixels = IntArray(width * height)
+            for (y in 0 until height) {
+                buffer.position(base + (top + y) * plane.rowStride + left * plane.pixelStride)
+                buffer.get(row)
+                for (x in 0 until width) {
+                    val gray = row[x * plane.pixelStride].toInt() and 255
+                    pixels[y * width + x] = (255 shl 24) or (gray shl 16) or (gray shl 8) or gray
+                }
+            }
+            val raw = Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888)
             var oriented: Bitmap? = null
-            var crop: Bitmap? = null
             var result: Bitmap? = null
             try {
-                val rect = frame.cropRect
-                val rotation =
-                    Matrix().apply { postRotate(frame.imageInfo.rotationDegrees.toFloat()) }
-                oriented =
-                    Bitmap.createBitmap(
-                        raw,
-                        rect.left,
-                        rect.top,
-                        rect.width(),
-                        rect.height(),
-                        rotation,
-                        true,
+                val rotation = Matrix().apply { postRotate(degrees.toFloat()) }
+                oriented = Bitmap.createBitmap(raw, 0, 0, width, height, rotation, false)
+                val factor =
+                    minOf(
+                        1f,
+                        LONG_RECEIPT_MAX_WIDTH.toFloat() / oriented.width,
+                        2400f / oriented.height,
                     )
-                val width = (oriented.width * SCAN_WINDOW_WIDTH).roundToInt()
-                val height = (oriented.height * SCAN_WINDOW_HEIGHT).roundToInt()
-                crop =
-                    Bitmap.createBitmap(
-                        oriented,
-                        (oriented.width - width) / 2,
-                        (oriented.height - height) / 2,
-                        width,
-                        height,
-                    )
-                val factor = minOf(1f, LONG_RECEIPT_MAX_WIDTH.toFloat() / width, 2400f / height)
                 result =
                     Bitmap.createScaledBitmap(
-                        crop,
-                        (width * factor).roundToInt(),
-                        (height * factor).roundToInt(),
+                        oriented,
+                        (oriented.width * factor).roundToInt(),
+                        (oriented.height * factor).roundToInt(),
                         true,
                     )
                 return result
             } finally {
-                if (crop !== result) crop?.recycle()
-                if (oriented !== crop && oriented !== result) oriented?.recycle()
-                if (raw !== oriented && raw !== crop && raw !== result) raw.recycle()
+                if (oriented !== result) oriented?.recycle()
+                if (raw !== oriented && raw !== result) raw.recycle()
             }
         }
     }
