@@ -235,6 +235,8 @@ fun LongReceiptCamera(
                         }
                     },
             )
+            val drawMint = Mint
+            val drawAmber = Amber
             Canvas(Modifier.fillMaxSize()) {
                 val width = size.width * SCAN_WINDOW_WIDTH
                 val height = size.height * SCAN_WINDOW_HEIGHT
@@ -253,14 +255,14 @@ fun LongReceiptCamera(
                     Size(left, height),
                 )
                 drawRoundRect(
-                    if (progress.warning) Amber else Mint,
+                    if (progress.warning) drawAmber else drawMint,
                     Offset(left, top),
                     Size(width, height),
                     CornerRadius(18.dp.toPx()),
                     style = Stroke(2.dp.toPx()),
                 )
                 drawLine(
-                    Mint.copy(alpha = .45f),
+                    drawMint.copy(alpha = .45f),
                     Offset(left + 12.dp.toPx(), top + height * .6f),
                     Offset(left + width - 12.dp.toPx(), top + height * .6f),
                     1.dp.toPx(),

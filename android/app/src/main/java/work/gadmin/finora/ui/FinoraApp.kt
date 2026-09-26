@@ -39,11 +39,12 @@ import work.gadmin.finora.*
 fun FinoraApp(vm: FinoraViewModel) {
     val state by vm.state.collectAsStateWithLifecycle()
     val view = LocalView.current
+    val lightSystemBars = !LocalAppearance.current.dark && state.camera == null
     SideEffect {
         (view.context as? Activity)?.window?.let { window ->
             WindowCompat.getInsetsController(window, view).apply {
-                isAppearanceLightStatusBars = false
-                isAppearanceLightNavigationBars = false
+                isAppearanceLightStatusBars = lightSystemBars
+                isAppearanceLightNavigationBars = lightSystemBars
             }
         }
     }
@@ -85,16 +86,18 @@ fun FinoraApp(vm: FinoraViewModel) {
                 vm::logout,
             )
         state.camera != null ->
-            CameraScreen(
-                requireNotNull(state.camera),
-                state.busy,
-                state.draft.photos.size,
-                onClose = { vm.camera(null) },
-                onPhoto = vm::addPhoto,
-                onQr = vm::setQr,
-                error = state.error,
-                onError = vm::reportError,
-            )
+            FinoraTheme(darkOverride = true) {
+                CameraScreen(
+                    requireNotNull(state.camera),
+                    state.busy,
+                    state.draft.photos.size,
+                    onClose = { vm.camera(null) },
+                    onPhoto = vm::addPhoto,
+                    onQr = vm::setQr,
+                    error = state.error,
+                    onError = vm::reportError,
+                )
+            }
         state.receiptPageUrl != null ->
             ReceiptWebScreen(
                 requireNotNull(state.receiptPageUrl),
@@ -280,7 +283,7 @@ fun FinoraApp(vm: FinoraViewModel) {
                                         ) {
                                             if (capture)
                                                 Surface(
-                                                    color = Mint,
+                                                    color = CaptureMint,
                                                     shape = CircleShape,
                                                     shadowElevation = 6.dp,
                                                     modifier = Modifier.size(48.dp),

@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { AppearanceSettings } from "./Appearance";
 import { Camera, Trash2 } from "lucide-react";
 import { queryClient, send, useAction } from "./api";
 import { useApp } from "./context";
@@ -63,63 +64,66 @@ export function ProfileSettings() {
     () => toast("Фото профиля обновлено"),
   );
   return (
-    <section className="panel profile-settings">
-      <div className="profile-photo-row">
-        <Avatar user={user} large />
-        <div className="grow">
-          <h2>Ваше фото</h2>
-          <p>Так вас проще узнать в организации.</p>
-          <small>
-            JPEG, PNG, WebP или HEIC · до 5 МБ. Фото обрезается по центру.
-          </small>
-          <div className="profile-photo-actions">
-            <button
-              className="button secondary"
-              disabled={photo.isPending}
-              onClick={() => picker.current?.click()}
-            >
-              <Camera size={17} />
-              {user.avatar_url ? "Изменить фото" : "Добавить фото"}
-            </button>
-            {user.avatar_url && (
+    <>
+      <AppearanceSettings />
+      <section className="panel profile-settings">
+        <div className="profile-photo-row">
+          <Avatar user={user} large />
+          <div className="grow">
+            <h2>Ваше фото</h2>
+            <p>Так вас проще узнать в организации.</p>
+            <small>
+              JPEG, PNG, WebP или HEIC · до 5 МБ. Фото обрезается по центру.
+            </small>
+            <div className="profile-photo-actions">
               <button
-                className="text-button"
+                className="button secondary"
                 disabled={photo.isPending}
-                onClick={() => photo.mutate(null)}
+                onClick={() => picker.current?.click()}
               >
-                <Trash2 size={16} /> Удалить фото
+                <Camera size={17} />
+                {user.avatar_url ? "Изменить фото" : "Добавить фото"}
               </button>
-            )}
+              {user.avatar_url && (
+                <button
+                  className="text-button"
+                  disabled={photo.isPending}
+                  onClick={() => photo.mutate(null)}
+                >
+                  <Trash2 size={16} /> Удалить фото
+                </button>
+              )}
+            </div>
+            <input
+              ref={picker}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+              hidden
+              aria-label="Фотография профиля"
+              disabled={photo.isPending}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) photo.mutate(file);
+                event.target.value = "";
+              }}
+            />
           </div>
-          <input
-            ref={picker}
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
-            hidden
-            aria-label="Фотография профиля"
-            disabled={photo.isPending}
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              if (file) photo.mutate(file);
-              event.target.value = "";
-            }}
-          />
         </div>
-      </div>
-      {photo.isPending && <Loading text="Обновляем фото профиля…" />}
-      <ErrorBox error={photo.error ?? save.error} />
-      <Form onSubmit={() => save.mutate(undefined)}>
-        <Field label="Как к вам обращаться">
-          <input
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            required
-            maxLength={100}
-            autoComplete="name"
-          />
-        </Field>
-        <Submit pending={save.isPending}>Сохранить имя</Submit>
-      </Form>
-    </section>
+        {photo.isPending && <Loading text="Обновляем фото профиля…" />}
+        <ErrorBox error={photo.error ?? save.error} />
+        <Form onSubmit={() => save.mutate(undefined)}>
+          <Field label="Как к вам обращаться">
+            <input
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              required
+              maxLength={100}
+              autoComplete="name"
+            />
+          </Field>
+          <Submit pending={save.isPending}>Сохранить имя</Submit>
+        </Form>
+      </section>
+    </>
   );
 }

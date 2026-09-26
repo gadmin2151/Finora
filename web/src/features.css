@@ -18,7 +18,7 @@
   margin: 15px 0;
 }
 .organization-picker > p {
-  color: #a9adb2;
+  color: var(--ink-muted, #a9adb2);
   max-width: 580px;
   line-height: 1.7;
 }
@@ -36,7 +36,7 @@
   text-align: left;
   padding: 24px;
   cursor: pointer;
-  color: #9cbfb4;
+  color: var(--ink-muted, #9cbfb4);
   border: 1px solid var(--border);
 }
 .organization-card strong {
@@ -44,12 +44,12 @@
   overflow-wrap: anywhere;
 }
 .organization-card small {
-  color: #a9adb2;
+  color: var(--ink-muted, #a9adb2);
 }
 .organization-card.selected,
 .organization-card:hover {
   border-color: #65b4a5;
-  background: #172921;
+  background: var(--fill-accent, #172921);
 }
 .organization-settings {
   padding: 24px;
@@ -61,7 +61,7 @@
   margin-top: 22px;
 }
 .income-stats .stat-card > small {
-  color: #a9adb2;
+  color: var(--ink-muted, #a9adb2);
 }
 .income-stats .stat-card > strong {
   display: block;
@@ -76,7 +76,7 @@
   display: block;
 }
 .bill-row .grow small {
-  color: #a9adb2;
+  color: var(--ink-muted, #a9adb2);
   font-size: 12px;
   margin-top: 5px;
 }
@@ -98,7 +98,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 36px;
-  background: #172920;
+  background: var(--fill-accent, #172920);
   border: 1px solid var(--border);
   padding: 22px 26px;
   border-radius: 16px;
@@ -109,11 +109,11 @@
   display: block;
 }
 .purchase-summary span {
-  color: #a4adb7;
+  color: var(--ink-muted, #a4adb7);
   font-size: 12px;
 }
 .purchase-summary strong {
-  color: #9dd7c2;
+  color: var(--ink-accent, #9dd7c2);
   margin-top: 9px;
   font-size: 24px;
   font-variant-numeric: tabular-nums;
@@ -131,7 +131,7 @@
   padding: 15px;
   border: 1px solid var(--border);
   border-radius: 9px;
-  background: #182820;
+  background: var(--fill-accent, #182820);
   text-align: left;
 }
 .comparison-grid {
@@ -151,7 +151,7 @@
 }
 .price-comparison p,
 .price-comparison small {
-  color: #a9adb2;
+  color: var(--ink-muted, #a9adb2);
   font-size: 12px;
   line-height: 1.7;
 }
@@ -165,13 +165,13 @@
   font-size: 21px;
 }
 .price-range span {
-  color: #a9adb2;
+  color: var(--ink-muted, #a9adb2);
   font-size: 12px;
 }
 .analysis-footnote {
   margin: 0;
   padding: 0 24px 24px;
-  color: #a9adb2;
+  color: var(--ink-muted, #a9adb2);
   font-size: 12px;
   line-height: 1.7;
 }
@@ -193,7 +193,7 @@
 .comment-list small {
   margin-left: 12px;
   font-size: 11px;
-  color: #a9adb2;
+  color: var(--ink-muted, #a9adb2);
 }
 .comment-list p {
   white-space: pre-wrap;

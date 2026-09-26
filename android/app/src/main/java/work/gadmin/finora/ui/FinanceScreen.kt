@@ -133,7 +133,7 @@ fun FinanceContent(
             }
             data.report?.let { report ->
                 item {
-                    Surface(color = Forest, shape = RoundedCornerShape(24.dp)) {
+                    Surface(color = HeroStart, shape = RoundedCornerShape(24.dp)) {
                         Column(
                             Modifier.fillMaxWidth().padding(22.dp),
                             verticalArrangement = Arrangement.spacedBy(10.dp),

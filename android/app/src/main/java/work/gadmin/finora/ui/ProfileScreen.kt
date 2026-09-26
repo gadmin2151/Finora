@@ -33,6 +33,7 @@ fun ProfileScreen(state: AppState, vm: FinoraViewModel) {
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         item { Text("Ваш профиль", style = MaterialTheme.typography.headlineLarge) }
+        item { AppearanceSettings() }
         item {
             Surface(color = SurfaceColor, shape = RoundedCornerShape(26.dp)) {
                 Column(

@@ -67,10 +67,10 @@ fun OverviewScreen(state: AppState, vm: FinoraViewModel) {
             item { BrandLoading("Собираем картину месяца", compact = true) }
         if (dashboard != null) {
             item {
-                Surface(color = Forest, shape = RoundedCornerShape(28.dp)) {
+                Surface(color = HeroStart, shape = RoundedCornerShape(28.dp)) {
                     Column(
                         Modifier.fillMaxWidth()
-                            .background(Brush.linearGradient(listOf(Forest, HeroEnd)))
+                            .background(Brush.linearGradient(listOf(HeroStart, HeroEnd)))
                             .padding(25.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
@@ -84,7 +84,7 @@ fun OverviewScreen(state: AppState, vm: FinoraViewModel) {
                         Text(
                             money(dashboard.expense_minor),
                             style = MaterialTheme.typography.headlineLarge,
-                            color = Color.White,
+                            color = HeroInk,
                         )
                         HorizontalDivider(
                             color = Mint.copy(alpha = .2f),
@@ -99,7 +99,7 @@ fun OverviewScreen(state: AppState, vm: FinoraViewModel) {
                                 )
                                 Text(
                                     money(dashboard.income_minor),
-                                    color = Color.White,
+                                    color = HeroInk,
                                     fontWeight = FontWeight.SemiBold,
                                 )
                             }
@@ -111,7 +111,7 @@ fun OverviewScreen(state: AppState, vm: FinoraViewModel) {
                                 )
                                 Text(
                                     money(dashboard.net_minor),
-                                    color = Color.White,
+                                    color = HeroInk,
                                     fontWeight = FontWeight.SemiBold,
                                 )
                             }
@@ -137,6 +137,7 @@ fun OverviewScreen(state: AppState, vm: FinoraViewModel) {
                                 horizontalArrangement = Arrangement.Center,
                             ) {
                                 Box(Modifier.size(160.dp), contentAlignment = Alignment.Center) {
+                                    val fallbackColor = Green
                                     Canvas(Modifier.fillMaxSize().padding(12.dp)) {
                                         var angle = -90f
                                         categories.forEach { category ->
@@ -144,7 +145,7 @@ fun OverviewScreen(state: AppState, vm: FinoraViewModel) {
                                             val color = runCatching {
                                                 Color(category.color.toColorInt())
                                             }
-                                                .getOrDefault(Green)
+                                                .getOrDefault(fallbackColor)
                                             drawArc(
                                                 color,
                                                 angle,

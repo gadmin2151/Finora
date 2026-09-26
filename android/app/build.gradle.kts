@@ -15,8 +15,8 @@ android {
         applicationId = "work.gadmin.finora"
         minSdk = 26
         targetSdk = 37
-        versionCode = 17
-        versionName = "1.8.2"
+        versionCode = 18
+        versionName = "1.9.0"
         testInstrumentationRunner =
             if (providers.gradleProperty("finoraTestBuildType").orNull == "release")
                 "work.gadmin.finora.ReleaseSmokeInstrumentation"

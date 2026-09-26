@@ -8,6 +8,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
@@ -26,106 +27,135 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 val Forest = Color(0xFF123A32)
-val Green = Color(0xFF82DDB5)
-val Mint = Color(0xFFC5F4DC)
-val Paper = Color(0xFF101715)
-val Ink = Color(0xFFF1F3EC)
-val Muted = Color(0xFFA6B5AD)
-val SoftGreen = Color(0xFF203B31)
-val Border = Color(0xFF40534A)
-val SurfaceColor = Color(0xFF1B2722)
-val SurfaceRaised = Color(0xFF25352D)
-val OutlineSoft = Color(0xFF31443A)
-val Amber = Color(0xFFF0CB8C)
-val AmberSurface = Color(0xFF3B3021)
-val Coral = Color(0xFFFFB4A8)
-val CoralSurface = Color(0xFF442B26)
-val Sage = Color(0xFFBCD1B5)
-val HeroEnd = Color(0xFF2B3B32)
+val CaptureMint = Color(0xFFC5F4DC)
+
+private val LocalDarkPalette = staticCompositionLocalOf { true }
+val Green: Color
+    @Composable get() = if (LocalDarkPalette.current) Color(0xFF82DDB5) else Color(0xFF285F41)
+val Mint: Color
+    @Composable get() = if (LocalDarkPalette.current) Color(0xFFC5F4DC) else Color(0xFF285F41)
+val Paper: Color
+    @Composable get() = if (LocalDarkPalette.current) Color(0xFF101715) else Color(0xFFF8FAF6)
+val Ink: Color
+    @Composable get() = if (LocalDarkPalette.current) Color(0xFFF1F3EC) else Color(0xFF203B31)
+val Muted: Color
+    @Composable get() = if (LocalDarkPalette.current) Color(0xFFA6B5AD) else Color(0xFF657369)
+val SoftGreen: Color
+    @Composable get() = if (LocalDarkPalette.current) Color(0xFF203B31) else Color(0xFFE9F4EC)
+val Border: Color
+    @Composable get() = if (LocalDarkPalette.current) Color(0xFF40534A) else Color(0xFFCDD9CF)
+val SurfaceColor: Color
+    @Composable get() = if (LocalDarkPalette.current) Color(0xFF1B2722) else Color(0xFFFFFFFF)
+val SurfaceRaised: Color
+    @Composable get() = if (LocalDarkPalette.current) Color(0xFF25352D) else Color(0xFFF0F5EF)
+val OutlineSoft: Color
+    @Composable get() = if (LocalDarkPalette.current) Color(0xFF31443A) else Color(0xFFE1E8E2)
+val Amber: Color
+    @Composable get() = if (LocalDarkPalette.current) Color(0xFFF0CB8C) else Color(0xFF80602A)
+val AmberSurface: Color
+    @Composable get() = if (LocalDarkPalette.current) Color(0xFF3B3021) else Color(0xFFFBF4E4)
+val Coral: Color
+    @Composable get() = if (LocalDarkPalette.current) Color(0xFFFFB4A8) else Color(0xFFAA3A31)
+val CoralSurface: Color
+    @Composable get() = if (LocalDarkPalette.current) Color(0xFF442B26) else Color(0xFFFFF0ED)
+val Sage: Color
+    @Composable get() = if (LocalDarkPalette.current) Color(0xFFBCD1B5) else Color(0xFF56715E)
+val HeroStart: Color
+    @Composable get() = if (LocalDarkPalette.current) Color(0xFF123A32) else Color(0xFFECF6E9)
+val HeroEnd: Color
+    @Composable get() = if (LocalDarkPalette.current) Color(0xFF2B3B32) else Color(0xFFF4F8ED)
+val HeroInk: Color
+    @Composable get() = if (LocalDarkPalette.current) Color(0xFFFFFFFF) else Color(0xFF204A32)
+val OnPrimary: Color
+    @Composable get() = if (LocalDarkPalette.current) Color(0xFF123A32) else Color(0xFFFFFFFF)
 
 @Composable
-fun FinoraTheme(content: @Composable () -> Unit) {
-    MaterialTheme(
-        colorScheme =
-            darkColorScheme(
-                primary = Green,
-                onPrimary = Forest,
-                primaryContainer = SoftGreen,
-                onPrimaryContainer = Mint,
-                secondary = Amber,
-                onSecondary = AmberSurface,
-                secondaryContainer = AmberSurface,
-                onSecondaryContainer = Amber,
-                tertiary = Amber,
-                onTertiary = AmberSurface,
-                tertiaryContainer = AmberSurface,
-                onTertiaryContainer = Amber,
-                background = Paper,
-                surface = SurfaceColor,
-                onBackground = Ink,
-                onSurface = Ink,
-                onSurfaceVariant = Muted,
-                outline = Border,
-                outlineVariant = OutlineSoft,
-                surfaceVariant = SurfaceRaised,
-                surfaceTint = Color.Transparent,
-                surfaceDim = Paper,
-                surfaceBright = SurfaceRaised,
-                surfaceContainerLowest = Paper,
-                surfaceContainerLow = SurfaceColor,
-                surfaceContainer = SurfaceColor,
-                surfaceContainerHigh = SurfaceRaised,
-                surfaceContainerHighest = Border,
-                inverseSurface = Ink,
-                inverseOnSurface = Paper,
-                inversePrimary = Forest,
-                error = Coral,
-                onError = CoralSurface,
-                errorContainer = CoralSurface,
-                onErrorContainer = Coral,
-                scrim = Color.Black,
-            ),
-        typography =
-            Typography(
-                headlineLarge =
-                    TextStyle(
-                        fontFamily = FontFamily.SansSerif,
-                        fontSize = 32.sp,
-                        lineHeight = 38.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = (-0.9).sp,
-                    ),
-                headlineMedium =
-                    TextStyle(
-                        fontSize = 28.sp,
-                        lineHeight = 34.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = (-0.6).sp,
-                    ),
-                titleLarge =
-                    TextStyle(
-                        fontSize = 22.sp,
-                        lineHeight = 28.sp,
-                        fontWeight = FontWeight.SemiBold,
-                    ),
-                titleMedium =
-                    TextStyle(
-                        fontSize = 17.sp,
-                        lineHeight = 23.sp,
-                        fontWeight = FontWeight.SemiBold,
-                    ),
-                bodyLarge = TextStyle(fontSize = 16.sp, lineHeight = 23.sp),
-                bodyMedium = TextStyle(fontSize = 14.sp, lineHeight = 21.sp),
-                labelLarge = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.SemiBold),
-            ),
-        shapes =
-            Shapes(
-                small = RoundedCornerShape(12.dp),
-                medium = RoundedCornerShape(18.dp),
-                large = RoundedCornerShape(26.dp),
-            ),
-        content = { CompositionLocalProvider(LocalContentColor provides Ink) { content() } },
-    )
+fun FinoraTheme(darkOverride: Boolean? = null, content: @Composable () -> Unit) {
+    val appearance = rememberAppearance()
+    val dark = darkOverride ?: appearance.dark
+    CompositionLocalProvider(LocalAppearance provides appearance, LocalDarkPalette provides dark) {
+        MaterialTheme(
+            colorScheme =
+                (if (dark) darkColorScheme() else lightColorScheme()).copy(
+                    primary = Green,
+                    onPrimary = OnPrimary,
+                    primaryContainer = SoftGreen,
+                    onPrimaryContainer = Mint,
+                    secondary = Amber,
+                    onSecondary = AmberSurface,
+                    secondaryContainer = AmberSurface,
+                    onSecondaryContainer = Amber,
+                    tertiary = Amber,
+                    onTertiary = AmberSurface,
+                    tertiaryContainer = AmberSurface,
+                    onTertiaryContainer = Amber,
+                    background = Paper,
+                    surface = SurfaceColor,
+                    onBackground = Ink,
+                    onSurface = Ink,
+                    onSurfaceVariant = Muted,
+                    outline = Border,
+                    outlineVariant = OutlineSoft,
+                    surfaceVariant = SurfaceRaised,
+                    surfaceTint = Color.Transparent,
+                    surfaceDim = Paper,
+                    surfaceBright = SurfaceRaised,
+                    surfaceContainerLowest = Paper,
+                    surfaceContainerLow = SurfaceColor,
+                    surfaceContainer = SurfaceColor,
+                    surfaceContainerHigh = SurfaceRaised,
+                    surfaceContainerHighest = Border,
+                    inverseSurface = Ink,
+                    inverseOnSurface = Paper,
+                    inversePrimary = Forest,
+                    error = Coral,
+                    onError = CoralSurface,
+                    errorContainer = CoralSurface,
+                    onErrorContainer = Coral,
+                    scrim = Color.Black,
+                ),
+            typography =
+                Typography(
+                    headlineLarge =
+                        TextStyle(
+                            fontFamily = FontFamily.SansSerif,
+                            fontSize = 32.sp,
+                            lineHeight = 38.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = (-0.9).sp,
+                        ),
+                    headlineMedium =
+                        TextStyle(
+                            fontSize = 28.sp,
+                            lineHeight = 34.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = (-0.6).sp,
+                        ),
+                    titleLarge =
+                        TextStyle(
+                            fontSize = 22.sp,
+                            lineHeight = 28.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        ),
+                    titleMedium =
+                        TextStyle(
+                            fontSize = 17.sp,
+                            lineHeight = 23.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        ),
+                    bodyLarge = TextStyle(fontSize = 16.sp, lineHeight = 23.sp),
+                    bodyMedium = TextStyle(fontSize = 14.sp, lineHeight = 21.sp),
+                    labelLarge = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.SemiBold),
+                ),
+            shapes =
+                Shapes(
+                    small = RoundedCornerShape(12.dp),
+                    medium = RoundedCornerShape(18.dp),
+                    large = RoundedCornerShape(26.dp),
+                ),
+            content = { CompositionLocalProvider(LocalContentColor provides Ink) { content() } },
+        )
+    }
 }
 
 enum class Glyph(val paths: String) {
@@ -255,7 +285,7 @@ fun PrimaryButton(
         Text(text)
         if (icon != null) {
             Spacer(Modifier.width(10.dp))
-            LineIcon(icon, tint = Forest, size = 20.dp)
+            LineIcon(icon, tint = OnPrimary, size = 20.dp)
         }
     }
 }

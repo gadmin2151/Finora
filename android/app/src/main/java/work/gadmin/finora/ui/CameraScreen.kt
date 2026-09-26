@@ -287,6 +287,7 @@ fun CameraScreen(
                 }
             },
         )
+        val drawMint = Mint
         Canvas(Modifier.fillMaxSize()) {
             val width = size.width * .79f
             val height = if (mode == CameraMode.QR) width else size.height * .52f
@@ -309,7 +310,7 @@ fun CameraScreen(
                 size = Size(left, height),
             )
             drawRoundRect(
-                Mint,
+                drawMint,
                 Offset(left, top),
                 Size(width, height),
                 CornerRadius(20.dp.toPx()),
@@ -317,7 +318,7 @@ fun CameraScreen(
             )
             if (mode == CameraMode.QR)
                 drawLine(
-                    Mint.copy(alpha = .8f),
+                    drawMint.copy(alpha = .8f),
                     Offset(left + 12.dp.toPx(), size.height / 2),
                     Offset(left + width - 12.dp.toPx(), size.height / 2),
                     1.dp.toPx(),

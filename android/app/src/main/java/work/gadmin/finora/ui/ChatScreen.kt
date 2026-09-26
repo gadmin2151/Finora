@@ -86,10 +86,10 @@ fun ChatScreen(state: AppState, vm: FinoraViewModel) {
                 item(key = "welcome") {
                     if (state.chatLoading) BrandLoading("Открываю историю", compact = true)
                     else
-                        Surface(color = Forest, shape = RoundedCornerShape(24.dp)) {
+                        Surface(color = HeroStart, shape = RoundedCornerShape(24.dp)) {
                             Column(
                                 Modifier.fillMaxWidth()
-                                    .background(Brush.linearGradient(listOf(Forest, HeroEnd)))
+                                    .background(Brush.linearGradient(listOf(HeroStart, HeroEnd)))
                                     .padding(24.dp),
                                 verticalArrangement = Arrangement.spacedBy(18.dp),
                             ) {
@@ -182,7 +182,7 @@ fun ChatScreen(state: AppState, vm: FinoraViewModel) {
                         enabled = state.chatDraft.isNotBlank() && !state.busy && pending == null,
                         modifier = Modifier.size(48.dp),
                     ) {
-                        LineIcon(Glyph.CHEVRON, "Отправить сообщение", tint = Forest)
+                        LineIcon(Glyph.CHEVRON, "Отправить сообщение", tint = OnPrimary)
                     }
                 }
                 Text(

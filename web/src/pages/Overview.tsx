@@ -211,30 +211,46 @@ export default function Overview() {
               >
                 <defs>
                   <linearGradient id="incomeFill" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="#86e5bd" stopOpacity={0.17} />
-                    <stop offset="100%" stopColor="#86e5bd" stopOpacity={0} />
+                    <stop
+                      offset="0%"
+                      stopColor="var(--chart-income)"
+                      stopOpacity={0.17}
+                    />
+                    <stop
+                      offset="100%"
+                      stopColor="var(--chart-income)"
+                      stopOpacity={0}
+                    />
                   </linearGradient>
                   <linearGradient id="expenseFill" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="#b7afff" stopOpacity={0.16} />
-                    <stop offset="100%" stopColor="#b7afff" stopOpacity={0} />
+                    <stop
+                      offset="0%"
+                      stopColor="var(--chart-expense)"
+                      stopOpacity={0.16}
+                    />
+                    <stop
+                      offset="100%"
+                      stopColor="var(--chart-expense)"
+                      stopOpacity={0}
+                    />
                   </linearGradient>
                 </defs>
                 <CartesianGrid
                   strokeDasharray="4 5"
                   vertical={false}
-                  stroke="#ffffff0d"
+                  stroke="var(--chart-grid)"
                 />
                 <XAxis
                   dataKey="day"
                   tickLine={false}
                   axisLine={false}
                   interval={5}
-                  tick={{ fill: "#9cacbd", fontSize: 12 }}
+                  tick={{ fill: "var(--muted)", fontSize: 12 }}
                 />
                 <YAxis
                   tickLine={false}
                   axisLine={false}
-                  tick={{ fill: "#9cacbd", fontSize: 12 }}
+                  tick={{ fill: "var(--muted)", fontSize: 12 }}
                   width={64}
                   tickFormatter={(n) =>
                     Number(n) >= 1000 ? `${Number(n) / 1000}к` : String(n)
@@ -242,10 +258,10 @@ export default function Overview() {
                 />
                 <Tooltip
                   contentStyle={{
-                    background: "#202d3a",
-                    color: "#edf3f7",
+                    background: "var(--surface)",
+                    color: "var(--text)",
                     borderRadius: 12,
-                    borderColor: "#ffffff0d",
+                    borderColor: "var(--chart-grid)",
                     fontSize: 14,
                   }}
                   formatter={(v, name) => [
@@ -258,7 +274,7 @@ export default function Overview() {
                   isAnimationActive={!reducedMotion}
                   type="monotone"
                   dataKey="income"
-                  stroke="#86e5bd"
+                  stroke="var(--chart-income)"
                   strokeWidth={2.5}
                   fill="url(#incomeFill)"
                 />
@@ -266,7 +282,7 @@ export default function Overview() {
                   isAnimationActive={!reducedMotion}
                   type="monotone"
                   dataKey="expense"
-                  stroke="#b7afff"
+                  stroke="var(--chart-expense)"
                   strokeWidth={2.5}
                   fill="url(#expenseFill)"
                 />

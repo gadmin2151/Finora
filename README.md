@@ -13,6 +13,10 @@
 
 ![Finora dashboard with fictional demonstration data](docs/assets/overview.png)
 
+## Light, dark, or your system · 1.9
+
+Finora follows your device theme by default. Choose **System**, **Light**, or **Dark** using the sun/moon button in the web toolbar (also in Settings), or your avatar → **Appearance** on Android. Each browser or phone remembers its own choice across sessions and organizations. No server configuration or database migration is needed.
+
 ## Organizations, people and receipt originals
 
 Manage organizations and users from connected **Organizations / Users** screens. Rename a workspace, invite members, choose roles, reset a password or block sign-in. Deletion moves an organization or account to a recoverable **Trash**; financial history and receipt images are retained. The server owner and the last active administrator of an active organization are protected. Restored accounts stay blocked until you explicitly enable sign-in.

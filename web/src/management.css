@@ -252,7 +252,7 @@
 }
 .management-user-actions .negative,
 .management-danger .negative {
-  color: #ffb2a8;
+  color: var(--ink-strong, #ffb2a8);
 }
 .user-toolbar > select {
   min-width: 225px;
@@ -305,8 +305,8 @@
   position: absolute;
   bottom: 6px;
   right: 6px;
-  background: #143529;
-  color: #e3ffed;
+  background: var(--fill-accent, #143529);
+  color: var(--ink-strong, #e3ffed);
   padding: 3px 7px;
   border-radius: 6px;
   font-size: 12px;
@@ -321,7 +321,7 @@
 .original-viewer {
   max-height: 65vh;
   overflow: auto;
-  background: #111a16;
+  background: var(--fill-subtle, #111a16);
   border-radius: 12px;
 }
 .original-viewer img {

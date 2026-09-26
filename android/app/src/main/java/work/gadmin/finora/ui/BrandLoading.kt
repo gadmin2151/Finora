@@ -41,12 +41,14 @@ fun BrandPulse(modifier: Modifier = Modifier, animated: Boolean = true, progress
             value
         } else 270f * progress.coerceIn(0f, 1f)
     Box(modifier, contentAlignment = Alignment.Center) {
+        val drawOutlineSoft = OutlineSoft
+        val drawAmber = Amber
         Canvas(Modifier.fillMaxSize()) {
             val w = size.width
             val stroke = w * .022f
-            drawCircle(OutlineSoft, radius = w * .46f, style = Stroke(stroke))
+            drawCircle(drawOutlineSoft, radius = w * .46f, style = Stroke(stroke))
             drawArc(
-                Amber,
+                drawAmber,
                 turn - 90f,
                 if (animated) 105f else 300f * progress.coerceIn(0f, 1f),
                 false,
@@ -63,7 +65,7 @@ fun BrandPulse(modifier: Modifier = Modifier, animated: Boolean = true, progress
             lineHeight = 10.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 1.sp,
-            color = Mint,
+            color = CaptureMint,
         )
     }
 }

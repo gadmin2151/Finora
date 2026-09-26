@@ -221,12 +221,12 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
                 Surface(
                     onClick = { vm.camera(CameraMode.QR) },
                     enabled = available,
-                    color = Forest,
+                    color = HeroStart,
                     shape = RoundedCornerShape(30.dp),
                 ) {
                     Column(
                         Modifier.fillMaxWidth()
-                            .background(Brush.linearGradient(listOf(Forest, HeroEnd)))
+                            .background(Brush.linearGradient(listOf(HeroStart, HeroEnd)))
                             .padding(26.dp)
                     ) {
                         Row(
@@ -247,7 +247,7 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
                             "Сканировать QR",
                             fontSize = 25.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = Color.White,
+                            color = HeroInk,
                         )
                         Spacer(Modifier.height(7.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -258,7 +258,10 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
                             )
                             Surface(color = Amber, shape = RoundedCornerShape(50)) {
                                 Box(Modifier.padding(14.dp)) {
-                                    LineIcon(Glyph.ARROW, tint = Forest)
+                                    LineIcon(
+                                        Glyph.ARROW,
+                                        tint = MaterialTheme.colorScheme.onSecondary,
+                                    )
                                 }
                             }
                         }

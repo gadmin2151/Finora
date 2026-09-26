@@ -10,6 +10,8 @@ import "./navigation.css";
 import "./theme.css";
 import "./reports.css";
 import "./management.css";
+import "./appearance.css";
+import "./themeStore";
 
 class ErrorBoundary extends Component<
   { children: ReactNode },

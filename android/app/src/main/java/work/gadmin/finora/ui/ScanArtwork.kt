@@ -23,12 +23,13 @@ fun ScanArtwork(modifier: Modifier = Modifier) {
                 infiniteRepeatable(tween(2600, easing = FastOutSlowInEasing), RepeatMode.Reverse),
             label = "Scan line",
         )
+    val drawMint = Mint
     Canvas(modifier) {
         val w = size.width
         val h = size.height
-        drawRoundRect(Mint.copy(alpha = .08f), cornerRadius = CornerRadius(w * .22f))
+        drawRoundRect(drawMint.copy(alpha = .08f), cornerRadius = CornerRadius(w * .22f))
         drawRoundRect(
-            Mint.copy(alpha = .24f),
+            drawMint.copy(alpha = .24f),
             cornerRadius = CornerRadius(w * .22f),
             style = Stroke(w * .008f),
         )
@@ -43,13 +44,13 @@ fun ScanArtwork(modifier: Modifier = Modifier) {
             .forEach { corner ->
                 val dx = if (corner.x < w / 2) edge else -edge
                 val dy = if (corner.y < h / 2) edge else -edge
-                drawLine(Mint, corner, corner + Offset(dx, 0f), w * .024f, StrokeCap.Round)
-                drawLine(Mint, corner, corner + Offset(0f, dy), w * .024f, StrokeCap.Round)
+                drawLine(drawMint, corner, corner + Offset(dx, 0f), w * .024f, StrokeCap.Round)
+                drawLine(drawMint, corner, corner + Offset(0f, dy), w * .024f, StrokeCap.Round)
             }
         for (row in 0..3) for (column in 0..3) {
             if ((row + column) % 3 != 1) {
                 drawRoundRect(
-                    Mint.copy(alpha = .4f),
+                    drawMint.copy(alpha = .4f),
                     Offset(w * (.33f + column * .09f), h * (.33f + row * .09f)),
                     Size(w * .05f, h * .05f),
                     CornerRadius(w * .008f),
@@ -57,14 +58,14 @@ fun ScanArtwork(modifier: Modifier = Modifier) {
             }
         }
         drawLine(
-            Mint.copy(alpha = .08f),
+            drawMint.copy(alpha = .08f),
             Offset(w * .15f, h * progress),
             Offset(w * .85f, h * progress),
             h * .07f,
             StrokeCap.Round,
         )
         drawLine(
-            Mint,
+            drawMint,
             Offset(w * .15f, h * progress),
             Offset(w * .85f, h * progress),
             h * .012f,
