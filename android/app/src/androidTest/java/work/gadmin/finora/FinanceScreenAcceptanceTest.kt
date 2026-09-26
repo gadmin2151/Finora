@@ -114,10 +114,7 @@ class FinanceScreenAcceptanceTest {
                 rule.onAllNodesWithText("Долг записан").fetchSemanticsNodes().isEmpty()
             }
             awaitText("QA UI debt")
-            rule
-                .onNodeWithText("Погасить частично")
-                .performScrollTo()
-                .performClick()
+            rule.onNodeWithText("Погасить частично").performScrollTo().performClick()
             rule.onNodeWithText("Сумма · MDL").performTextReplacement("10")
             rule.onNodeWithText("Записать погашение").assertIsDisplayed().performClick()
             rule.waitUntil(40_000) {
