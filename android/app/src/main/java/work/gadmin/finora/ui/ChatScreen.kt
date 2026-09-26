@@ -3,6 +3,7 @@ package work.gadmin.finora.ui
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -16,10 +17,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.flow.first
 import work.gadmin.finora.AppState
 import work.gadmin.finora.FinoraViewModel
 import work.gadmin.finora.Page
@@ -34,19 +37,28 @@ fun ChatScreen(state: AppState, vm: FinoraViewModel) {
     val list = rememberLazyListState()
     val pending = state.chatJobs.firstOrNull { it.isPending }
     val lastId = state.chat.lastOrNull()?.id
-    LaunchedEffect(lastId) {
-        if (
-            lastId != null &&
-                (list.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0) >=
-                    list.layoutInfo.totalItemsCount - 4
-        ) {
-            list.animateScrollToItem((list.layoutInfo.totalItemsCount - 1).coerceAtLeast(0))
+    var openedAtLatest by remember(state.organization?.id) { mutableStateOf(false) }
+    var followingLatest by remember(state.organization?.id) { mutableStateOf(true) }
+    val dragged by list.interactionSource.collectIsDraggedAsState()
+    LaunchedEffect(dragged) {
+        if (dragged) snapshotFlow { list.canScrollForward }.collect { followingLatest = !it }
+    }
+    LaunchedEffect(lastId, pending?.id) {
+        if (lastId != null && (!openedAtLatest || followingLatest)) {
+            snapshotFlow { list.layoutInfo.totalItemsCount }.first { it >= state.chat.size + 2 }
+            if (!openedAtLatest) list.scrollToItem(list.layoutInfo.totalItemsCount - 1)
+            else list.animateScrollToItem(list.layoutInfo.totalItemsCount - 1)
+            openedAtLatest = true
         }
+    }
+    LaunchedEffect(followingLatest) {
+        if (followingLatest && openedAtLatest && list.layoutInfo.totalItemsCount > 0)
+            list.animateScrollToItem(list.layoutInfo.totalItemsCount - 1)
     }
     Column(Modifier.fillMaxSize().imePadding()) {
         LazyColumn(
             state = list,
-            modifier = Modifier.weight(1f).fillMaxWidth(),
+            modifier = Modifier.weight(1f).fillMaxWidth().testTag("chat-history"),
             contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
@@ -157,6 +169,14 @@ fun ChatScreen(state: AppState, vm: FinoraViewModel) {
                 Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
+                if (!followingLatest && state.chat.isNotEmpty())
+                    TextButton(
+                        onClick = { followingLatest = true },
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                    ) {
+                        Text(tr(Message.LATEST_MESSAGES))
+                        LineIcon(Glyph.DOWN, size = 16.dp)
+                    }
                 Row(
                     Modifier.horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -168,7 +188,10 @@ fun ChatScreen(state: AppState, vm: FinoraViewModel) {
                         )
                         .forEach { (kind, label) ->
                             SuggestionChip(
-                                onClick = { vm.sendChat(kind) },
+                                onClick = {
+                                    followingLatest = true
+                                    vm.sendChat(kind)
+                                },
                                 label = { Text(label) },
                                 enabled = !state.busy && pending == null,
                             )
@@ -191,7 +214,10 @@ fun ChatScreen(state: AppState, vm: FinoraViewModel) {
                         enabled = !state.busy,
                     )
                     FilledIconButton(
-                        onClick = { vm.sendChat() },
+                        onClick = {
+                            followingLatest = true
+                            vm.sendChat()
+                        },
                         enabled = state.chatDraft.isNotBlank() && !state.busy && pending == null,
                         modifier = Modifier.size(48.dp),
                     ) {
@@ -235,11 +261,13 @@ private fun ChatBubble(message: ChatMessage, openReceipt: (String) -> Unit) {
                     style = MaterialTheme.typography.labelSmall,
                 )
                 SelectionContainer {
-                    Text(
-                        message.text,
-                        color = if (message.details.error) Coral else Ink,
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
+                    if (user)
+                        Text(message.text, color = Ink, style = MaterialTheme.typography.bodyMedium)
+                    else
+                        ChatMarkdown(
+                            message.text,
+                            color = if (message.details.error) Coral else Ink,
+                        )
                 }
             }
         }

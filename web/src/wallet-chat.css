@@ -1,0 +1,238 @@
+.wallet-card {
+  isolation: isolate;
+}
+.wallet-account {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 320px);
+  margin: 14px 0 0;
+}
+.wallet-account select {
+  width: 100%;
+  min-height: 40px;
+}
+.wallet-account > span {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 12px;
+  color: var(--ink-accent);
+}
+.wallet-balances {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 28px;
+  margin: 15px 0 6px;
+  max-width: 80%;
+}
+.wallet-balances strong {
+  font-size: clamp(30px, 4vw, 52px);
+  line-height: 1.15;
+  letter-spacing: -1.4px;
+  color: var(--ink-strong);
+}
+.wallet-actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  margin: 16px 0;
+}
+.wallet-actions .balance-link {
+  margin: 0;
+}
+.wallet-month {
+  display: flex;
+  position: relative;
+  z-index: 1;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 7px 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  color: var(--ink-accent);
+}
+.wallet-month strong {
+  font-size: 21px;
+  color: var(--ink-strong);
+}
+.wallet-month small {
+  flex-basis: 100%;
+  color: var(--ink-muted);
+}
+.wallet-card .balance-orbit {
+  pointer-events: none;
+  opacity: 0.4;
+  right: 6%;
+  z-index: -1;
+}
+.balance-current,
+.balance-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 14px 16px;
+  background: var(--fill-accent);
+  border-radius: 14px;
+  margin-bottom: 16px;
+}
+.balance-current strong,
+.balance-preview strong {
+  color: var(--ink-strong);
+  font-size: 23px;
+}
+.balance-current span,
+.balance-preview span,
+.balance-preview small {
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+.balance-modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0;
+}
+.balance-fields {
+  padding: 0;
+  margin: 0;
+  border: 0;
+  min-width: 0;
+}
+.balance-fields .field {
+  margin-bottom: 14px;
+}
+.balance-effect {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  line-height: 1.5;
+}
+.balance-effect input {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.balance-fields > p {
+  font-size: 13px;
+  line-height: 1.6;
+}
+button.category-drilldown {
+  width: 100%;
+  background: none;
+  border: 0;
+  color: inherit;
+  text-align: left;
+  border-radius: 12px;
+  padding: 10px 6px;
+  transition: background 0.15s;
+}
+button.category-drilldown:hover,
+button.category-drilldown:focus-visible {
+  background: var(--fill-accent);
+}
+.category-drilldown > svg {
+  flex-shrink: 0;
+  color: var(--ink-muted);
+}
+.assistant-markdown {
+  white-space: normal;
+}
+.assistant-markdown > :first-child {
+  margin-top: 0;
+}
+.assistant-markdown > :last-child {
+  margin-bottom: 0;
+}
+.assistant-markdown p {
+  margin: 0 0 0.8em;
+}
+.assistant-markdown :is(h1, h2, h3, h4, h5, h6) {
+  color: var(--ink-strong);
+  font-size: 1.14em;
+  line-height: 1.4;
+  margin: 1.15em 0 0.45em;
+}
+.assistant-markdown h1 {
+  font-size: 1.3em;
+}
+.assistant-markdown :is(ul, ol) {
+  padding-left: 1.5em;
+  margin: 0.65em 0;
+}
+.assistant-markdown li {
+  margin: 0.25em 0;
+}
+.assistant-markdown li p {
+  margin: 0.3em 0;
+}
+.assistant-markdown blockquote {
+  margin: 0.8em 0;
+  padding-left: 1em;
+  border-left: 3px solid var(--line);
+}
+.assistant-markdown a {
+  color: var(--ink-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.assistant-markdown pre {
+  white-space: pre;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+  background: var(--fill-surface);
+}
+.assistant-markdown code {
+  font-size: 0.9em;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+}
+.assistant-markdown :not(pre) > code {
+  background: var(--fill-accent);
+  padding: 2px 5px;
+  border-radius: 4px;
+}
+.markdown-table {
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 14px 0;
+}
+.markdown-table table {
+  min-width: 260px;
+  width: 100%;
+  border-collapse: collapse;
+}
+.markdown-table :is(th, td) {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  text-align: left;
+}
+.markdown-table th {
+  color: var(--ink-strong);
+  background: var(--fill-accent);
+}
+.assistant-markdown hr {
+  margin: 1em 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+@media (max-width: 600px) {
+  .wallet-balances {
+    max-width: 100%;
+  }
+  .wallet-card .balance-orbit {
+    display: none;
+  }
+  .balance-modes .button {
+    flex: 1 1 auto;
+  }
+}
+
+.chat-body {
+  scroll-behavior: auto;
+}

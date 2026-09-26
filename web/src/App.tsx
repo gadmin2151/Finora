@@ -1,3 +1,4 @@
+import { purchaseHashFilters } from "./purchaseNavigation";
 import { t } from "./i18n";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useIsMutating, useMutation, useQuery } from "@tanstack/react-query";
@@ -82,7 +83,7 @@ const Accounts = lazy(() =>
 const Settings = lazy(() => import("./pages/Settings"));
 
 function routeFromHash(): Route {
-  const hash = location.hash.slice(1);
+  const hash = location.hash.slice(1).split("?", 1)[0];
   return navigationItems.some((n) => n.id === hash)
     ? (hash as Route)
     : "overview";
@@ -424,7 +425,10 @@ function Workspace({
   const isAdmin = organization.role === "admin";
   const mutating = useIsMutating();
   const [route, setRoute] = useState<Route>(routeFromHash);
-  const [month, setMonth] = useState(currentMonth);
+  const [routeHash, setRouteHash] = useState(location.hash);
+  const [month, setMonth] = useState(
+    () => purchaseHashFilters(location.hash).month || currentMonth(),
+  );
   const [modal, setModal] = useState<ModalState>(null);
   const [menu, setMenu] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
@@ -449,6 +453,9 @@ function Workspace({
   useEffect(() => {
     const change = () => {
       setRoute(routeFromHash());
+      setRouteHash(location.hash);
+      const requestedMonth = purchaseHashFilters(location.hash).month;
+      if (requestedMonth) setMonth(requestedMonth);
       setMenu(false);
       window.scrollTo({ top: 0 });
     };
@@ -639,7 +646,9 @@ function Workspace({
           />
           <Suspense fallback={<Loading />}>
             <ErrorBox error={logout.error} />
-            <Page key={`${activeRoute}-${month}`} />
+            <Page
+              key={`${activeRoute}-${month}-${activeRoute === "purchases" ? routeHash : ""}`}
+            />
           </Suspense>
         </main>
         <footer className="workspace-footer">

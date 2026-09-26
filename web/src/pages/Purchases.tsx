@@ -1,3 +1,4 @@
+import { purchaseHashFilters } from "../purchaseNavigation";
 import { receiptUnitOptions, unitLabel } from "../units";
 import { t, getLocale } from "../i18n";
 import { useEffect, useState } from "react";
@@ -67,7 +68,10 @@ const initial = {
 
 export default function Purchases() {
   const { month, accounts, categories, open } = useApp();
-  const [filters, setFilters] = useState(initial);
+  const [filters, setFilters] = useState(() => ({
+    ...initial,
+    category_id: purchaseHashFilters(location.hash).category,
+  }));
   const [debounced, setDebounced] = useState(filters);
   const [offset, setOffset] = useState(0);
   useEffect(() => {

@@ -1,3 +1,5 @@
+import { WalletCard } from "../WalletCard";
+import { categoryPurchasesHash } from "../purchaseNavigation";
 import { t, getLocale } from "../i18n";
 import { useQuery } from "@tanstack/react-query";
 import { useSyncExternalStore } from "react";
@@ -10,7 +12,6 @@ import {
   Plus,
   ScanLine,
   Sparkles,
-  Wallet,
 } from "lucide-react";
 import {
   Area,
@@ -91,38 +92,7 @@ export default function Overview() {
         }
       />
       <div className="stats-grid">
-        <section className="stat-card main-stat">
-          <div className="stat-label">
-            <span className="balance-eyebrow">
-              <i /> {t("Финансовый пульс")}
-            </span>
-            <Wallet size={20} />
-          </div>
-          <strong>{amount(data.net_minor)}</strong>
-          <span className="stat-note">
-            {t("Остаток за месяц · доходы минус расходы")}
-          </span>
-          <button
-            className="balance-link"
-            onClick={() => navigate(isAdmin ? "accounts" : "transactions")}
-          >
-            {isAdmin ? t("Мои счета") : t("Все операции")}{" "}
-            <ArrowUpRight size={17} />
-          </button>
-          <div className="balance-orbit" aria-hidden="true">
-            <i />
-            <i />
-            <Wallet size={54} strokeWidth={1} />
-          </div>
-          <div className="stat-decoration" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-            <span />
-            <span />
-            <span />
-          </div>
-        </section>
+        <WalletCard dashboard={data} />
         <section className="stat-card">
           <div className="stat-label">
             <span>{t("Доходы")}</span>
@@ -317,7 +287,14 @@ export default function Overview() {
           {ranked.length ? (
             <div className="category-ranking">
               {ranked.slice(0, 5).map((c) => (
-                <div className="ranking-row" key={c.id}>
+                <button
+                  className="ranking-row category-drilldown"
+                  key={c.id || "uncategorized"}
+                  onClick={() => {
+                    location.hash = categoryPurchasesHash(c.id, month);
+                  }}
+                  aria-label={t("Посмотреть товары: {0}", c.name)}
+                >
                   <CategoryIcon category={c} />
                   <div>
                     <div className="between">
@@ -333,7 +310,8 @@ export default function Overview() {
                       />
                     </div>
                   </div>
-                </div>
+                  <ChevronRight size={16} aria-hidden="true" />
+                </button>
               ))}
             </div>
           ) : (
@@ -385,16 +363,20 @@ export default function Overview() {
                         "income",
                         "refund",
                         "debt_repayment_in",
+                        "adjustment",
                         "debt_borrow",
                       ].includes(tx.kind)
                         ? "positive"
-                        : ""
+                        : tx.kind === "adjustment_out"
+                          ? "negative"
+                          : ""
                     }
                   >
                     {[
                       "income",
                       "refund",
                       "debt_repayment_in",
+                      "adjustment",
                       "debt_borrow",
                     ].includes(tx.kind)
                       ? "+"

@@ -236,7 +236,7 @@ fun financeDate(value: String, allowFuture: Boolean = false): String {
     return date.toString()
 }
 
-private fun financeRate(value: String): String {
+fun financeRate(value: String): String {
     val text = value.trim().replace(',', '.')
     require(Regex("[0-9]{1,6}(?:\\.[0-9]{1,8})?").matches(text)) {
         tr(Message.ENTER_THE_RATE_MDL_PER_CURRENCY_UNIT)

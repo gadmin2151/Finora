@@ -56,6 +56,7 @@ data class AppState(
     val receiptCount: Int = 0,
     val search: String = "",
     val receiptsLoading: Boolean = false,
+    val purchaseCategory: Category? = null,
     val detailId: String? = null,
     val detail: Receipt? = null,
     val detailLoading: Boolean = false,
@@ -96,6 +97,43 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
             viewModelScope,
             onRefreshing = { loading -> mutable.update { it.copy(refreshing = loading) } },
             onError = ::handleError,
+        )
+
+    val purchases =
+        PurchaseHistoryController(
+            viewModelScope,
+            { requireNotNull(api) },
+            { mutable.value.organization },
+            ::handleError,
+        )
+
+    val wallet =
+        WalletController(
+            viewModelScope,
+            { requireNotNull(api) },
+            { mutable.value.organization },
+            { mutable.value.busy },
+            ::writeAction,
+            { account ->
+                mutable.update { current ->
+                    current.copy(
+                        accounts =
+                            current.accounts.map { if (it.id == account.id) account else it },
+                        dashboard =
+                            current.dashboard?.let { dashboard ->
+                                dashboard.copy(
+                                    accounts =
+                                        dashboard.accounts.map {
+                                            if (it.id == account.id) account else it
+                                        }
+                                )
+                            },
+                        notice = tr(Message.BALANCE_SAVED),
+                    )
+                }
+                loadDashboard()
+            },
+            ::handleError,
         )
 
     val finance =
@@ -221,6 +259,8 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
     private fun cancelWorkspace() {
         refresh.cancel()
         finance.reset()
+        purchases.reset()
+        wallet.reset()
         workspaceJob?.cancel()
         receiptsJob?.cancel()
         detailJob?.cancel()
@@ -271,7 +311,10 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
     fun navigate(page: Page) {
         if (mutable.value.busy) return
         closeDetail()
-        mutable.update { it.copy(page = page, error = null, lastRefreshedAt = null) }
+        purchases.reset()
+        mutable.update {
+            it.copy(page = page, purchaseCategory = null, error = null, lastRefreshedAt = null)
+        }
         if (localizedContentStale) refreshLocalizedContent()
         when (page) {
             Page.RECEIPTS -> loadReceipts()
@@ -280,6 +323,18 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
             Page.FINANCES -> finance.load()
             else -> Unit
         }
+    }
+
+    fun openCategory(category: Category) {
+        if (mutable.value.busy) return
+        refresh.cancel()
+        mutable.update { it.copy(purchaseCategory = category, error = null) }
+        purchases.open(category, mutable.value.month)
+    }
+
+    fun closeCategory() {
+        purchases.reset()
+        mutable.update { it.copy(purchaseCategory = null) }
     }
 
     fun dismissError() = mutable.update { it.copy(error = null) }
@@ -721,6 +776,10 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun refreshCurrent() {
+        if (mutable.value.purchaseCategory != null && mutable.value.detailId == null) {
+            purchases.load()
+            return
+        }
         val current = mutable.value
         val org = current.organization ?: return
         if (

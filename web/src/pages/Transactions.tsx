@@ -176,7 +176,9 @@ export default function Transactions() {
                       tx.receipt_id ||
                       tx.debt_id ||
                       tx.occurrence_id ||
-                      tx.kind === "refund";
+                      tx.kind === "refund" ||
+                      tx.kind === "adjustment" ||
+                      tx.kind === "adjustment_out";
                     return (
                       <tr key={tx.id}>
                         <td>
@@ -230,13 +232,14 @@ export default function Transactions() {
                           </small>
                         </td>
                         <td
-                          className={`align-right money ${["income", "refund", "debt_borrow", "debt_repayment_in"].includes(tx.kind) ? "positive" : ""}`}
+                          className={`align-right money ${["income", "refund", "debt_borrow", "debt_repayment_in", "adjustment"].includes(tx.kind) ? "positive" : tx.kind === "adjustment_out" ? "negative" : ""}`}
                         >
                           {[
                             "income",
                             "refund",
                             "debt_borrow",
                             "debt_repayment_in",
+                            "adjustment",
                           ].includes(tx.kind)
                             ? "+"
                             : tx.kind === "transfer"

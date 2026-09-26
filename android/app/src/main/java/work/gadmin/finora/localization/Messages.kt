@@ -2,6 +2,62 @@ package work.gadmin.finora.localization
 
 /** App-owned copy only; user names, receipt content and chat history are never translated. */
 enum class Message(val english: String, val russian: String) {
+    ARCHIVED_ACCOUNT("Archived · balance retained", "Архивный · остаток сохранён"),
+    CATEGORY_TAP_HINT(
+        "Tap a category to see purchased items",
+        "Нажмите категорию, чтобы увидеть товары",
+    ),
+    LATEST_MESSAGES("Latest messages", "К последним сообщениям"),
+    CATEGORY_PURCHASES_HINT(
+        "Confirmed receipt items in this category for the selected month. Other expense entries are not receipt items.",
+        "Товары из подтверждённых чеков этой категории за выбранный месяц. Другие расходы не являются позициями чеков.",
+    ),
+    PURCHASE_COUNT("Items: %1\$s", "Позиций: %1\$s"),
+    NO_PURCHASES_IN_CATEGORY(
+        "No confirmed receipt items in this category for this month.",
+        "В этой категории нет товаров из подтверждённых чеков за этот месяц.",
+    ),
+    LOAD_MORE_PURCHASES("Show more items", "Показать ещё товары"),
+    OPEN_RECEIPT("Open receipt", "Открыть чек"),
+    TRY_AGAIN("Try again", "Повторить"),
+    CURRENT_WALLET("Your wallet now", "Сейчас в кошельке"),
+    WALLET_CURRENT_NOT_MONTH(
+        "Current account balances · not limited to this month",
+        "Текущие остатки на счетах · за всё время",
+    ),
+    NO_WALLET_ACCOUNTS("No active accounts yet", "Активных счетов пока нет"),
+    ADJUST_BALANCE("Adjust", "Скорректировать"),
+    CURRENT_ACCOUNT_BALANCE("Current balance: %1\$s", "Сейчас на счёте: %1\$s"),
+    SET_ACTUAL_BALANCE("Set balance", "Остаток"),
+    ADD_MONEY("Add", "Добавить"),
+    SUBTRACT_MONEY("Subtract", "Списать"),
+    ACTUAL_BALANCE("Actual balance", "Фактический остаток"),
+    BALANCE_AFTER_CHANGE("New balance: %1\$s", "После изменения: %1\$s"),
+    COUNT_DIFFERENCE_AS_INCOME_EXPENSE(
+        "Include the difference in income or expenses",
+        "Учесть разницу в доходах или расходах",
+    ),
+    BALANCE_ONLY_HINT(
+        "Only the account balance changes. Monthly income and spending remain unchanged.",
+        "Меняется только остаток на счёте. Доходы и расходы месяца остаются прежними.",
+    ),
+    BALANCE_INCOME_EXPENSE_HINT(
+        "An increase is recorded as income; a decrease as an expense on the selected date.",
+        "Пополнение записывается как доход, списание — как расход на выбранную дату.",
+    ),
+    CONFIRM_BALANCE_CHANGE("Confirm balance change", "Подтвердить изменение"),
+    BALANCE_SAVED("Account balance updated", "Остаток на счёте обновлён"),
+    BALANCE_UNCHANGED(
+        "The new balance is the same as the current balance.",
+        "Новый остаток совпадает с текущим.",
+    ),
+    BALANCE_CHANGED_REFRESH(
+        "This account changed. Refresh the balance, check the new amount and confirm again.",
+        "Остаток изменился. Обновите его, проверьте сумму и подтвердите ещё раз.",
+    ),
+    REFRESH_ACCOUNT_BALANCE("Refresh balance", "Обновить остаток"),
+    AMOUNT_MUST_BE_POSITIVE("Enter an amount greater than zero", "Введите сумму больше нуля"),
+    NOTE_OPTIONAL("Note (optional)", "Примечание (необязательно)"),
     ONE_TIME_PAYMENT("One-time income", "Разовое поступление"),
     AS_PLANNED("Planned", "По плану"),
     OVERDUE("Overdue", "Срок прошёл"),

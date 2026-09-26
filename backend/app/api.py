@@ -225,6 +225,22 @@ def add_account(data: s.AccountInput, user: m.Organization = SCOPE, db: Session 
     return {"id": account.id}
 
 
+@router.post("/accounts/{key}/balance-adjustment")
+def adjust_balance(
+    key: str, data: s.BalanceAdjustment, user: m.Organization = SCOPE, db: Session = DB
+):
+    tx, before, difference = ledger.adjust_account_balance(db, user.id, key, data)
+    account = next(row for row in account_balances(db, user.id) if row["id"] == key)
+    result = {
+        "transaction": transaction_dict(tx),
+        "account": account,
+        "previous_balance_minor": before,
+        "adjustment_minor": difference,
+    }
+    db.commit()
+    return result
+
+
 @router.put("/accounts/{key}")
 def edit_account(key: str, data: s.AccountInput, user: m.Organization = SCOPE, db: Session = DB):
     lock_organization(db, user.id)

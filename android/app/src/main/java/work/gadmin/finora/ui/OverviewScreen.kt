@@ -2,6 +2,7 @@ package work.gadmin.finora.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -43,6 +44,11 @@ fun OverviewScreen(state: AppState, vm: FinoraViewModel) {
                 IconButton(vm::refreshCurrent, enabled = !state.refreshing && !state.busy) {
                     LineIcon(Glyph.REFRESH, tr(Message.REFRESH_STATISTICS))
                 }
+            }
+            if (dashboard != null) {
+                Spacer(Modifier.height(20.dp))
+                WalletCard(state, vm)
+                Spacer(Modifier.height(20.dp))
             }
             Row(
                 Modifier.fillMaxWidth(),
@@ -131,7 +137,10 @@ fun OverviewScreen(state: AppState, vm: FinoraViewModel) {
                             Modifier.padding(22.dp),
                             verticalArrangement = Arrangement.spacedBy(18.dp),
                         ) {
-                            SectionTitle(tr(Message.WHERE_YOUR_MONEY_GOES))
+                            SectionTitle(
+                                tr(Message.WHERE_YOUR_MONEY_GOES),
+                                tr(Message.CATEGORY_TAP_HINT),
+                            )
                             val categories =
                                 dashboard.categories
                                     .filter { it.spent_minor > 0 }
@@ -175,7 +184,12 @@ fun OverviewScreen(state: AppState, vm: FinoraViewModel) {
                                 }
                             }
                             categories.forEach { category ->
-                                Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                                Column(
+                                    Modifier.fillMaxWidth()
+                                        .clickable { vm.openCategory(category) }
+                                        .padding(vertical = 8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(7.dp),
+                                ) {
                                     Row(
                                         Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -210,34 +224,6 @@ fun OverviewScreen(state: AppState, vm: FinoraViewModel) {
                         tr(Message.NO_SPENDING_THIS_MONTH_YET_SUBMITTED_AND_CONFIRMED_RECEIPT),
                         Glyph.CHART,
                     )
-                }
-            if (dashboard.accounts.isNotEmpty())
-                item {
-                    SectionTitle(tr(Message.ACCOUNTS))
-                    Spacer(Modifier.height(12.dp))
-                    Surface(color = SurfaceColor, shape = RoundedCornerShape(22.dp)) {
-                        Column(
-                            Modifier.padding(18.dp),
-                            verticalArrangement = Arrangement.spacedBy(18.dp),
-                        ) {
-                            dashboard.accounts
-                                .filterNot { it.archived }
-                                .forEach { account ->
-                                    Row(
-                                        Modifier.fillMaxWidth(),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                    ) {
-                                        LineIcon(Glyph.WALLET, size = 21.dp)
-                                        Text(account.name, Modifier.weight(1f))
-                                        Text(
-                                            money(account.balance_minor, account.currency),
-                                            fontWeight = FontWeight.Medium,
-                                        )
-                                    }
-                                }
-                        }
-                    }
                 }
             if (dashboard.planned_remaining_minor > 0)
                 item {

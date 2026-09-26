@@ -13,6 +13,7 @@ import "./management.css";
 import "./appearance.css";
 import "./themeStore";
 import "./language.css";
+import "./wallet-chat.css";
 
 class ErrorBoundary extends Component<
   { children: ReactNode },

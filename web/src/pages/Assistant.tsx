@@ -1,5 +1,6 @@
+import { AssistantMarkdown } from "../AssistantMarkdown";
 import { t, getLocale } from "../i18n";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
@@ -48,6 +49,9 @@ export function Assistant() {
   const [hasOlder, setHasOlder] = useState(true);
   const body = useRef<HTMLDivElement>(null);
   const followLatest = useRef(true);
+  const initialScroll = useRef(false);
+  const prependAnchor = useRef<{ height: number; top: number } | null>(null);
+  const content = useRef<HTMLDivElement>(null);
   const pending = jobs.data?.some(
     (j) =>
       ["chat", "analysis", "receipt"].includes(j.kind) &&
@@ -84,6 +88,11 @@ export function Assistant() {
     const first = older[0] ?? messages.data?.[0];
     if (!first) return;
     const rows = await api<Message[]>(`/chat?before=${first.id}`);
+    if (body.current)
+      prependAnchor.current = {
+        height: body.current.scrollHeight,
+        top: body.current.scrollTop,
+      };
     setOlder((previous) => [...rows, ...previous]);
     if (rows.length < 60) setHasOlder(false);
   });
@@ -92,16 +101,38 @@ export function Assistant() {
     open({ type: "receipt", receipt });
   });
   const latestMessageId = messages.data?.at(-1)?.id;
+  useLayoutEffect(() => {
+    const element = body.current;
+    if (!element || messages.isPending) return;
+    if (prependAnchor.current) {
+      element.scrollTop =
+        prependAnchor.current.top +
+        element.scrollHeight -
+        prependAnchor.current.height;
+      prependAnchor.current = null;
+      return;
+    }
+    if (!initialScroll.current || followLatest.current) {
+      // Position the loaded conversation before paint; smooth scrolling from its top
+      // used to mark the user as reading older messages and stop the initial jump.
+      element.scrollTop = element.scrollHeight;
+      initialScroll.current = true;
+    }
+  }, [messages.isPending, latestMessageId, pending, older.length]);
   useEffect(() => {
     const element = body.current;
-    if (element && followLatest.current)
-      element.scrollTo({
-        top: element.scrollHeight,
-        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-          ? "instant"
-          : "smooth",
-      });
-  }, [latestMessageId, pending]);
+    if (!element || !content.current) return;
+    const observer = new ResizeObserver(() => {
+      if (
+        initialScroll.current &&
+        followLatest.current &&
+        !prependAnchor.current
+      )
+        element.scrollTop = element.scrollHeight;
+    });
+    observer.observe(content.current);
+    return () => observer.disconnect();
+  }, []);
   return (
     <>
       <PageHeading
@@ -134,141 +165,142 @@ export function Assistant() {
                 120;
           }}
         >
-          {messages.isPending ? (
-            <Loading />
-          ) : !messages.data?.length ? (
-            <div className="chat-welcome">
-              <div className="assistant-orb">
-                <Sparkles size={31} />
-              </div>
-              <h2>{t("Ваши финансы, понятным языком")}</h2>
-              <p>
-                {t("Я помогу разобрать покупки и увидеть привычки.")}
-                <br />
-                {t(
-                  "Спросите «Сколько ушло на продукты в августе?» или «Найди LAPTE».",
-                )}
-              </p>
-              <div className="prompt-grid">
-                <button onClick={() => open({ type: "upload" })}>
-                  <Camera size={22} />
-                  <strong>{t("Отправить чек")}</strong>
-                  <span>{t("Распознать товары и категории")}</span>
-                  <ArrowRight size={17} />
-                </button>
-                <button
-                  onClick={() =>
-                    setText(t("На чём я могу сэкономить в этом месяце?"))
-                  }
-                >
-                  <Sparkles size={22} />
-                  <strong>{t("Найти экономию")}</strong>
-                  <span>{t("На основе моей истории")}</span>
-                  <ArrowRight size={17} />
-                </button>
-                <button
-                  onClick={() =>
-                    setText(
-                      t(
-                        "Найди мои покупки LAPTE за последние 3 месяца и сравни цены",
-                      ),
-                    )
-                  }
-                >
-                  <ScanLine size={22} />
-                  <strong>{t("Найти покупку")}</strong>
-                  <span>{t("Товары, суммы и исходные чеки")}</span>
-                  <ArrowRight size={17} />
-                </button>
-              </div>
-            </div>
-          ) : (
-            <>
-              {hasOlder &&
-                (messages.data.length === 60 || older.length > 0) && (
-                  <button
-                    className="text-button load-older"
-                    disabled={more.isPending}
-                    onClick={() => more.mutate(undefined)}
-                  >
-                    {t("Загрузить более ранние сообщения")}
+          <div ref={content} className="chat-messages">
+            {messages.isPending ? (
+              <Loading />
+            ) : !messages.data?.length ? (
+              <div className="chat-welcome">
+                <div className="assistant-orb">
+                  <Sparkles size={31} />
+                </div>
+                <h2>{t("Ваши финансы, понятным языком")}</h2>
+                <p>
+                  {t("Я помогу разобрать покупки и увидеть привычки.")}
+                  <br />
+                  {t(
+                    "Спросите «Сколько ушло на продукты в августе?» или «Найди LAPTE».",
+                  )}
+                </p>
+                <div className="prompt-grid">
+                  <button onClick={() => open({ type: "upload" })}>
+                    <Camera size={22} />
+                    <strong>{t("Отправить чек")}</strong>
+                    <span>{t("Распознать товары и категории")}</span>
+                    <ArrowRight size={17} />
                   </button>
-                )}
-              {[...older, ...messages.data]
-                .filter(
-                  (m, i, list) => list.findIndex((x) => x.id === m.id) === i,
-                )
-                .map((message) => (
-                  <div
-                    className={`chat-message ${message.role}`}
-                    key={message.id}
+                  <button
+                    onClick={() =>
+                      setText(t("На чём я могу сэкономить в этом месяце?"))
+                    }
                   >
-                    {message.role === "assistant" && (
-                      <span className="bot-avatar">
-                        <Sparkles size={17} />
-                      </span>
-                    )}
-                    <div className="message-content">
-                      <div
-                        className={
-                          message.details.error
-                            ? "message-bubble message-error"
-                            : "message-bubble"
-                        }
-                      >
-                        {message.text
-                          .split(/(\*\*[^*]+\*\*)/g)
-                          .map((part, index) =>
-                            part.startsWith("**") && part.endsWith("**") ? (
-                              <strong key={index}>{part.slice(2, -2)}</strong>
-                            ) : (
-                              part
-                            ),
-                          )}
-                      </div>
-                      {message.details.reports?.map((report, index) => (
-                        <ReportCard key={index} report={report} compact />
-                      ))}
-                      {message.receipt_id && (
-                        <button
-                          className="chat-receipt"
-                          onClick={() =>
-                            receiptAction.mutate(message.receipt_id!)
+                    <Sparkles size={22} />
+                    <strong>{t("Найти экономию")}</strong>
+                    <span>{t("На основе моей истории")}</span>
+                    <ArrowRight size={17} />
+                  </button>
+                  <button
+                    onClick={() =>
+                      setText(
+                        t(
+                          "Найди мои покупки LAPTE за последние 3 месяца и сравни цены",
+                        ),
+                      )
+                    }
+                  >
+                    <ScanLine size={22} />
+                    <strong>{t("Найти покупку")}</strong>
+                    <span>{t("Товары, суммы и исходные чеки")}</span>
+                    <ArrowRight size={17} />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                {hasOlder &&
+                  (messages.data.length === 60 || older.length > 0) && (
+                    <button
+                      className="text-button load-older"
+                      disabled={more.isPending}
+                      onClick={() => more.mutate(undefined)}
+                    >
+                      {t("Загрузить более ранние сообщения")}
+                    </button>
+                  )}
+                {[...older, ...messages.data]
+                  .filter(
+                    (m, i, list) => list.findIndex((x) => x.id === m.id) === i,
+                  )
+                  .map((message) => (
+                    <div
+                      className={`chat-message ${message.role}`}
+                      key={message.id}
+                    >
+                      {message.role === "assistant" && (
+                        <span className="bot-avatar">
+                          <Sparkles size={17} />
+                        </span>
+                      )}
+                      <div className="message-content">
+                        <div
+                          className={
+                            message.details.error
+                              ? "message-bubble message-error"
+                              : "message-bubble"
                           }
                         >
-                          <span className="round-icon mint">
-                            <ScanLine size={21} />
-                          </span>
-                          <span>
-                            <strong>{t("Чек и товары")}</strong>
-                            <small>{t("Открыть результат и проверить")}</small>
-                          </span>
-                          <ChevronRight size={20} />
-                        </button>
-                      )}
-                      <small className="message-time">
-                        {new Intl.DateTimeFormat(getLocale(), {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        }).format(new Date(message.created_at))}
-                        {message.details.provider
-                          ? ` · ${message.details.provider === "reports" ? t("Расчёт Finora") : message.details.provider === "ollama" ? t("Локальная модель") : "OpenAI"}`
-                          : ""}
-                      </small>
+                          {message.role === "assistant" ? (
+                            <AssistantMarkdown text={message.text} />
+                          ) : (
+                            message.text
+                          )}
+                        </div>
+                        {message.details.reports?.map((report, index) => (
+                          <ReportCard key={index} report={report} compact />
+                        ))}
+                        {message.receipt_id && (
+                          <button
+                            className="chat-receipt"
+                            onClick={() =>
+                              receiptAction.mutate(message.receipt_id!)
+                            }
+                          >
+                            <span className="round-icon mint">
+                              <ScanLine size={21} />
+                            </span>
+                            <span>
+                              <strong>{t("Чек и товары")}</strong>
+                              <small>
+                                {t("Открыть результат и проверить")}
+                              </small>
+                            </span>
+                            <ChevronRight size={20} />
+                          </button>
+                        )}
+                        <small className="message-time">
+                          {new Intl.DateTimeFormat(getLocale(), {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          }).format(new Date(message.created_at))}
+                          {message.details.provider
+                            ? ` · ${message.details.provider === "reports" ? t("Расчёт Finora") : message.details.provider === "ollama" ? t("Локальная модель") : "OpenAI"}`
+                            : ""}
+                        </small>
+                      </div>
                     </div>
-                  </div>
-                ))}
-            </>
-          )}
-          {pending && (
-            <div className="thinking">
-              <span />
-              <span />
-              <span />
-              {jobs.data?.find((j) => ["queued", "running"].includes(j.status))
-                ?.progress || t("Подготавливаю ответ…")}
-            </div>
-          )}
+                  ))}
+              </>
+            )}
+            {pending && (
+              <div className="thinking">
+                <span />
+                <span />
+                <span />
+                {jobs.data?.find((j) =>
+                  ["queued", "running"].includes(j.status),
+                )?.progress || t("Подготавливаю ответ…")}
+              </div>
+            )}
+          </div>
         </div>
         <div className="chat-bottom">
           <div

@@ -82,6 +82,11 @@ export type BillTemplate = Omit<
   "status" | "due_date" | "bill_id" | "transaction_id" | "base_minor"
 > & { start_date: string };
 export type Dashboard = {
+  wallet?: {
+    accounts: Account[];
+    balances: Record<string, number>;
+    as_of: string;
+  };
   month: string;
   income_minor: number;
   expense_minor: number;

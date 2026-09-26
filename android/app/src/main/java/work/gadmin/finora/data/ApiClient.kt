@@ -245,6 +245,22 @@ class ApiClient(val server: String, savedCookie: String? = null) {
 
     suspend fun categories(org: String): List<Category> = get("/api/categories", org)
 
+    suspend fun purchases(org: String, category: String, month: String, offset: Int): PurchasePage {
+        val (from, to) = purchaseMonthRange(month)
+        val url =
+            origin
+                .newBuilder()
+                .encodedPath("/api/purchases")
+                .addQueryParameter("category_id", category)
+                .addQueryParameter("date_from", from)
+                .addQueryParameter("date_to", to)
+                .addQueryParameter("offset", offset.toString())
+                .addQueryParameter("limit", "30")
+                .addQueryParameter("sort", "newest")
+                .build()
+        return get(url.encodedPath + "?" + url.encodedQuery, org)
+    }
+
     suspend fun income(org: String, month: String): IncomeReport =
         get("/api/income?month=$month", org)
 
@@ -271,6 +287,11 @@ class ApiClient(val server: String, savedCookie: String? = null) {
                 .build()
         return get(url.encodedPath + "?" + url.encodedQuery, org)
     }
+
+    suspend fun adjustBalance(org: String, id: String, body: JsonObject): BalanceAdjustmentResult =
+        json.decodeFromString(
+            execute(request("/api/accounts/$id/balance-adjustment", org, "POST", jsonBody(body)))
+        )
 
     suspend fun financeWrite(org: String, command: FinanceCommand) {
         execute(

@@ -127,15 +127,28 @@ def month_range(month: str) -> tuple[date, date]:
     return start, start.replace(day=calendar.monthrange(start.year, start.month)[1])
 
 
-def account_balances(db: Session, organization_id: str):
-    sums = dict(
-        db.execute(
-            select(m.Posting.account_id, func.sum(m.Posting.amount_minor))
-            .join(m.Transaction, m.Posting.transaction_id == m.Transaction.id)
-            .where(m.Transaction.organization_id == organization_id, ~m.Transaction.voided)
-            .group_by(m.Posting.account_id)
-        ).all()
+def posting_balances(
+    db: Session, organization_id: str, account_id: str | None = None
+) -> dict[str, int]:
+    query = (
+        select(m.Posting.account_id, func.sum(m.Posting.amount_minor))
+        .join(m.Transaction, m.Posting.transaction_id == m.Transaction.id)
+        .where(m.Transaction.organization_id == organization_id, ~m.Transaction.voided)
+        .group_by(m.Posting.account_id)
     )
+    if account_id is not None:
+        query = query.where(m.Posting.account_id == account_id)
+    return {key: int(value) for key, value in db.execute(query)}
+
+
+def account_balance(db: Session, account: m.Account) -> int:
+    return account.opening_minor + posting_balances(db, account.organization_id, account.id).get(
+        account.id, 0
+    )
+
+
+def account_balances(db: Session, organization_id: str):
+    sums = posting_balances(db, organization_id)
     return [
         {
             "id": a.id,
@@ -638,6 +651,7 @@ def dashboard(db: Session, organization_id: str, month: str):
         "chart": chart,
         "accounts": accounts,
         "balances": dict(balances),
+        "wallet": {"balances": dict(balances), "accounts": accounts, "as_of": today().isoformat()},
         "bills": bills,
         "debts": debts,
         "planned_remaining_minor": sum(b["base_minor"] for b in pending),

@@ -1,19 +1,24 @@
 import hashlib
+import json
+from decimal import Decimal
 
 from sqlalchemy import delete, func, select, update
 
 from . import models as m
 from .finance import (
+    account_balance,
     audit,
     create_transaction,
     debt_remaining,
     fail,
     lock_organization,
     minor,
+    money,
     owned,
     rate_for,
 )
 from .schemas import (
+    BalanceAdjustment,
     BillPayment,
     DebtInput,
     DebtMovement,
@@ -21,6 +26,81 @@ from .schemas import (
     TransactionEdit,
     TransactionInput,
 )
+
+
+def adjust_account_balance(db, organization_id: str, account_id: str, data: BalanceAdjustment):
+    """Record only the difference; never overwrite the account's opening balance."""
+    lock_organization(db, organization_id)
+    account = owned(db, m.Account, account_id, organization_id, True)
+    target = minor(data.target_balance)
+    fingerprint = hashlib.sha256(
+        json.dumps(
+            {"account_id": account_id, **data.model_dump(mode="json")}, sort_keys=True
+        ).encode()
+    ).hexdigest()
+    prior = db.scalar(
+        select(m.Transaction).where(
+            m.Transaction.organization_id == organization_id,
+            m.Transaction.idempotency_key == data.idempotency_key,
+        )
+    )
+    if prior:
+        entry = db.scalar(
+            select(m.Audit).where(
+                m.Audit.organization_id == organization_id,
+                m.Audit.entity_id == prior.id,
+                m.Audit.action == "account.balance_adjusted",
+            )
+        )
+        if not entry or entry.details.get("request_hash") != fingerprint:
+            fail("Повторный запрос содержит другие данные", 409)
+        if prior.voided or prior.version != 1:
+            fail("Корректировка уже изменена или отменена. Обновите баланс и создайте новую", 409)
+        return prior, entry.details["previous_balance_minor"], entry.details["adjustment_minor"]
+    if account.archived:
+        fail("Счёт находится в архиве")
+    before = account_balance(db, account)
+    if before != data.expected_balance_minor:
+        fail("Остаток счёта изменился. Обновите данные и проверьте сумму корректировки", 409)
+    difference = target - before
+    if difference == 0:
+        fail("Текущий остаток уже совпадает с указанным. Корректировка не требуется")
+    if abs(difference) > 100000000000:
+        fail("Сумма одной корректировки не может превышать 1 000 000 000")
+    if data.effect == "income_expense":
+        kind = "income" if difference > 0 else "expense"
+    else:
+        kind = "adjustment" if difference > 0 else "adjustment_out"
+    tx = create_transaction(
+        db,
+        organization_id,
+        TransactionInput(
+            kind=kind,
+            amount=Decimal(money(abs(difference))),
+            account_id=account.id,
+            occurred_on=data.occurred_on,
+            fx_rate=data.fx_rate,
+            note=data.note,
+            idempotency_key=data.idempotency_key,
+        ),
+    )
+    audit(
+        db,
+        organization_id,
+        "account.balance_adjusted",
+        tx.id,
+        {
+            "account_id": account.id,
+            "currency": account.currency,
+            "previous_balance_minor": before,
+            "target_balance_minor": target,
+            "adjustment_minor": difference,
+            "effect": data.effect,
+            "request_hash": fingerprint,
+        },
+    )
+    db.flush()
+    return tx, before, difference
 
 
 def add_debt(db, organization_id: str, data: DebtInput):

@@ -103,6 +103,9 @@ export const kinds: Record<string, string> = {
   get adjustment() {
     return t("Корректировка +");
   },
+  get adjustment_out() {
+    return t("Корректировка −");
+  },
   get debt_lend() {
     return t("Выдали в долг");
   },

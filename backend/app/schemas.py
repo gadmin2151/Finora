@@ -88,6 +88,16 @@ class AccountInput(Strict):
     color: str = Field(default="#16a69b", pattern=r"^#[0-9a-fA-F]{6}$")
 
 
+class BalanceAdjustment(Strict):
+    target_balance: Money = Field(ge=-1000000000, le=1000000000)
+    expected_balance_minor: int = Field(strict=True, ge=-9007199254740991, le=9007199254740991)
+    effect: Literal["adjustment", "income_expense"] = "adjustment"
+    occurred_on: date
+    fx_rate: Decimal | None = Field(default=None, gt=0, le=100000)
+    note: str = Field(default="", max_length=3000)
+    idempotency_key: str = Field(min_length=8, max_length=100)
+
+
 class CategoryInput(Strict):
     name: str = Field(min_length=1, max_length=100)
     color: str = Field(default="#16a69b", pattern=r"^#[0-9a-fA-F]{6}$")
@@ -101,7 +111,9 @@ class SplitInput(Strict):
 
 
 class TransactionInput(Strict):
-    kind: Literal["expense", "income", "transfer", "refund", "adjustment"] = "expense"
+    kind: Literal["expense", "income", "transfer", "refund", "adjustment", "adjustment_out"] = (
+        "expense"
+    )
     amount: Money = Field(gt=0, le=1000000000)
     account_id: str
     occurred_on: date

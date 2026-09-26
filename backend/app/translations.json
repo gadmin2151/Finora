@@ -273,5 +273,9 @@
   "Покупка": "Purchase",
   "Чек «{merchant}»: расход добавлен. Можно открыть и проверить товары.": "Receipt “{merchant}”: the expense was added. Open it to review the items.",
   "Чек «{merchant}»: готов к проверке. Откройте карточку, проверьте строки и сохраните расход.": "Receipt “{merchant}”: ready for review. Open it, check the items and save the expense.",
-  "В очереди": "Queued"
+  "В очереди": "Queued",
+  "Корректировка уже изменена или отменена. Обновите баланс и создайте новую": "This adjustment has already been edited or reversed. Refresh the balance and create a new one",
+  "Остаток счёта изменился. Обновите данные и проверьте сумму корректировки": "The account balance has changed. Refresh the data and check the adjustment amount",
+  "Текущий остаток уже совпадает с указанным. Корректировка не требуется": "The current balance already matches the entered amount. No adjustment is needed",
+  "Сумма одной корректировки не может превышать 1 000 000 000": "A single adjustment cannot exceed 1,000,000,000"
 }

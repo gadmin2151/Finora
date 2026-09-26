@@ -9,14 +9,17 @@
     "typecheck": "tsc --noEmit",
     "format": "prettier --write src",
     "lint": "eslint src",
-    "test:i18n": "node --test tests/i18n.test.mjs"
+    "test:i18n": "node --test tests/i18n.test.mjs",
+    "test:wallet-chat": "node --test tests/wallet-chat.test.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.0",
     "lucide-react": "^1.48.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "recharts": "^3.0.0"
+    "react-markdown": "^10.1.0",
+    "recharts": "^3.0.0",
+    "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

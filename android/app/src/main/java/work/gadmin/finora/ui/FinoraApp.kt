@@ -117,7 +117,11 @@ fun FinoraApp(vm: FinoraViewModel) {
                 state.page == Page.CHAT &&
                     state.detailId == null &&
                     WindowInsets.ime.getBottom(LocalDensity.current) > 0
-            BackHandler(state.detailId != null) { if (!state.busy) vm.closeDetail() }
+            BackHandler(state.detailId != null || state.purchaseCategory != null) {
+                if (!state.busy) {
+                    if (state.detailId != null) vm.closeDetail() else vm.closeCategory()
+                }
+            }
             Scaffold(
                 containerColor = Paper,
                 snackbarHost = { SnackbarHost(snackbars) },
@@ -130,8 +134,14 @@ fun FinoraApp(vm: FinoraViewModel) {
                                     .padding(horizontal = 20.dp, vertical = 12.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                if (state.detailId != null)
-                                    IconButton(vm::closeDetail, enabled = !state.busy) {
+                                if (state.detailId != null || state.purchaseCategory != null)
+                                    IconButton(
+                                        {
+                                            if (state.detailId != null) vm.closeDetail()
+                                            else vm.closeCategory()
+                                        },
+                                        enabled = !state.busy,
+                                    ) {
                                         LineIcon(Glyph.BACK, tr(Message.BACK_TO_RECEIPTS))
                                     }
                                 Surface(
@@ -345,6 +355,7 @@ fun FinoraApp(vm: FinoraViewModel) {
                         modifier = Modifier.widthIn(max = 700.dp).fillMaxSize(),
                     ) {
                         if (state.detailId != null) ReceiptDetailScreen(state, vm)
+                        else if (state.purchaseCategory != null) CategoryPurchasesScreen(vm)
                         else
                             AnimatedContent(
                                 targetState = state.page,
