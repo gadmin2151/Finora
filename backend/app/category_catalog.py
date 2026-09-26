@@ -138,7 +138,10 @@ _VOCABULARY = [
         r"portocal\w*|mandarin\w*|andarin\w*|banan\w*|cartof\w*|ceapa|morcov\w*|rosi[ei]\w*|castrav\w*|mar|mere|lama[ie]\w*|pepene|strugur\w*|capsun\w*|avocado|varza|usturoi|legume|fructe|orange\w*|apple\w*|potato\w*|tomato\w*|onion\w*|апельсин\w*|мандарин\w*|банан\w*|картоф\w*|лук|морков\w*|помидор\w*|томат\w*|огур\w*|яблок\w*|лимон\w*|арбуз\w*|виноград\w*|клубник\w*|капуст\w*|чеснок\w*",
     ),
     ("Автомобиль", r"benzina|motorina|diesel|бензин\w*|дизел\w*"),
-    ("Связь и подписки", r"plata\s+servicii|abonament\w*|internet|интернет|подписк\w*"),
+    (
+        "Связь и подписки",
+        r"plata\s+servicii|abonament\w*|internet|google\s*\*?\s*(?:play|console)|netflix|spotify|интернет|подписк\w*",
+    ),
 ]
 _MATCHERS = [(name, re.compile(r"(?<!\w)(?:" + words + r")(?!\w)")) for name, words in _VOCABULARY]
 _FALLBACKS = {
