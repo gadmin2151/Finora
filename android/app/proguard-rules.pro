@@ -5,3 +5,6 @@
 -keep class com.google.mlkit.** implements com.google.firebase.components.ComponentRegistrar {
     public <init>();
 }
+
+# OpenCV calls Java wrappers and exceptions through JNI class/method names.
+-keep class org.opencv.** { *; }

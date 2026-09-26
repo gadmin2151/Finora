@@ -15,8 +15,8 @@ android {
         applicationId = "work.gadmin.finora"
         minSdk = 26
         targetSdk = 37
-        versionCode = 14
-        versionName = "1.7.2"
+        versionCode = 15
+        versionName = "1.8.0"
         testInstrumentationRunner =
             if (providers.gradleProperty("finoraTestBuildType").orNull == "release")
                 "work.gadmin.finora.ReleaseSmokeInstrumentation"
@@ -73,6 +73,7 @@ dependencies {
     implementation("androidx.camera:camera-lifecycle:1.6.2")
     implementation("androidx.camera:camera-view:1.6.2")
     implementation("com.google.mlkit:barcode-scanning:17.3.0")
+    implementation("org.opencv:opencv:4.13.0")
     implementation("com.squareup.okhttp3:okhttp:5.5.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")

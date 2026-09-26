@@ -4,16 +4,22 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Matrix
 import android.graphics.Paint
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import java.io.File
 import java.util.UUID
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executor
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.abs
 import org.junit.Assert.*
 import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import work.gadmin.finora.capture.LongReceiptController
 import work.gadmin.finora.capture.LongReceiptSession
 import work.gadmin.finora.data.Draft
 import work.gadmin.finora.data.DraftStore
@@ -143,6 +149,139 @@ class LongReceiptAcceptanceTest {
     }
 
     @Test
+    fun continuousCaptureBuildsPreviewBeforeDone() {
+        val source = paper(height = 2500)
+        val live = CountDownLatch(1)
+        val finished = CountDownLatch(1)
+        val failure = AtomicReference<String?>(null)
+        val file = AtomicReference<File?>(null)
+        val controller =
+            LongReceiptController(
+                context.cacheDir,
+                Executor { it.run() },
+                { if (it.count >= 4 && it.height > 1500 && it.thumbnail != null) live.countDown() },
+                {
+                    file.set(it)
+                    finished.countDown()
+                },
+                {
+                    failure.set(it)
+                    live.countDown()
+                    finished.countDown()
+                },
+            )
+        try {
+            for (top in listOf(0, 180, 360, 540, 720, 900)) {
+                val frame = Bitmap.createBitmap(source, 0, top, 720, 1000)
+                controller.executor.execute { controller.submitCapturedFrame(frame) }
+                Thread.sleep(300)
+            }
+            assertTrue("Live panorama did not grow before Done", live.await(15, TimeUnit.SECONDS))
+            assertNull(failure.get())
+            assertNull("Final photo must wait for explicit Done", file.get())
+            controller.finish()
+            assertTrue(finished.await(15, TimeUnit.SECONDS))
+            assertNull(failure.get())
+            val image = requireNotNull(BitmapFactory.decodeFile(requireNotNull(file.get()).path))
+            assertTrue(image.height > 1800)
+            image.recycle()
+        } finally {
+            controller.close()
+            source.recycle()
+        }
+    }
+
+    @Test
+    fun deskIsExcludedButReceiptInkIsPreserved() {
+        val receipt = paper(height = 2200)
+        val source = Bitmap.createBitmap(720, 2200, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(source)
+        canvas.drawColor(Color.rgb(205, 209, 211))
+        val deskInk =
+            Paint().apply {
+                color = Color.BLACK
+                textSize = 22f
+            }
+        for (y in 80..2000 step 120) {
+            canvas.drawText("DESK", 10f, y.toFloat(), deskInk)
+            canvas.drawText("DESK", 630f, y.toFloat(), deskInk)
+        }
+        canvas.drawBitmap(
+            receipt,
+            null,
+            android.graphics.RectF(120f, 0f, 600f, 2200f),
+            Paint(Paint.FILTER_BITMAP_FLAG),
+        )
+        LongReceiptSession(context.cacheDir).use { session ->
+            try {
+                for (top in listOf(0, 250, 500, 750, 1000)) {
+                    val progress = session.offer(Bitmap.createBitmap(source, 0, top, 720, 1000))
+                    assertFalse(progress.message, progress.warning)
+                }
+                val result = BitmapFactory.decodeFile(session.finish().path)
+                try {
+                    assertTrue(
+                        "Only the paper should remain: ${result.width}",
+                        result.width in 450..500,
+                    )
+                    assertTrue(result.height > 1950)
+                    var ink = 0
+                    for (y in 0 until result.height step 5) for (x in 0 until result.width step 5) {
+                        val pixel = result.getPixel(x, y)
+                        assertTrue(
+                            "Colored desk leaked into scan",
+                            abs(Color.red(pixel) - Color.blue(pixel)) < 12,
+                        )
+                        if (Color.red(pixel) < 100) ink++
+                    }
+                    assertTrue("Printed details must survive the mask", ink > 250)
+                    File(context.filesDir, "paper-only-panorama.jpg").outputStream().use {
+                        result.compress(Bitmap.CompressFormat.JPEG, 94, it)
+                    }
+                } finally {
+                    result.recycle()
+                }
+            } finally {
+                source.recycle()
+                receipt.recycle()
+            }
+        }
+    }
+
+    @Test
+    fun handheldPanoramaContinuesAfterTiltAndDistanceChange() {
+        val source = paper(height = 3000)
+        LongReceiptSession(context.cacheDir).use { session ->
+            try {
+                assertEquals(1, session.offer(Bitmap.createBitmap(source, 0, 0, 720, 1000)).count)
+                for ((index, top) in listOf(220, 440, 660, 880, 1100, 1320, 1540).withIndex()) {
+                    val frame = Bitmap.createBitmap(720, 1000, Bitmap.Config.ARGB_8888)
+                    val canvas = Canvas(frame)
+                    canvas.drawColor(Color.WHITE)
+                    val transform =
+                        Matrix().apply {
+                            setTranslate(0f, -top.toFloat())
+                            postRotate(if (index % 2 == 0) 2f else -1.5f, 360f, 500f)
+                            postScale(1.035f, 1.035f, 360f, 500f)
+                        }
+                    canvas.drawBitmap(source, transform, Paint(Paint.FILTER_BITMAP_FLAG))
+                    val progress = session.offer(frame)
+                    assertFalse("Handheld frame $index: ${progress.message}", progress.warning)
+                    assertEquals(index + 2, progress.count)
+                }
+                val stitched = requireNotNull(BitmapFactory.decodeFile(session.finish().path))
+                try {
+                    assertTrue("Panorama must grow beyond the first frame", stitched.height > 2400)
+                } finally {
+                    stitched.recycle()
+                }
+            } finally {
+                source.recycle()
+            }
+        }
+    }
+
+    @Test
     fun clearSparseReceiptSectionIsNotMistakenForBlur() {
         val source = paper(height = 1800)
         val canvas = Canvas(source)
@@ -153,11 +292,6 @@ class LongReceiptAcceptanceTest {
         }
         val first = Bitmap.createBitmap(source, 0, 0, 720, 1000)
         val next = Bitmap.createBitmap(source, 0, 480, 720, 1000)
-        assertTrue(
-            "Fixture must reproduce the old whole-frame contrast rejection",
-            LongReceiptSession.texture(next).energy <
-                LongReceiptSession.texture(first).energy * .55f,
-        )
         LongReceiptSession(context.cacheDir).use { session ->
             try {
                 assertEquals(1, session.offer(first).count)

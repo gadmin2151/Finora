@@ -8,20 +8,28 @@ import java.io.File
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.roundToInt
 
 const val SCAN_WINDOW_WIDTH = .86f
 const val SCAN_WINDOW_HEIGHT = .46f
 
-/** Camera frames, registration, JPEG I/O and cleanup all use a single bounded worker. */
+const val RECEIPT_FRAME_INTERVAL_MS = 300L
+private const val MAX_PENDING_FRAMES = 3
+
+/** Camera acquisition and live stitching use independent, bounded workers. */
 class LongReceiptController(
     private val cache: File,
     private val main: Executor,
     private val onProgress: (ScanProgress) -> Unit,
     private val onResult: (File) -> Unit,
     private val onError: (String) -> Unit,
+    private val onCaptured: (Int) -> Unit = {},
 ) : AutoCloseable {
     val executor = Executors.newSingleThreadExecutor()
+    private val stitching = Executors.newSingleThreadExecutor()
+    private val pendingFrames = AtomicInteger(0)
+    private val capturedFrames = AtomicInteger(0)
     private val recording = AtomicBoolean(false)
     private val disposed = AtomicBoolean(false)
     private var current: LongReceiptSession? = null
@@ -42,7 +50,13 @@ class LongReceiptController(
         var bitmap: Bitmap? = null
         try {
             val now = SystemClock.elapsedRealtime()
-            if (disposed.get() || !recording.get() || now - lastFrameAt < 280) return
+            if (
+                disposed.get() ||
+                    !recording.get() ||
+                    now - lastFrameAt < RECEIPT_FRAME_INTERVAL_MS ||
+                    pendingFrames.get() >= MAX_PENDING_FRAMES
+            )
+                return
             lastFrameAt = now
             bitmap = cropFrame(frame)
         } catch (_: Exception) {
@@ -51,18 +65,42 @@ class LongReceiptController(
         } finally {
             frame.close()
         }
-        bitmap?.let { image ->
+        bitmap?.let(::submitCapturedFrame)
+    }
+
+    /** Transfers ownership to the stitcher; bounded buffering keeps CameraX responsive. */
+    internal fun submitCapturedFrame(image: Bitmap) {
+        if (disposed.get()) {
+            image.recycle()
+            return
+        }
+        if (pendingFrames.incrementAndGet() > MAX_PENDING_FRAMES) {
+            pendingFrames.decrementAndGet()
+            image.recycle()
+            return
+        }
+        val count = capturedFrames.incrementAndGet()
+        dispatch { onCaptured(count) }
+        stitching.execute {
             try {
+                if (disposed.get()) {
+                    image.recycle()
+                    return@execute
+                }
                 val result = session().offer(image)
                 if (result.limitReached) pause()
                 dispatch { onProgress(result) }
-            } catch (_: Exception) {
+            } catch (error: Exception) {
+                android.util.Log.w("FinoraPanorama", "Frame processing failed", error)
+                if (!image.isRecycled) image.recycle()
                 pause()
                 dispatch {
                     onError(
                         "Не удалось сохранить фрагмент. Проверьте свободное место и переснимите чек."
                     )
                 }
+            } finally {
+                pendingFrames.decrementAndGet()
             }
         }
     }
@@ -70,11 +108,15 @@ class LongReceiptController(
     fun finish() {
         pause()
         executor.execute {
-            try {
-                val file = session().finish()
-                dispatch { onResult(file) }
-            } catch (error: Exception) {
-                dispatch { onError(error.message ?: "Не удалось собрать чек. Попробуйте ещё раз.") }
+            stitching.execute {
+                try {
+                    val file = session().finish()
+                    dispatch { onResult(file) }
+                } catch (error: Exception) {
+                    dispatch {
+                        onError(error.message ?: "Не удалось собрать чек. Попробуйте ещё раз.")
+                    }
+                }
             }
         }
     }
@@ -82,15 +124,19 @@ class LongReceiptController(
     fun reset() {
         pause()
         executor.execute {
-            current?.close()
-            current = null
             lastFrameAt = 0
-            dispatch { onProgress(ScanProgress()) }
+            stitching.execute {
+                current?.close()
+                current = null
+                capturedFrames.set(0)
+                dispatch { onCaptured(0) }
+                dispatch { onProgress(ScanProgress()) }
+            }
         }
     }
 
     fun copyForDraft(file: File, onPhoto: (File) -> Unit) {
-        executor.execute {
+        stitching.execute {
             var output: File? = null
             try {
                 output = File.createTempFile("finora-long-", ".jpg", cache)
@@ -114,8 +160,11 @@ class LongReceiptController(
         if (!disposed.compareAndSet(false, true)) return
         pause()
         executor.execute {
-            current?.close()
-            current = null
+            stitching.execute {
+                current?.close()
+                current = null
+            }
+            stitching.shutdown()
         }
         executor.shutdown()
     }

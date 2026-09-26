@@ -74,6 +74,7 @@ fun LongReceiptCamera(
     var viewportSize by remember { mutableStateOf(IntSize.Zero) }
     var discard by remember { mutableStateOf(false) }
     var captureError by remember { mutableStateOf<String?>(null) }
+    var capturedFrames by remember { mutableIntStateOf(0) }
     val controller = remember {
         LongReceiptController(
             context.cacheDir,
@@ -88,12 +89,16 @@ fun LongReceiptCamera(
             {
                 result = it
                 working = false
+                if (progress.warning)
+                    captureError =
+                        "Последние кадры не совместились. Проверьте, что весь чек, включая итог, попал в снимок."
             },
             {
                 recording = false
                 working = false
                 captureError = it
             },
+            { capturedFrames = it },
         )
     }
     val close = {
@@ -288,9 +293,8 @@ fun LongReceiptCamera(
                 }
                 Text(
                     if (progress.count == 0)
-                        "Поместите в рамку короткий чек целиком или начало длинного."
-                    else
-                        "Весь чек в кадре? Нажмите «Готово». Если он длиннее — ведите камеру вниз.",
+                        "Наведите на белую бумагу. В рамке должна быть вся ширина чека."
+                    else "Плавно ведите сверху вниз. Полоса чека собирается на ходу.",
                     Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
                     color = Color.White,
                     textAlign = TextAlign.Center,
@@ -313,13 +317,13 @@ fun LongReceiptCamera(
                         verticalArrangement = Arrangement.spacedBy(7.dp),
                     ) {
                         Text(
-                            if (working) "Собираем один снимок…" else progress.message,
+                            if (working) "Завершаем снимок…" else progress.message,
                             color = if (progress.warning) Amber else Mint,
                             style = MaterialTheme.typography.bodyMedium,
                         )
-                        if (progress.count > 0) {
+                        if (capturedFrames > 0) {
                             Text(
-                                "Фрагментов: ${progress.count} · один снимок",
+                                "Кадров: $capturedFrames · участков: ${progress.count}",
                                 color = Color.White.copy(alpha = .75f),
                                 style = MaterialTheme.typography.labelSmall,
                             )
@@ -383,7 +387,7 @@ fun LongReceiptCamera(
                 }
                 if (progress.count == 0)
                     Text(
-                        "Один чек · одно фото · без интернета",
+                        "Кадр каждые 0,3 с · фон убирается автоматически",
                         Modifier.padding(top = 10.dp),
                         color = Color.White.copy(alpha = .65f),
                         style = MaterialTheme.typography.labelSmall,

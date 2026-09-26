@@ -49,6 +49,18 @@ public final class ReleaseSmokeInstrumentation extends Instrumentation {
             }
             if (count < 3) throw new AssertionError("Missing ML Kit registrars");
             result.putString("registrars", "PASS: " + count + " release constructors");
+            if (!org.opencv.android.OpenCVLoader.initLocal()) throw new AssertionError("OpenCV JNI not loaded");
+            org.opencv.core.Mat input = org.opencv.core.Mat.zeros(128, 128, org.opencv.core.CvType.CV_8UC1);
+            org.opencv.core.Mat mask = new org.opencv.core.Mat();
+            org.opencv.core.Mat descriptors = new org.opencv.core.Mat();
+            org.opencv.core.MatOfKeyPoint points = new org.opencv.core.MatOfKeyPoint();
+            org.opencv.features2d.ORB detector = org.opencv.features2d.ORB.create();
+            try {
+                detector.detectAndCompute(input, mask, points, descriptors);
+                result.putString("panorama", "PASS: native feature extraction in signed release");
+            } finally {
+                input.release(); mask.release(); descriptors.release(); points.release(); detector.clear();
+            }
             sendStatus(0, result);
             if (testCamera) {
                 getTargetContext().startActivity(new Intent(Intent.ACTION_MAIN)
