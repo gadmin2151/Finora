@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write src",
-    "lint": "eslint src"
+    "lint": "eslint src",
+    "test:i18n": "node --test tests/i18n.test.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.0",

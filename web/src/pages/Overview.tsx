@@ -1,3 +1,4 @@
+import { t, getLocale } from "../i18n";
 import { useQuery } from "@tanstack/react-query";
 import { useSyncExternalStore } from "react";
 import {
@@ -76,16 +77,16 @@ export default function Overview() {
   return (
     <>
       <PageHeading
-        eyebrow="PERSONAL FINANCE / ОБЗОР"
-        title="Больше ясности. Меньше лишнего."
-        text={`Всё важное за ${monthLabel(month)}`}
+        eyebrow={t("PERSONAL FINANCE / ОБЗОР")}
+        title={t("Больше ясности. Меньше лишнего.")}
+        text={t("Всё важное за {0}", monthLabel(month))}
         actions={
           <button
             className="button secondary"
             onClick={() => open({ type: "upload" })}
           >
             <ScanLine size={18} />
-            Добавить чек
+            {t("Добавить чек")}
           </button>
         }
       />
@@ -93,19 +94,20 @@ export default function Overview() {
         <section className="stat-card main-stat">
           <div className="stat-label">
             <span className="balance-eyebrow">
-              <i /> Финансовый пульс
+              <i /> {t("Финансовый пульс")}
             </span>
             <Wallet size={20} />
           </div>
           <strong>{amount(data.net_minor)}</strong>
           <span className="stat-note">
-            Остаток за месяц · доходы минус расходы
+            {t("Остаток за месяц · доходы минус расходы")}
           </span>
           <button
             className="balance-link"
             onClick={() => navigate(isAdmin ? "accounts" : "transactions")}
           >
-            {isAdmin ? "Мои счета" : "Все операции"} <ArrowUpRight size={17} />
+            {isAdmin ? t("Мои счета") : t("Все операции")}{" "}
+            <ArrowUpRight size={17} />
           </button>
           <div className="balance-orbit" aria-hidden="true">
             <i />
@@ -123,7 +125,7 @@ export default function Overview() {
         </section>
         <section className="stat-card">
           <div className="stat-label">
-            <span>Доходы</span>
+            <span>{t("Доходы")}</span>
             <span className="round-icon mint">
               <ArrowDownLeft size={18} />
             </span>
@@ -131,22 +133,22 @@ export default function Overview() {
           <strong>{amount(data.income_minor)}</strong>
           <button className="text-button" onClick={() => navigate("income")}>
             <Plus size={15} />
-            Открыть доходы
+            {t("Открыть доходы")}
           </button>
         </section>
         <section className="stat-card">
           <div className="stat-label">
-            <span>Расходы</span>
+            <span>{t("Расходы")}</span>
             <span className="round-icon peach">
               <ArrowUpRight size={18} />
             </span>
           </div>
           <strong>{amount(data.expense_minor)}</strong>
-          <span className="stat-note">Возвраты покупок учтены</span>
+          <span className="stat-note">{t("Возвраты покупок учтены")}</span>
         </section>
         <section className="stat-card">
           <div className="stat-label">
-            <span>Ещё к оплате</span>
+            <span>{t("Ещё к оплате")}</span>
             <span className="round-icon lavender">
               <CalendarClock size={18} />
             </span>
@@ -158,8 +160,8 @@ export default function Overview() {
             onClick={() => navigate("bills")}
           >
             {pending.length
-              ? `${pending.length} обязательных платежей`
-              : "Составить план платежей"}
+              ? t("{0} обязательных платежей", pending.length)
+              : t("Составить план платежей")}
             <ChevronRight size={16} />
           </button>
         </section>
@@ -170,17 +172,18 @@ export default function Overview() {
             <Sparkles size={22} />
           </div>
           <div>
-            <strong>Первый шаг — первый расход</strong>
+            <strong>{t("Первый шаг — первый расход")}</strong>
             <p>
-              Введите покупку или отправьте фото чека. Finora соберёт вашу
-              финансовую картину.
+              {t(
+                "Введите покупку или отправьте фото чека. Finora соберёт вашу финансовую картину.",
+              )}
             </p>
           </div>
           <button
             className="button primary"
             onClick={() => open({ type: "transaction" })}
           >
-            Добавить операцию
+            {t("Добавить операцию")}
             <ArrowRight size={17} />
           </button>
         </div>
@@ -189,17 +192,17 @@ export default function Overview() {
         <section className="panel chart-panel">
           <div className="panel-heading">
             <div>
-              <h2>Движение денег</h2>
-              <p>По дням месяца · MDL</p>
+              <h2>{t("Движение денег")}</h2>
+              <p>{t("По дням месяца · MDL")}</p>
             </div>
             <div className="chart-legend">
               <span>
                 <i className="dot green" />
-                Доходы
+                {t("Доходы")}
               </span>
               <span>
                 <i className="dot purple" />
-                Расходы
+                {t("Расходы")}
               </span>
             </div>
           </div>
@@ -253,7 +256,7 @@ export default function Overview() {
                   tick={{ fill: "var(--muted)", fontSize: 12 }}
                   width={64}
                   tickFormatter={(n) =>
-                    Number(n) >= 1000 ? `${Number(n) / 1000}к` : String(n)
+                    Number(n) >= 1000 ? t("{0}к", Number(n) / 1000) : String(n)
                   }
                 />
                 <Tooltip
@@ -265,8 +268,8 @@ export default function Overview() {
                     fontSize: 14,
                   }}
                   formatter={(v, name) => [
-                    `${Number(v).toLocaleString("ru-RU")} MDL`,
-                    name === "income" ? "Доходы" : "Расходы",
+                    `${Number(v).toLocaleString(getLocale())} MDL`,
+                    name === "income" ? t("Доходы") : t("Расходы"),
                   ]}
                   labelFormatter={(d) => `${d} ${monthLabel(month)}`}
                 />
@@ -292,19 +295,19 @@ export default function Overview() {
           <div className="panel-foot">
             <span>{data.comparison_label}</span>
             <span>
-              Расходы ранее: <b>{amount(data.previous_expense_minor)}</b>
+              {t("Расходы ранее:")} <b>{amount(data.previous_expense_minor)}</b>
             </span>
           </div>
         </section>
         <section className="panel">
           <div className="panel-heading">
             <div>
-              <h2>Куда уходят деньги</h2>
-              <p>Расходы по категориям</p>
+              <h2>{t("Куда уходят деньги")}</h2>
+              <p>{t("Расходы по категориям")}</p>
             </div>
             <button
               className="icon-button"
-              aria-label="Открыть бюджеты"
+              aria-label={t("Открыть бюджеты")}
               hidden={!isAdmin}
               onClick={() => navigate("budgets")}
             >
@@ -335,22 +338,22 @@ export default function Overview() {
             </div>
           ) : (
             <Empty
-              title="Пока всё впереди"
-              text="Категории появятся после первой покупки."
+              title={t("Пока всё впереди")}
+              text={t("Категории появятся после первой покупки.")}
             />
           )}
         </section>
         <section className="panel">
           <div className="panel-heading">
             <div>
-              <h2>Последние операции</h2>
-              <p>Ваша история за выбранный месяц</p>
+              <h2>{t("Последние операции")}</h2>
+              <p>{t("Ваша история за выбранный месяц")}</p>
             </div>
             <button
               className="text-button"
               onClick={() => navigate("transactions")}
             >
-              Все операции
+              {t("Все операции")}
               <ArrowRight size={17} />
             </button>
           </div>
@@ -369,7 +372,7 @@ export default function Overview() {
                     <strong>
                       {tx.merchant ||
                         tx.note ||
-                        (tx.kind === "income" ? "Доход" : "Операция")}
+                        (tx.kind === "income" ? t("Доход") : t("Операция"))}
                     </strong>
                     <span>
                       {dateLabel(tx.occurred_on)} ·{" "}
@@ -403,15 +406,15 @@ export default function Overview() {
             </div>
           ) : (
             <Empty
-              title="Операций ещё нет"
-              text="Начните вести учёт в удобном вам темпе."
+              title={t("Операций ещё нет")}
+              text={t("Начните вести учёт в удобном вам темпе.")}
               action={
                 isAdmin && (
                   <button
                     className="text-button"
                     onClick={() => open({ type: "transaction" })}
                   >
-                    Добавить первую
+                    {t("Добавить первую")}
                     <ArrowRight size={16} />
                   </button>
                 )
@@ -422,12 +425,12 @@ export default function Overview() {
         <section className="panel">
           <div className="panel-heading">
             <div>
-              <h2>Ближайшие платежи</h2>
-              <p>Чтобы ничего не упустить</p>
+              <h2>{t("Ближайшие платежи")}</h2>
+              <p>{t("Чтобы ничего не упустить")}</p>
             </div>
             <button
               className="icon-button"
-              aria-label="Открыть платежи"
+              aria-label={t("Открыть платежи")}
               hidden={!isAdmin}
               disabled={!isAdmin}
               onClick={() => navigate("bills")}
@@ -461,8 +464,10 @@ export default function Overview() {
           ) : (
             <Empty
               icon={<CalendarClock size={28} />}
-              title="Нет ожидающих платежей"
-              text="Добавьте аренду, связь и подписки, чтобы видеть обязательства заранее."
+              title={t("Нет ожидающих платежей")}
+              text={t(
+                "Добавьте аренду, связь и подписки, чтобы видеть обязательства заранее.",
+              )}
             />
           )}
         </section>
@@ -472,9 +477,9 @@ export default function Overview() {
           <Sparkles size={25} />
         </span>
         <span>
-          <strong>Больше ясности. Меньше лишних трат.</strong>
+          <strong>{t("Больше ясности. Меньше лишних трат.")}</strong>
           <span>
-            Посмотрите, что изменилось в расходах и где можно сэкономить.
+            {t("Посмотрите, что изменилось в расходах и где можно сэкономить.")}
           </span>
         </span>
         <ArrowRight size={24} />

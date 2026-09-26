@@ -1,3 +1,4 @@
+import { t, getLocale } from "./i18n";
 import { ArrowUpRight, ChartNoAxesCombined } from "lucide-react";
 import { api, useAction } from "./api";
 import { useApp } from "./context";
@@ -8,7 +9,10 @@ function displayValue(value: string) {
   return value.replace(
     /(-?\d+)\.(\d{2})(?=\s(?:MDL|EUR|USD|RON)\b)/g,
     (_, whole: string, fraction: string) =>
-      `${whole.replace(/\B(?=(\d{3})+(?!\d))/g, "\u00a0")},${fraction}`,
+      new Intl.NumberFormat(getLocale(), {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(Number(`${whole}.${fraction}`)),
   );
 }
 
@@ -25,7 +29,7 @@ export function ReportCard({
   );
   const category =
     categories.find((c) => c.id === report.query.category_id)?.name ??
-    (report.query.category_id === "uncategorized" ? "Без категории" : "");
+    (report.query.category_id === "uncategorized" ? t("Без категории") : "");
   return (
     <article className={`report-card ${compact ? "compact" : "panel"}`}>
       <header className="report-heading">
@@ -38,7 +42,7 @@ export function ReportCard({
             {report.query.date_from} — {report.query.date_to}
           </p>
         </div>
-        <span className="report-verified">Из вашего учёта</span>
+        <span className="report-verified">{t("Из вашего учёта")}</span>
       </header>
       {[
         report.query.search,
@@ -48,8 +52,8 @@ export function ReportCard({
       ].some(Boolean) && (
         <p className="report-filters">
           {[
-            report.query.search && `Товар: ${report.query.search}`,
-            report.query.merchant && `Магазин: ${report.query.merchant}`,
+            report.query.search && t("Товар: {0}", report.query.search),
+            report.query.merchant && t("Магазин: {0}", report.query.merchant),
             category,
             report.query.currency,
           ]
@@ -77,7 +81,7 @@ export function ReportCard({
               {row.receipt_id && (
                 <button
                   className="icon-button"
-                  aria-label={`Открыть чек: ${row.label}`}
+                  aria-label={t("Открыть чек: {0}", row.label)}
                   disabled={details.isPending}
                   onClick={() => details.mutate(row.receipt_id!)}
                 >
@@ -90,19 +94,20 @@ export function ReportCard({
       )}
       {report.query.kind !== "summary" && report.rows.length === 0 && (
         <p className="report-empty">
-          За этот период нет подходящих данных. Попробуйте другой период или
-          уточните фильтры.
+          {t(
+            "За этот период нет подходящих данных. Попробуйте другой период или уточните фильтры.",
+          )}
         </p>
       )}
       {report.total_rows > report.rows.length && (
         <p className="muted">
-          Показано {report.rows.length} из {report.total_rows}. Итоги рассчитаны
-          по всем найденным записям.
+          {t("Показано")} {report.rows.length} {t("из")} {report.total_rows}
+          {t(". Итоги рассчитаны по всем найденным записям.")}
         </p>
       )}
       <ErrorBox error={details.error} />
       <details className="report-method">
-        <summary>Как рассчитано</summary>
+        <summary>{t("Как рассчитано")}</summary>
         {report.notices.map((notice) => (
           <p key={notice}>{notice}</p>
         ))}

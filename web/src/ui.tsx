@@ -1,3 +1,5 @@
+import { t, getLanguage, getLocale } from "./i18n";
+import { pluralIndex } from "./i18nCore";
 import {
   useEffect,
   useId,
@@ -59,24 +61,14 @@ export const today = () =>
   }).format(new Date());
 export const currentMonth = () => today().slice(0, 7);
 export const counted = (n: number, forms: [string, string, string]) => {
-  const last = Math.abs(n) % 10;
-  const teen = Math.abs(n) % 100;
-  const word =
-    teen >= 11 && teen <= 19
-      ? forms[2]
-      : last === 1
-        ? forms[0]
-        : last >= 2 && last <= 4
-          ? forms[1]
-          : forms[2];
-  return `${n} ${word}`;
+  return `${n} ${forms[pluralIndex(n, getLanguage())]}`;
 };
 export const amount = (
   value: number | null | undefined,
   currency = "MDL",
   compact = false,
 ) =>
-  new Intl.NumberFormat("ru-RU", {
+  new Intl.NumberFormat(getLocale(), {
     style: "currency",
     currency,
     minimumFractionDigits: compact ? 0 : 2,
@@ -85,46 +77,102 @@ export const amount = (
 export const decimal = (value: number | null | undefined) =>
   ((value ?? 0) / 100).toFixed(2);
 export const dateLabel = (date: string) =>
-  new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short" }).format(
-    new Date(date.slice(0, 10) + "T12:00:00"),
-  );
+  new Intl.DateTimeFormat(getLocale(), {
+    day: "numeric",
+    month: "short",
+  }).format(new Date(date.slice(0, 10) + "T12:00:00"));
 export const monthLabel = (month: string) =>
-  new Intl.DateTimeFormat("ru-RU", { month: "long", year: "numeric" }).format(
-    new Date(month + "-01T12:00:00"),
-  );
+  new Intl.DateTimeFormat(getLocale(), {
+    month: "long",
+    year: "numeric",
+  }).format(new Date(month + "-01T12:00:00"));
 export const key = () => crypto.randomUUID();
 export const kinds: Record<string, string> = {
-  expense: "Расход",
-  income: "Доход",
-  transfer: "Перевод",
-  refund: "Возврат покупки",
-  adjustment: "Корректировка +",
-  debt_lend: "Выдали в долг",
-  debt_borrow: "Взяли в долг",
-  debt_repayment_in: "Вам вернули долг",
-  debt_repayment_out: "Вернули долг",
+  get expense() {
+    return t("Расход");
+  },
+  get income() {
+    return t("Доход");
+  },
+  get transfer() {
+    return t("Перевод");
+  },
+  get refund() {
+    return t("Возврат покупки");
+  },
+  get adjustment() {
+    return t("Корректировка +");
+  },
+  get debt_lend() {
+    return t("Выдали в долг");
+  },
+  get debt_borrow() {
+    return t("Взяли в долг");
+  },
+  get debt_repayment_in() {
+    return t("Вам вернули долг");
+  },
+  get debt_repayment_out() {
+    return t("Вернули долг");
+  },
 };
 export const recurrenceLabels: Record<string, string> = {
-  monthly: "Каждый месяц",
-  quarterly: "Раз в квартал",
-  yearly: "Каждый год",
-  weekly: "Каждую неделю",
-  once: "Один раз",
+  get monthly() {
+    return t("Каждый месяц");
+  },
+  get quarterly() {
+    return t("Раз в квартал");
+  },
+  get yearly() {
+    return t("Каждый год");
+  },
+  get weekly() {
+    return t("Каждую неделю");
+  },
+  get once() {
+    return t("Один раз");
+  },
 };
 export const statusLabels: Record<string, string> = {
-  received: "Получен",
-  paused: "Приостановлен",
-  paid: "Оплачен",
-  skipped: "Пропущен",
-  overdue: "Просрочен",
-  upcoming: "Запланирован",
-  queued: "В очереди",
-  processing: "Распознаю",
-  review: "Нужна проверка",
-  posted: "В учёте",
-  done: "Готово",
-  failed: "Ошибка",
-  running: "В работе",
+  get received() {
+    return t("Получен");
+  },
+  get paused() {
+    return t("Приостановлен");
+  },
+  get paid() {
+    return t("Оплачен");
+  },
+  get skipped() {
+    return t("Пропущен");
+  },
+  get overdue() {
+    return t("Просрочен");
+  },
+  get upcoming() {
+    return t("Запланирован");
+  },
+  get queued() {
+    return t("В очереди");
+  },
+  get processing() {
+    return t("Распознаю");
+  },
+  get review() {
+    return t("Нужна проверка");
+  },
+  get posted() {
+    return t("В учёте");
+  },
+  get done() {
+    return t("Готово");
+  },
+  get failed() {
+    return t("Ошибка");
+  },
+  get running() {
+    return t("В работе");
+  },
 };
 export function CategoryIcon({
   category,
@@ -202,7 +250,7 @@ export function ErrorBox({ error }: { error: unknown }) {
     </div>
   ) : null;
 }
-export function Loading({ text = "Загружаю данные…" }: { text?: string }) {
+export function Loading({ text = t("Загружаю данные…") }: { text?: string }) {
   return (
     <div className="loading" role="status">
       <span className="brand-loader">
@@ -299,7 +347,9 @@ export function AccountSelect({
       onChange={(e) => onChange(e.target.value)}
       required={!optional}
     >
-      <option value="">{optional ? "Выбрать позже" : "Выберите счёт"}</option>
+      <option value="">
+        {optional ? t("Выбрать позже") : t("Выберите счёт")}
+      </option>
       {accounts
         .filter((a) => !a.archived && (!currency || a.currency === currency))
         .map((a) => (
@@ -327,7 +377,7 @@ export function CategorySelect({
       onChange={(e) => onChange(e.target.value)}
       required={required}
     >
-      <option value="">Без категории</option>
+      <option value="">{t("Без категории")}</option>
       {categories.map((c) => (
         <option key={c.id} value={c.id}>
           {c.name}
@@ -354,7 +404,7 @@ export function CurrencySelect({
 export function Submit({
   pending,
   disabled,
-  children = "Сохранить",
+  children = t("Сохранить"),
 }: {
   pending?: boolean;
   disabled?: boolean;
@@ -371,7 +421,7 @@ export function Submit({
       ) : (
         <Check size={18} />
       )}{" "}
-      {pending ? "Сохраняю…" : children}
+      {pending ? t("Сохраняю…") : children}
     </button>
   );
 }
@@ -420,7 +470,7 @@ export function Modal({
           </div>
           <button
             className="icon-button"
-            aria-label="Закрыть"
+            aria-label={t("Закрыть")}
             onClick={onClose}
           >
             <X size={22} />

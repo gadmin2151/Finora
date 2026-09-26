@@ -9,6 +9,7 @@ from . import models as m
 from .config import settings
 from .db import SessionLocal
 from .finance import lock_organization
+from .i18n import t
 from .security import decrypt
 
 MODEL_CATALOG = [
@@ -48,7 +49,8 @@ MODEL_CATALOG = [
 
 
 class AIError(Exception):
-    pass
+    def __init__(self, message: str):
+        super().__init__(t(message))
 
 
 def reserve_request(organization_id: str, purpose: str):
@@ -202,6 +204,13 @@ async def generate(
 
 
 async def ollama_models():
+    catalog = [
+        {
+            key: t(value) if key in {"size", "ram", "description"} else value
+            for key, value in item.items()
+        }
+        for item in MODEL_CATALOG
+    ]
     try:
         async with httpx.AsyncClient(timeout=8) as client:
             response = await client.get(settings().ollama_url.rstrip("/") + "/api/tags")
@@ -212,7 +221,7 @@ async def ollama_models():
                     {"name": row["name"], "size": row.get("size", 0)}
                     for row in response.json().get("models", [])
                 ],
-                "catalog": MODEL_CATALOG,
+                "catalog": catalog,
             }
     except (httpx.HTTPError, ValueError, KeyError):
-        return {"online": False, "models": [], "catalog": MODEL_CATALOG}
+        return {"online": False, "models": [], "catalog": catalog}

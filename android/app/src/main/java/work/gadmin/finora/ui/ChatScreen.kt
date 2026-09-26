@@ -20,12 +20,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 import work.gadmin.finora.AppState
 import work.gadmin.finora.FinoraViewModel
 import work.gadmin.finora.Page
 import work.gadmin.finora.data.AnalyticsReport
 import work.gadmin.finora.data.ChatMessage
+import work.gadmin.finora.localization.LanguageRuntime
+import work.gadmin.finora.localization.Message
+import work.gadmin.finora.localization.tr
 
 @Composable
 fun ChatScreen(state: AppState, vm: FinoraViewModel) {
@@ -50,9 +52,12 @@ fun ChatScreen(state: AppState, vm: FinoraViewModel) {
         ) {
             item(key = "header") {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Деньги. Понятным языком.", style = MaterialTheme.typography.headlineSmall)
                     Text(
-                        "Общий чат организации · суммы из вашего учёта",
+                        tr(Message.MONEY_IN_PLAIN_WORDS),
+                        style = MaterialTheme.typography.headlineSmall,
+                    )
+                    Text(
+                        tr(Message.SHARED_ORGANIZATION_CHAT_FIGURES_FROM_YOUR_RECORDS),
                         color = Muted,
                         style = MaterialTheme.typography.bodySmall,
                     )
@@ -62,20 +67,20 @@ fun ChatScreen(state: AppState, vm: FinoraViewModel) {
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         IconButton({ vm.month(-1) }, enabled = !state.busy) {
-                            LineIcon(Glyph.BACK, "Предыдущий месяц", size = 18.dp)
+                            LineIcon(Glyph.BACK, tr(Message.PREVIOUS_MONTH), size = 18.dp)
                         }
                         Text(
                             YearMonth.parse(state.month)
                                 .format(
                                     DateTimeFormatter.ofPattern(
                                         "LLLL yyyy",
-                                        Locale.forLanguageTag("ru"),
+                                        LanguageRuntime.language.locale,
                                     )
                                 ),
                             style = MaterialTheme.typography.labelLarge,
                         )
                         IconButton({ vm.month(1) }, enabled = !state.busy) {
-                            LineIcon(Glyph.CHEVRON, "Следующий месяц", size = 18.dp)
+                            LineIcon(Glyph.CHEVRON, tr(Message.NEXT_MONTH), size = 18.dp)
                         }
                     }
                 }
@@ -84,7 +89,7 @@ fun ChatScreen(state: AppState, vm: FinoraViewModel) {
                 item(key = "offline") { InfoCard(state.chatSyncError, Glyph.REFRESH) }
             if (state.chat.isEmpty()) {
                 item(key = "welcome") {
-                    if (state.chatLoading) BrandLoading("Открываю историю", compact = true)
+                    if (state.chatLoading) BrandLoading(tr(Message.OPENING_HISTORY), compact = true)
                     else
                         Surface(color = HeroStart, shape = RoundedCornerShape(24.dp)) {
                             Column(
@@ -95,18 +100,23 @@ fun ChatScreen(state: AppState, vm: FinoraViewModel) {
                             ) {
                                 BrandPulse(Modifier.size(60.dp))
                                 Text(
-                                    "От вопроса к ясности",
+                                    tr(Message.FROM_QUESTIONS_TO_CLARITY),
                                     style = MaterialTheme.typography.titleLarge,
                                 )
                                 Text(
-                                    "Сравню периоды, найду покупки и покажу, из чего складываются расходы.",
+                                    tr(
+                                        Message
+                                            .COMPARE_PERIODS_FIND_PURCHASES_AND_SEE_WHERE_YOUR_MONEY_GO
+                                    ),
                                     color = Mint,
                                     style = MaterialTheme.typography.bodyMedium,
                                 )
                                 listOf(
-                                        "На чём я могу сэкономить в этом месяце?",
-                                        "Найди LAPTE за последние 3 месяца",
-                                        "Сравни расходы на продукты за август и сентябрь",
+                                        tr(Message.WHERE_CAN_I_SAVE_MONEY_THIS_MONTH),
+                                        tr(Message.FIND_LAPTE_PURCHASES_FROM_THE_LAST_3_MONTHS),
+                                        tr(
+                                            Message.COMPARE_GROCERY_SPENDING_IN_AUGUST_AND_SEPTEMBER
+                                        ),
                                     )
                                     .forEach { prompt ->
                                         OutlinedButton(
@@ -128,7 +138,10 @@ fun ChatScreen(state: AppState, vm: FinoraViewModel) {
                             enabled = !state.chatLoading && !state.busy,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Text(if (state.chatLoading) "Загружаю…" else "Более ранние сообщения")
+                            Text(
+                                if (state.chatLoading) tr(Message.LOADING)
+                                else tr(Message.EARLIER_MESSAGES)
+                            )
                         }
                     }
                 items(state.chat, key = ChatMessage::id) { message ->
@@ -149,9 +162,9 @@ fun ChatScreen(state: AppState, vm: FinoraViewModel) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     listOf(
-                            "summary" to "Сводка",
-                            "categories" to "Категории",
-                            "prices" to "Мои цены",
+                            "summary" to tr(Message.SUMMARY),
+                            "categories" to tr(Message.CATEGORIES),
+                            "prices" to tr(Message.MY_PRICES),
                         )
                         .forEach { (kind, label) ->
                             SuggestionChip(
@@ -166,13 +179,13 @@ fun ChatScreen(state: AppState, vm: FinoraViewModel) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     IconButton(onClick = { vm.navigate(Page.CAPTURE) }, enabled = !state.busy) {
-                        LineIcon(Glyph.CAMERA, "Добавить фото чека")
+                        LineIcon(Glyph.CAMERA, tr(Message.ADD_A_RECEIPT_PHOTO))
                     }
                     OutlinedTextField(
                         value = state.chatDraft,
                         onValueChange = vm::chatDraft,
                         modifier = Modifier.weight(1f),
-                        placeholder = { Text("Ваш вопрос…") },
+                        placeholder = { Text(tr(Message.YOUR_QUESTION)) },
                         maxLines = 4,
                         shape = RoundedCornerShape(18.dp),
                         enabled = !state.busy,
@@ -182,11 +195,11 @@ fun ChatScreen(state: AppState, vm: FinoraViewModel) {
                         enabled = state.chatDraft.isNotBlank() && !state.busy && pending == null,
                         modifier = Modifier.size(48.dp),
                     ) {
-                        LineIcon(Glyph.CHEVRON, "Отправить сообщение", tint = OnPrimary)
+                        LineIcon(Glyph.CHEVRON, tr(Message.SEND_MESSAGE), tint = OnPrimary)
                     }
                 }
                 Text(
-                    "Быстрые отчёты работают без AI. Ответы AI стоит проверять.",
+                    tr(Message.QUICK_REPORTS_WORK_WITHOUT_AI_ALWAYS_CHECK_AI_ANSWERS),
                     style = MaterialTheme.typography.labelSmall,
                     color = Muted,
                 )
@@ -211,12 +224,12 @@ private fun ChatBubble(message: ChatMessage, openReceipt: (String) -> Unit) {
         ) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    if (user) "Участник организации"
+                    if (user) tr(Message.ORGANIZATION_MEMBER)
                     else
                         when (message.details.provider) {
-                            "reports" -> "Finora · точный расчёт"
-                            "ollama" -> "Finora · локальный AI"
-                            else -> "Finora · помощник"
+                            "reports" -> tr(Message.FINORA_VERIFIED_CALCULATION)
+                            "ollama" -> tr(Message.FINORA_LOCAL_AI)
+                            else -> tr(Message.FINORA_ASSISTANT)
                         },
                     color = if (user) Mint else Green,
                     style = MaterialTheme.typography.labelSmall,
@@ -234,7 +247,7 @@ private fun ChatBubble(message: ChatMessage, openReceipt: (String) -> Unit) {
             OutlinedButton(onClick = { openReceipt(id) }) {
                 LineIcon(Glyph.RECEIPT, size = 18.dp)
                 Spacer(Modifier.width(8.dp))
-                Text("Открыть чек и товары")
+                Text(tr(Message.OPEN_RECEIPT_AND_ITEMS))
             }
         }
         message.details.reports.forEach { report -> ReportBlock(report, openReceipt) }
@@ -315,7 +328,7 @@ private fun ReportBlock(report: AnalyticsReport, openReceipt: (String) -> Unit) 
                         Text(row.detail, color = Muted, style = MaterialTheme.typography.bodySmall)
                     row.receipt_id?.let { id ->
                         TextButton(onClick = { openReceipt(id) }) {
-                            Text("Показать исходный чек")
+                            Text(tr(Message.SHOW_ORIGINAL_RECEIPT))
                             LineIcon(Glyph.CHEVRON, size = 16.dp)
                         }
                     }
@@ -323,21 +336,30 @@ private fun ReportBlock(report: AnalyticsReport, openReceipt: (String) -> Unit) 
             }
             if (report.rows.size > 5)
                 TextButton(onClick = { expanded = !expanded }) {
-                    Text(if (expanded) "Свернуть" else "Показать ещё ${report.rows.size - 5}")
+                    Text(
+                        if (expanded) tr(Message.SHOW_LESS)
+                        else tr(Message.SHOW_1_S_MORE, report.rows.size - 5)
+                    )
                 }
             if (report.total_rows > report.rows.size)
                 Text(
-                    "Показано ${report.rows.size} из ${report.total_rows}. Итоги включают все найденные записи.",
+                    tr(
+                        Message.SHOWING_1_S_OF_2_S_TOTALS_INCLUDE_ALL_MATCHING_RECORDS,
+                        report.rows.size,
+                        report.total_rows,
+                    ),
                     color = Muted,
                     style = MaterialTheme.typography.bodySmall,
                 )
             if (report.query.kind != "summary" && report.rows.isEmpty())
                 Text(
-                    "Подходящих записей нет. Попробуйте другой период или название из чека.",
+                    tr(Message.NO_MATCHING_RECORDS_TRY_ANOTHER_PERIOD_OR_AN_ITEM_NAME_FRO),
                     color = Muted,
                     style = MaterialTheme.typography.bodySmall,
                 )
-            TextButton(onClick = { methods = !methods }) { Text("Как рассчитано") }
+            TextButton(onClick = { methods = !methods }) {
+                Text(tr(Message.HOW_THIS_WAS_CALCULATED))
+            }
             if (methods)
                 report.notices.forEach {
                     Text(it, color = Muted, style = MaterialTheme.typography.bodySmall)

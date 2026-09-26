@@ -13,6 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import work.gadmin.finora.localization.Message
+import work.gadmin.finora.localization.tr
 
 /** Width-first reading, including receipts too tall to fit legibly on one screen. */
 @Composable
@@ -40,7 +42,7 @@ fun ReceiptImageViewer(image: ImageBitmap, modifier: Modifier = Modifier) {
             ) {
                 Image(
                     image,
-                    "Фотография чека целиком, прокрутите вниз",
+                    tr(Message.FULL_RECEIPT_PHOTO_SCROLL_DOWN),
                     Modifier.width(displayWidth).aspectRatio(image.width.toFloat() / image.height),
                     contentScale = ContentScale.FillWidth,
                 )

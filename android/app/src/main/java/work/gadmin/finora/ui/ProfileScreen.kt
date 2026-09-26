@@ -18,6 +18,8 @@ import androidx.core.net.toUri
 import work.gadmin.finora.AppState
 import work.gadmin.finora.BuildConfig
 import work.gadmin.finora.FinoraViewModel
+import work.gadmin.finora.localization.Message
+import work.gadmin.finora.localization.tr
 
 @Composable
 fun ProfileScreen(state: AppState, vm: FinoraViewModel) {
@@ -32,7 +34,8 @@ fun ProfileScreen(state: AppState, vm: FinoraViewModel) {
         contentPadding = PaddingValues(22.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        item { Text("Ваш профиль", style = MaterialTheme.typography.headlineLarge) }
+        item { Text(tr(Message.YOUR_PROFILE), style = MaterialTheme.typography.headlineLarge) }
+        item { LanguageSettings() }
         item { AppearanceSettings() }
         item {
             Surface(color = SurfaceColor, shape = RoundedCornerShape(26.dp)) {
@@ -42,9 +45,9 @@ fun ProfileScreen(state: AppState, vm: FinoraViewModel) {
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     ProfileAvatar(state.user, vm, 96.dp)
-                    Text("Фото профиля", style = MaterialTheme.typography.titleMedium)
+                    Text(tr(Message.PROFILE_PHOTO), style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "Вас узнают в каждой организации",
+                        tr(Message.RECOGNIZABLE_IN_EVERY_ORGANIZATION),
                         color = Muted,
                         style = MaterialTheme.typography.bodySmall,
                     )
@@ -61,19 +64,20 @@ fun ProfileScreen(state: AppState, vm: FinoraViewModel) {
                         LineIcon(Glyph.CAMERA, size = 18.dp)
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            if (state.user?.avatar_url == null) "Добавить фото" else "Изменить фото"
+                            if (state.user?.avatar_url == null) tr(Message.ADD_PHOTO)
+                            else tr(Message.CHANGE_PHOTO)
                         )
                     }
                     if (state.user?.avatar_url != null)
                         TextButton({ vm.updateAvatar(null) }, enabled = !state.busy) {
-                            Text("Удалить фото")
+                            Text(tr(Message.REMOVE_PHOTO))
                         }
                     Text(
-                        "До 5 МБ · кадрирование по центру",
+                        tr(Message.UP_TO_5_MB_CROPPED_TO_THE_CENTRE),
                         color = Muted,
                         style = MaterialTheme.typography.labelSmall,
                     )
-                    if (state.busy) BrandLoading("Сохраняем профиль", compact = true)
+                    if (state.busy) BrandLoading(tr(Message.SAVING_YOUR_PROFILE), compact = true)
                 }
             }
         }
@@ -90,13 +94,14 @@ fun ProfileScreen(state: AppState, vm: FinoraViewModel) {
                     Spacer(Modifier.height(8.dp))
                     Text(state.organization?.name ?: "", fontWeight = FontWeight.Medium)
                     Text(
-                        if (state.organization?.isAdmin == true) "Администратор организации"
-                        else "Участник · чеки, комментарии и статистика",
+                        if (state.organization?.isAdmin == true)
+                            tr(Message.ORGANIZATION_ADMINISTRATOR)
+                        else tr(Message.MEMBER_RECEIPTS_COMMENTS_AND_STATISTICS),
                         color = Muted,
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     TextButton({ vm.chooseOrganization() }, contentPadding = PaddingValues(0.dp)) {
-                        Text("Сменить организацию")
+                        Text(tr(Message.SWITCH_ORGANIZATION))
                         Spacer(Modifier.width(8.dp))
                         LineIcon(Glyph.CHEVRON, size = 17.dp)
                     }
@@ -114,11 +119,11 @@ fun ProfileScreen(state: AppState, vm: FinoraViewModel) {
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         LineIcon(Glyph.SHIELD)
-                        Text("Защищённое подключение", fontWeight = FontWeight.SemiBold)
+                        Text(tr(Message.SECURE_CONNECTION), fontWeight = FontWeight.SemiBold)
                     }
                     Text(state.server, color = Green)
                     Text(
-                        "Пароль не хранится на телефоне. Сессия защищена Android Keystore. Фото остаются в закрытом хранилище до отправки.",
+                        tr(Message.YOUR_PASSWORD_IS_NOT_STORED_ON_YOUR_PHONE_YOUR_SESSION_IS),
                         color = Muted,
                         style = MaterialTheme.typography.bodyMedium,
                     )
@@ -126,14 +131,14 @@ fun ProfileScreen(state: AppState, vm: FinoraViewModel) {
                         { context.startActivity(Intent(Intent.ACTION_VIEW, state.server.toUri())) },
                         Modifier.fillMaxWidth(),
                     ) {
-                        Text("Открыть веб-версию")
+                        Text(tr(Message.OPEN_WEBSITE))
                     }
                 }
             }
         }
         item {
             InfoCard(
-                "QR чека считывается на устройстве. Распознавание фотографий и AI-анализ выполняет ваш сервер с выбранным в нём AI-провайдером.",
+                tr(Message.RECEIPT_QR_CODES_ARE_READ_ON_YOUR_DEVICE_YOUR_SERVER_PROCE),
                 Glyph.SPARK,
             )
         }
@@ -145,7 +150,7 @@ fun ProfileScreen(state: AppState, vm: FinoraViewModel) {
             ) {
                 LineIcon(Glyph.EXIT, size = 20.dp)
                 Spacer(Modifier.width(10.dp))
-                Text("Выйти из аккаунта")
+                Text(tr(Message.SIGN_OUT))
             }
         }
         item {
@@ -166,20 +171,18 @@ fun ProfileScreen(state: AppState, vm: FinoraViewModel) {
     if (logout)
         AlertDialog(
             onDismissRequest = { logout = false },
-            title = { Text("Выйти из Finora?") },
+            title = { Text(tr(Message.SIGN_OUT_OF_FINORA)) },
             text = {
-                Text(
-                    "Для следующего входа понадобится пароль. Неотправленные черновики останутся на этом устройстве и будут доступны только после входа в тот же аккаунт."
-                )
+                Text(tr(Message.YOU_WILL_NEED_YOUR_PASSWORD_TO_SIGN_IN_AGAIN_UNSENT_DRAFTS))
             },
             confirmButton = {
                 TextButton({
                     logout = false
                     vm.logout()
                 }) {
-                    Text("Выйти")
+                    Text(tr(Message.SIGN_OUT_026AB))
                 }
             },
-            dismissButton = { TextButton({ logout = false }) { Text("Отмена") } },
+            dismissButton = { TextButton({ logout = false }) { Text(tr(Message.CANCEL)) } },
         )
 }

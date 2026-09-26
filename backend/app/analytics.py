@@ -9,6 +9,7 @@ from sqlalchemy import case, extract, func, select
 
 from . import models as m
 from .finance import money, owned
+from .i18n import t, unit_label
 from .purchases import PurchaseFilters, history
 from .schemas import Currency, Strict
 
@@ -25,11 +26,11 @@ class ReportQuery(Strict):
     @model_validator(mode="after")
     def bounded_period(self):
         if not 1990 <= self.date_from.year <= self.date_to.year <= 2100:
-            raise ValueError("Допустимы даты с 1990 по 2100 год")
+            raise ValueError(t("Допустимы даты с 1990 по 2100 год"))
         if not 0 <= (self.date_to - self.date_from).days <= 730:
-            raise ValueError("Выберите период до двух лет, от начала к концу")
+            raise ValueError(t("Выберите период до двух лет, от начала к концу"))
         if self.search and self.kind not in {"purchases", "prices"}:
-            raise ValueError("Поиск по названию доступен для товаров и цен")
+            raise ValueError(t("Поиск по названию доступен для товаров и цен"))
         return self
 
 
@@ -65,37 +66,50 @@ def _purchase_report(db, organization_id: str, query: ReportQuery) -> Report:
         PurchaseFilters(**query.model_dump(exclude={"kind"}), limit=20),
     )
     metrics = [
-        ReportMetric(label="Найдено позиций", value=str(result["total"])),
-        ReportMetric(label="Чеков", value=str(result["receipt_count"])),
+        ReportMetric(label=t("Найдено позиций"), value=str(result["total"])),
+        ReportMetric(label=t("Чеков"), value=str(result["receipt_count"])),
     ]
     metrics.extend(
         ReportMetric(
-            label="Стоимость покупок", value=currency_value(t["total_minor"], t["currency"])
+            label=t("Стоимость покупок"),
+            value=currency_value(total["total_minor"], total["currency"]),
         )
-        for t in result["totals"]
+        for total in result["totals"]
     )
     notices = [
-        "Только подтверждённые чеки. Возвраты учтены в финансовой сводке, но не вычитаются из товарных строк."
+        t(
+            "Только подтверждённые чеки. Возвраты учтены в финансовой сводке, но не вычитаются из товарных строк."
+        )
     ]
     if query.kind == "prices":
         rows = [
             ReportRow(
                 label=p["name"],
-                value=f"{currency_value(p['min_unit_minor'], p['currency'])} — {currency_value(p['max_unit_minor'], p['currency'])}/{p['unit']}",
-                detail=f"Минимум: {p['best_merchant']}, {p['best_on']}. Чеков: {p['receipt_count']}. Сценарий по прошлому минимуму: {currency_value(p['potential_minor'], p['currency'])}.",
+                value=f"{currency_value(p['min_unit_minor'], p['currency'])} — {currency_value(p['max_unit_minor'], p['currency'])}/{unit_label(p['unit'])}",
+                detail=t(
+                    "Минимум: {p0}, {p1}. Чеков: {p2}. Сценарий по прошлому минимуму: {p3}.",
+                    p0=p["best_merchant"],
+                    p1=p["best_on"],
+                    p2=p["receipt_count"],
+                    p3=currency_value(p["potential_minor"], p["currency"]),
+                ),
                 receipt_id=p["best_receipt_id"],
             )
             for p in result["comparisons"]
         ]
         notices.append(
-            "Сравнение одинаковых названий, единиц и валют минимум в двух чеках. Прошлая цена не гарантирует такую цену сегодня; сравнение не учитывает размер упаковки."
+            t(
+                "Сравнение одинаковых названий, единиц и валют минимум в двух чеках. Прошлая цена не гарантирует такую цену сегодня; сравнение не учитывает размер упаковки."
+            )
         )
         notices.append(
-            "Показано до 12 вариантов сравнения. Это не полный каталог товаров; уточните название или валюту, чтобы сузить выборку."
+            t(
+                "Показано до 12 вариантов сравнения. Это не полный каталог товаров; уточните название или валюту, чтобы сузить выборку."
+            )
         )
         return Report(
             query=query,
-            title="Цены из вашей истории",
+            title=t("Цены из вашей истории"),
             metrics=metrics,
             rows=rows,
             total_rows=len(rows),
@@ -105,14 +119,14 @@ def _purchase_report(db, organization_id: str, query: ReportQuery) -> Report:
         ReportRow(
             label=p["name"],
             value=currency_value(p["total_minor"], p["currency"]),
-            detail=f"{p['purchased_on']} · {p['merchant']} · {format(Decimal(p['quantity']).normalize(), 'f')} {p['unit']} × {currency_value(p['unit_minor'], p['currency'])}",
+            detail=f"{p['purchased_on']} · {p['merchant']} · {format(Decimal(p['quantity']).normalize(), 'f')} {unit_label(p['unit'])} × {currency_value(p['unit_minor'], p['currency'])}",
             receipt_id=p["receipt_id"],
         )
         for p in result["items"]
     ]
     return Report(
         query=query,
-        title="Найденные покупки",
+        title=t("Найденные покупки"),
         metrics=metrics,
         rows=rows,
         total_rows=result["total"],
@@ -171,26 +185,28 @@ def report(db, organization_id: str, query: ReportQuery) -> Report:
         )
     ).one()
     metrics = [
-        ReportMetric(label="Доходы", value=currency_value(incomes)),
-        ReportMetric(label="Расходы после возвратов", value=currency_value(expenses)),
-        ReportMetric(label="Остаток доходов", value=currency_value(incomes - expenses)),
-        ReportMetric(label="Возвраты", value=currency_value(refunds)),
-        ReportMetric(label="Операций", value=str(count)),
+        ReportMetric(label=t("Доходы"), value=currency_value(incomes)),
+        ReportMetric(label=t("Расходы после возвратов"), value=currency_value(expenses)),
+        ReportMetric(label=t("Остаток доходов"), value=currency_value(incomes - expenses)),
+        ReportMetric(label=t("Возвраты"), value=currency_value(refunds)),
+        ReportMetric(label=t("Операций"), value=str(count)),
     ]
     notices = [
-        "Суммы в MDL по сохранённым курсам операций. Переводы, долги и отменённые операции исключены."
+        t(
+            "Суммы в MDL по сохранённым курсам операций. Переводы, долги и отменённые операции исключены."
+        )
     ]
     if query.category_id:
         notices.append(
-            "Для категории учтена только её часть разделённых расходов; доходы сюда не входят."
+            t("Для категории учтена только её часть разделённых расходов; доходы сюда не входят.")
         )
     rows: list[ReportRow] = []
     total_rows = 0
     titles = {
-        "summary": "Финансовая сводка",
-        "categories": "Расходы по категориям",
-        "merchants": "Расходы по магазинам",
-        "trend": "Динамика по месяцам",
+        "summary": t("Финансовая сводка"),
+        "categories": t("Расходы по категориям"),
+        "merchants": t("Расходы по магазинам"),
+        "trend": t("Динамика по месяцам"),
     }
     if query.kind == "categories":
         signed = case(
@@ -199,7 +215,7 @@ def report(db, organization_id: str, query: ReportQuery) -> Report:
         grouped = (
             select(
                 allocation.category_id,
-                func.coalesce(m.Category.name, "Без категории").label("label"),
+                func.coalesce(m.Category.name, t("Без категории")).label("label"),
                 func.sum(signed).label("amount"),
                 func.count(func.distinct(selected.c.id)).label("count"),
             )
@@ -216,7 +232,11 @@ def report(db, organization_id: str, query: ReportQuery) -> Report:
         grouped = grouped.subquery()
         total_rows = db.scalar(select(func.count()).select_from(grouped))
         rows = [
-            ReportRow(label=r.label, value=currency_value(r.amount), detail=f"Операций: {r.count}")
+            ReportRow(
+                label=r.label,
+                value=currency_value(r.amount),
+                detail=t("Операций: {p0}", p0=r.count),
+            )
             for r in db.execute(
                 select(grouped).order_by(grouped.c.amount.desc(), grouped.c.label).limit(20)
             )
@@ -235,9 +255,9 @@ def report(db, organization_id: str, query: ReportQuery) -> Report:
         total_rows = db.scalar(select(func.count()).select_from(grouped))
         rows = [
             ReportRow(
-                label=r.label or "Без магазина",
+                label=r.label or t("Без магазина"),
                 value=currency_value(r.amount),
-                detail=f"Операций: {r.count}",
+                detail=t("Операций: {p0}", p0=r.count),
             )
             for r in db.execute(
                 select(grouped).order_by(grouped.c.amount.desc(), grouped.c.label).limit(20)
@@ -257,19 +277,23 @@ def report(db, organization_id: str, query: ReportQuery) -> Report:
             ReportRow(
                 label=f"{int(y)}-{int(mo):02}",
                 value=currency_value(ex),
-                detail=f"Доходы: {currency_value(inc)} · Остаток: {currency_value(inc - ex)}",
+                detail=t(
+                    "Доходы: {p0} · Остаток: {p1}",
+                    p0=currency_value(inc),
+                    p1=currency_value(inc - ex),
+                ),
             )
             for y, mo, ex, inc in values
         ]
         total_rows = len(rows)
         notices.append(
-            "Показаны месяцы с операциями; первый и последний месяц могут быть неполными."
+            t("Показаны месяцы с операциями; первый и последний месяц могут быть неполными.")
         )
     else:
         days = (query.date_to - query.date_from).days + 1
         metrics.append(
             ReportMetric(
-                label="Расходы в среднем за день периода",
+                label=t("Расходы в среднем за день периода"),
                 value=currency_value(Decimal(expenses) / days),
             )
         )

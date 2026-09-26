@@ -19,6 +19,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import work.gadmin.finora.*
 import work.gadmin.finora.data.*
+import work.gadmin.finora.localization.Message
+import work.gadmin.finora.localization.tr
 
 @Composable
 fun ReceiptsScreen(state: AppState, vm: FinoraViewModel) {
@@ -30,11 +32,11 @@ fun ReceiptsScreen(state: AppState, vm: FinoraViewModel) {
         item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("Ваши чеки", style = MaterialTheme.typography.headlineLarge)
-                    Text("Вся история организации", color = Muted)
+                    Text(tr(Message.YOUR_RECEIPTS), style = MaterialTheme.typography.headlineLarge)
+                    Text(tr(Message.YOUR_ORGANIZATION_S_FULL_HISTORY), color = Muted)
                 }
                 IconButton(vm::refreshCurrent, enabled = !state.refreshing && !state.busy) {
-                    LineIcon(Glyph.REFRESH, "Обновить чеки")
+                    LineIcon(Glyph.REFRESH, tr(Message.REFRESH_RECEIPTS))
                 }
             }
         }
@@ -43,13 +45,13 @@ fun ReceiptsScreen(state: AppState, vm: FinoraViewModel) {
                 state.search,
                 vm::search,
                 Modifier.fillMaxWidth(),
-                label = { Text("Найти магазин") },
+                label = { Text(tr(Message.FIND_A_STORE)) },
                 singleLine = true,
                 leadingIcon = { LineIcon(Glyph.SEARCH) },
                 trailingIcon = {
                     if (state.search.isNotEmpty())
                         IconButton({ vm.search("") }) {
-                            LineIcon(Glyph.CLOSE, "Очистить поиск", size = 18.dp)
+                            LineIcon(Glyph.CLOSE, tr(Message.CLEAR_SEARCH), size = 18.dp)
                         }
                 },
                 shape = RoundedCornerShape(18.dp),
@@ -57,18 +59,18 @@ fun ReceiptsScreen(state: AppState, vm: FinoraViewModel) {
             )
         }
         if (state.receiptsLoading && !state.refreshing)
-            item { BrandLoading("Загружаем ваши чеки", compact = true) }
+            item { BrandLoading(tr(Message.LOADING_YOUR_RECEIPTS), compact = true) }
         if (state.receipts.isEmpty() && !state.receiptsLoading)
             item {
                 EmptyState(
-                    if (state.search.isBlank()) "Первый чек — начало ясности"
-                    else "Ничего не найдено",
+                    if (state.search.isBlank()) tr(Message.YOUR_FIRST_RECEIPT_IS_A_FRESH_START)
+                    else tr(Message.NOTHING_FOUND),
                     if (state.search.isBlank())
-                        "Отсканируйте QR или сфотографируйте покупку.\nОна появится здесь."
-                    else "Попробуйте другое название магазина.",
+                        tr(Message.SCAN_A_QR_CODE_OR_PHOTOGRAPH_A_PURCHASE_IT_WILL_APPEAR_HER)
+                    else tr(Message.TRY_ANOTHER_STORE_NAME),
                 )
                 PrimaryButton(
-                    "Добавить чек",
+                    tr(Message.ADD_RECEIPT),
                     { vm.navigate(Page.CAPTURE) },
                     Modifier.fillMaxWidth(),
                     icon = Glyph.PLUS,
@@ -129,7 +131,7 @@ fun ReceiptsScreen(state: AppState, vm: FinoraViewModel) {
                     Modifier.fillMaxWidth(),
                     enabled = !state.receiptsLoading,
                 ) {
-                    Text("Показать ещё · ${state.receipts.size} из ${state.receiptCount}")
+                    Text(tr(Message.SHOW_MORE_1_S_OF_2_S, state.receipts.size, state.receiptCount))
                 }
             }
     }
@@ -168,16 +170,19 @@ fun ReceiptDetailScreen(state: AppState, vm: FinoraViewModel) {
         verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
         if (state.detailLoading && !state.refreshing)
-            item { BrandLoading("Открываем чек", compact = true) }
+            item { BrandLoading(tr(Message.OPENING_RECEIPT), compact = true) }
         if (receipt == null && !state.detailLoading)
             item {
-                EmptyState("Не удалось загрузить чек", "Потяните вниз, чтобы повторить загрузку.")
+                EmptyState(
+                    tr(Message.COULD_NOT_LOAD_THE_RECEIPT),
+                    tr(Message.PULL_DOWN_TO_TRY_LOADING_AGAIN),
+                )
                 OutlinedButton(
                     { state.detailId?.let(vm::openReceipt) },
                     Modifier.fillMaxWidth(),
                     enabled = !state.detailLoading,
                 ) {
-                    Text("Повторить загрузку")
+                    Text(tr(Message.RETRY_LOADING))
                 }
             }
         if (receipt != null) {
@@ -196,16 +201,17 @@ fun ReceiptDetailScreen(state: AppState, vm: FinoraViewModel) {
                 Text(receipt.purchased_on ?: receipt.created_at.take(10), color = Muted)
                 Spacer(Modifier.height(18.dp))
                 Text(
-                    receipt.total_minor?.let { money(it, receipt.currency) } ?: "Сумма уточняется",
+                    receipt.total_minor?.let { money(it, receipt.currency) }
+                        ?: tr(Message.CALCULATING_TOTAL),
                     style = MaterialTheme.typography.headlineLarge,
                 )
             }
             if (receipt.isProcessing)
                 item {
-                    BrandLoading("Распознаём товары и итог", compact = true)
+                    BrandLoading(tr(Message.READING_ITEMS_AND_TOTAL), compact = true)
                     Spacer(Modifier.height(10.dp))
                     Text(
-                        "Можно закрыть приложение — обработка продолжится на сервере.",
+                        tr(Message.YOU_CAN_CLOSE_THE_APP_PROCESSING_WILL_CONTINUE_ON_THE_SERV),
                         color = Muted,
                         style = MaterialTheme.typography.bodySmall,
                     )
@@ -215,7 +221,7 @@ fun ReceiptDetailScreen(state: AppState, vm: FinoraViewModel) {
             if (receipt.status == "review")
                 item {
                     InfoCard(
-                        "Проверьте товары и итог. Подтверждение находится под списком позиций.",
+                        tr(Message.CHECK_THE_ITEMS_AND_TOTAL_THE_CONFIRMATION_BUTTON_IS_BELOW),
                         Glyph.RECEIPT,
                     )
                 }
@@ -223,13 +229,13 @@ fun ReceiptDetailScreen(state: AppState, vm: FinoraViewModel) {
                 item { ReceiptPhotos(receipt, requireNotNull(state.organization).id, vm) }
             if (receipt.items.isNotEmpty()) {
                 item {
-                    SectionTitle("Товары · ${receipt.items.size}")
+                    SectionTitle(tr(Message.ITEMS_1_S, receipt.items.size))
                     Spacer(Modifier.height(12.dp))
                     OutlinedTextField(
                         search,
                         { search = it },
                         Modifier.fillMaxWidth(),
-                        placeholder = { Text("Поиск по названию товара") },
+                        placeholder = { Text(tr(Message.SEARCH_BY_ITEM_NAME)) },
                         singleLine = true,
                         leadingIcon = { LineIcon(Glyph.SEARCH, size = 20.dp) },
                     )
@@ -237,14 +243,14 @@ fun ReceiptDetailScreen(state: AppState, vm: FinoraViewModel) {
                         TextButton({ categoriesOpen = true }) {
                             Text(
                                 state.categories.firstOrNull { it.id == category }?.name
-                                    ?: "Все категории"
+                                    ?: tr(Message.ALL_CATEGORIES)
                             )
                             Spacer(Modifier.width(6.dp))
                             LineIcon(Glyph.DOWN, size = 16.dp)
                         }
                         DropdownMenu(categoriesOpen, { categoriesOpen = false }) {
                             DropdownMenuItem(
-                                text = { Text("Все категории") },
+                                text = { Text(tr(Message.ALL_CATEGORIES)) },
                                 onClick = {
                                     category = null
                                     categoriesOpen = false
@@ -271,7 +277,8 @@ fun ReceiptDetailScreen(state: AppState, vm: FinoraViewModel) {
                         it.name.contains(search, ignoreCase = true) &&
                             (category == null || it.category_id == category)
                     }
-                if (filtered.isEmpty()) item { Text("Нет товаров по этому фильтру", color = Muted) }
+                if (filtered.isEmpty())
+                    item { Text(tr(Message.NO_ITEMS_MATCH_THIS_FILTER), color = Muted) }
                 items(filtered, key = ReceiptItem::id) { item ->
                     Surface(color = SurfaceColor, shape = RoundedCornerShape(17.dp)) {
                         Column(
@@ -284,7 +291,7 @@ fun ReceiptDetailScreen(state: AppState, vm: FinoraViewModel) {
                                 horizontalArrangement = Arrangement.SpaceBetween,
                             ) {
                                 Text(
-                                    "${runCatching { item.quantity.toBigDecimal().stripTrailingZeros().toPlainString() }.getOrDefault(item.quantity)} ${item.unit} × ${money(item.unit_price_minor, receipt.currency)}",
+                                    "${runCatching { item.quantity.toBigDecimal().stripTrailingZeros().toPlainString() }.getOrDefault(item.quantity)} ${unitLabel(item.unit)} × ${money(item.unit_price_minor, receipt.currency)}",
                                     color = Muted,
                                     style = MaterialTheme.typography.bodySmall,
                                     modifier = Modifier.weight(1f),
@@ -296,7 +303,7 @@ fun ReceiptDetailScreen(state: AppState, vm: FinoraViewModel) {
                             }
                             Text(
                                 state.categories.firstOrNull { it.id == item.category_id }?.name
-                                    ?: "Без категории",
+                                    ?: tr(Message.UNCATEGORIZED),
                                 color = Green,
                                 style = MaterialTheme.typography.labelSmall,
                             )
@@ -306,7 +313,10 @@ fun ReceiptDetailScreen(state: AppState, vm: FinoraViewModel) {
                 if (search.isNotBlank() || category != null)
                     item {
                         Text(
-                            "По фильтру: ${money(filtered.sumOf { it.total_minor }, receipt.currency)}",
+                            tr(
+                                Message.FILTERED_TOTAL_1_S,
+                                money(filtered.sumOf { it.total_minor }, receipt.currency),
+                            ),
                             fontWeight = FontWeight.SemiBold,
                         )
                     }
@@ -321,7 +331,7 @@ fun ReceiptDetailScreen(state: AppState, vm: FinoraViewModel) {
                     },
                     Modifier.fillMaxWidth(),
                 ) {
-                    Text("Открыть чеки в веб-версии")
+                    Text(tr(Message.OPEN_RECEIPTS_ON_THE_WEBSITE))
                     Spacer(Modifier.width(8.dp))
                     LineIcon(Glyph.ARROW, size = 18.dp)
                 }
@@ -331,17 +341,17 @@ fun ReceiptDetailScreen(state: AppState, vm: FinoraViewModel) {
                         receipt.status != "posted"
                 )
                     TextButton(vm::retryReceipt, Modifier.fillMaxWidth(), enabled = !state.busy) {
-                        Text("Повторить распознавание")
+                        Text(tr(Message.RETRY_RECOGNITION))
                     }
             }
             item {
-                SectionTitle("Комментарии")
+                SectionTitle(tr(Message.COMMENTS))
                 Spacer(Modifier.height(12.dp))
                 OutlinedTextField(
                     comment,
                     { comment = it.take(2000) },
                     Modifier.fillMaxWidth(),
-                    label = { Text("Добавить комментарий") },
+                    label = { Text(tr(Message.ADD_A_COMMENT)) },
                     minLines = 2,
                     enabled = !state.busy,
                 )
@@ -349,7 +359,7 @@ fun ReceiptDetailScreen(state: AppState, vm: FinoraViewModel) {
                     { vm.addComment(comment) { comment = "" } },
                     enabled = !state.busy && comment.isNotBlank(),
                 ) {
-                    Text(if (state.busy) "Сохраняем…" else "Отправить комментарий")
+                    Text(if (state.busy) tr(Message.SAVING) else tr(Message.SEND_COMMENT))
                 }
             }
             items(state.comments, key = ReceiptComment::id) { entry ->
@@ -372,7 +382,7 @@ fun ReceiptDetailScreen(state: AppState, vm: FinoraViewModel) {
                     }
                 }
             }
-            if (state.comments.isEmpty()) item { Text("Пока нет комментариев", color = Muted) }
+            if (state.comments.isEmpty()) item { Text(tr(Message.NO_COMMENTS_YET), color = Muted) }
         }
     }
 }

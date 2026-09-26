@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { send, useAction } from "./api";
@@ -106,7 +107,7 @@ export default function TransactionForm({
         tx ? "PUT" : "POST",
       ),
     () => {
-      toast(tx ? "Операция обновлена" : "Операция добавлена");
+      toast(tx ? t("Операция обновлена") : t("Операция добавлена"));
       onClose();
     },
   );
@@ -114,19 +115,23 @@ export default function TransactionForm({
     <Modal
       title={
         tx
-          ? "Изменить операцию"
+          ? t("Изменить операцию")
           : refund
-            ? "Возврат покупки"
+            ? t("Возврат покупки")
             : incomeOnly
-              ? "Разовый доход"
-              : "Новая операция"
+              ? t("Разовый доход")
+              : t("Новая операция")
       }
-      description="Изменения сразу появятся в остатках и отчётах."
+      description={t("Изменения сразу появятся в остатках и отчётах.")}
       onClose={onClose}
     >
       <Form onSubmit={() => action.mutate(undefined)}>
         {!refund && !incomeOnly && (
-          <div className="segmented" role="group" aria-label="Тип операции">
+          <div
+            className="segmented"
+            role="group"
+            aria-label={t("Тип операции")}
+          >
             {["expense", "income", "transfer"].map((k) => (
               <button
                 type="button"
@@ -140,10 +145,10 @@ export default function TransactionForm({
           </div>
         )}
         <div className="form-grid">
-          <Field label={`Сумма · ${currency}`}>
+          <Field label={t("Сумма · {0}", currency)}>
             <MoneyInput value={value} onChange={setValue} autoFocus />
           </Field>
-          <Field label="Дата">
+          <Field label={t("Дата")}>
             <input
               type="date"
               required
@@ -153,7 +158,7 @@ export default function TransactionForm({
               onChange={(e) => setDate(e.target.value)}
             />
           </Field>
-          <Field label={kind === "transfer" ? "Со счёта" : "Счёт"}>
+          <Field label={kind === "transfer" ? t("Со счёта") : t("Счёт")}>
             <AccountSelect
               accounts={accounts}
               value={account}
@@ -161,7 +166,7 @@ export default function TransactionForm({
             />
           </Field>
           {kind === "transfer" ? (
-            <Field label="На счёт">
+            <Field label={t("На счёт")}>
               <AccountSelect
                 accounts={accounts.filter((a) => a.id !== account)}
                 value={target}
@@ -169,7 +174,7 @@ export default function TransactionForm({
               />
             </Field>
           ) : (
-            <Field label="Категория">
+            <Field label={t("Категория")}>
               <CategorySelect
                 categories={categories}
                 value={category}
@@ -180,14 +185,14 @@ export default function TransactionForm({
           {kind === "transfer" &&
             targetCurrency &&
             targetCurrency !== currency && (
-              <Field label={`Получено · ${targetCurrency}`}>
+              <Field label={t("Получено · {0}", targetCurrency)}>
                 <MoneyInput value={targetValue} onChange={setTargetValue} />
               </Field>
             )}
           {currency !== "MDL" && (
             <Field
-              label={`Курс: 1 ${currency} в MDL`}
-              hint="Исторический курс на дату операции"
+              label={t("Курс: 1 {0} в MDL", currency)}
+              hint={t("Исторический курс на дату операции")}
             >
               <input
                 type="number"
@@ -201,7 +206,9 @@ export default function TransactionForm({
           )}
           <Field
             label={
-              kind === "income" ? "Источник дохода" : "Магазин или получатель"
+              kind === "income"
+                ? t("Источник дохода")
+                : t("Магазин или получатель")
             }
             wide
           >
@@ -210,17 +217,19 @@ export default function TransactionForm({
               maxLength={200}
               onChange={(e) => setMerchant(e.target.value)}
               placeholder={
-                kind === "income" ? "Например, зарплата" : "Например, Linella"
+                kind === "income"
+                  ? t("Например, зарплата")
+                  : t("Например, Linella")
               }
             />
           </Field>
-          <Field label="Примечание" wide>
+          <Field label={t("Примечание")} wide>
             <textarea
               rows={2}
               maxLength={3000}
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="Необязательно"
+              placeholder={t("Необязательно")}
             />
           </Field>
         </div>
@@ -232,7 +241,7 @@ export default function TransactionForm({
                 checked={split}
                 onChange={(e) => setSplit(e.target.checked)}
               />
-              Разделить сумму по категориям
+              {t("Разделить сумму по категориям")}
             </label>
             {split && (
               <div className="split-list">
@@ -262,7 +271,7 @@ export default function TransactionForm({
                     <button
                       type="button"
                       className="icon-button"
-                      aria-label="Удалить часть"
+                      aria-label={t("Удалить часть")}
                       disabled={splits.length < 2}
                       onClick={() =>
                         setSplits(splits.filter((_, n) => n !== i))
@@ -280,9 +289,11 @@ export default function TransactionForm({
                   }
                 >
                   <Plus size={16} />
-                  Добавить категорию
+                  {t("Добавить категорию")}
                 </button>
-                <small>Сумма частей должна совпадать с итогом операции.</small>
+                <small>
+                  {t("Сумма частей должна совпадать с итогом операции.")}
+                </small>
               </div>
             )}
           </>
@@ -290,7 +301,7 @@ export default function TransactionForm({
         <ErrorBox error={action.error} />
         <footer className="modal-footer">
           <button type="button" className="button secondary" onClick={onClose}>
-            Отмена
+            {t("Отмена")}
           </button>
           <Submit pending={action.isPending} />
         </footer>

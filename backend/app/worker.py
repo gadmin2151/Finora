@@ -12,6 +12,7 @@ from . import models as m
 from .assistant import answer
 from .config import settings
 from .db import SessionLocal
+from .i18n import current_language, language_context, t
 from .job_lease import Lease, LeaseLost, current_lease, renew, require_lease
 from .receipts import ReceiptError, process_receipt
 
@@ -65,6 +66,11 @@ async def pull_model(job: m.Job):
 
 
 async def execute_job(job: m.Job):
+    with language_context(job.payload.get("language")):
+        await _execute_job(job)
+
+
+async def _execute_job(job: m.Job):
     try:
         if job.kind == "receipt":
             await process_receipt(job.payload["receipt_id"])
@@ -74,7 +80,12 @@ async def execute_job(job: m.Job):
             await answer(job)
         elif job.kind == "ai_test":
             text, provider = await ai.generate(
-                job.organization_id, "test", "Ответь одним словом: готово.", "Проверка подключения"
+                job.organization_id,
+                "test",
+                "Reply with one word: ready."
+                if current_language() == "en"
+                else "Ответь одним словом: готово.",
+                "Connection check" if current_language() == "en" else "Проверка подключения",
             )
             with SessionLocal() as db:
                 require_lease(db)
@@ -101,6 +112,7 @@ async def execute_job(job: m.Job):
         with SessionLocal() as db:
             require_lease(db)
             row = db.get(m.Job, job.id)
+            safe = t(safe)
             row.status, row.progress = "failed", safe[:200]
             if job.kind == "receipt":
                 receipt = db.get(m.Receipt, job.payload["receipt_id"])

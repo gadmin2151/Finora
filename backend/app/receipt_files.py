@@ -7,6 +7,7 @@ import tempfile
 from . import models as m
 from .config import settings
 from .finance import fail
+from .i18n import t
 
 MAX_RECEIPT_FILES = 16
 
@@ -26,7 +27,7 @@ def append_images(receipt: m.Receipt, images: list[bytes]) -> int:
         if digest not in existing:
             pending[digest] = image
     if len(names) + len(pending) > MAX_RECEIPT_FILES:
-        fail(f"У чека может быть не более {MAX_RECEIPT_FILES} оригиналов")
+        fail(t("У чека может быть не более {count} оригиналов", count=MAX_RECEIPT_FILES))
     for digest, image in pending.items():
         name = f"{receipt.id}-{digest}.jpg"
         fd, temporary = tempfile.mkstemp(prefix=".receipt-", dir=directory)

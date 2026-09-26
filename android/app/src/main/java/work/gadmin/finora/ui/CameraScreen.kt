@@ -55,6 +55,8 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import work.gadmin.finora.CameraMode
 import work.gadmin.finora.data.receiptLink
+import work.gadmin.finora.localization.Message
+import work.gadmin.finora.localization.tr
 
 @androidx.annotation.OptIn(ExperimentalGetImage::class)
 @Composable
@@ -89,12 +91,12 @@ fun CameraScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             EmptyState(
-                "Нужен доступ к камере",
-                "Камера используется только для QR-кодов и фотографий чеков.",
+                tr(Message.CAMERA_ACCESS_REQUIRED),
+                tr(Message.THE_CAMERA_IS_ONLY_USED_FOR_QR_CODES_AND_RECEIPT_PHOTOS),
                 Glyph.CAMERA,
             )
             PrimaryButton(
-                "Разрешить камеру",
+                tr(Message.ALLOW_CAMERA),
                 { requestPermission.launch(Manifest.permission.CAMERA) },
                 Modifier.fillMaxWidth(),
             )
@@ -106,9 +108,9 @@ fun CameraScreen(
                     )
                 )
             }) {
-                Text("Открыть настройки разрешений")
+                Text(tr(Message.OPEN_PERMISSION_SETTINGS))
             }
-            TextButton(onClose) { Text("Назад · можно выбрать фото из галереи") }
+            TextButton(onClose) { Text(tr(Message.BACK_YOU_CAN_CHOOSE_A_GALLERY_PHOTO_INSTEAD)) }
         }
         return
     }
@@ -167,7 +169,7 @@ fun CameraScreen(
                     )
                 } catch (_: Exception) {
                     errorCallback(
-                        "Не удалось запустить QR-сканер. Сфотографируйте чек или вставьте ссылку на чек."
+                        tr(Message.COULD_NOT_START_THE_QR_SCANNER_TAKE_A_RECEIPT_PHOTO_OR_PAS)
                     )
                     null
                 }
@@ -220,7 +222,10 @@ fun CameraScreen(
                                                 lastInvalid = System.currentTimeMillis()
                                                 errorCallback(
                                                     invalid.message
-                                                        ?: "Нужна ссылка на электронный чек"
+                                                        ?: tr(
+                                                            Message
+                                                                .AN_ELECTRONIC_RECEIPT_LINK_IS_REQUIRED
+                                                        )
                                                 )
                                             }
                                         }
@@ -230,7 +235,10 @@ fun CameraScreen(
                         .addOnFailureListener(mainExecutor) {
                             if (!disposed.get())
                                 errorCallback(
-                                    "Не удалось прочитать QR. Попробуйте снять чек или вставить ссылку."
+                                    tr(
+                                        Message
+                                            .COULD_NOT_READ_THE_QR_CODE_TRY_A_RECEIPT_PHOTO_OR_PASTE_IT
+                                    )
                                 )
                         }
                         .addOnCompleteListener { frame.close() }
@@ -257,7 +265,7 @@ fun CameraScreen(
                                 )
                     } catch (_: Exception) {
                         errorCallback(
-                            "Камера недоступна. Закройте другие приложения с камерой или выберите фото из галереи."
+                            tr(Message.CAMERA_UNAVAILABLE_CLOSE_OTHER_CAMERA_APPS_OR_CHOOSE_A_GAL)
                         )
                     }
             },
@@ -330,10 +338,11 @@ fun CameraScreen(
         ) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClose, enabled = !busy && !taking) {
-                    LineIcon(Glyph.CLOSE, "Закрыть камеру", tint = Color.White)
+                    LineIcon(Glyph.CLOSE, tr(Message.CLOSE_CAMERA), tint = Color.White)
                 }
                 Text(
-                    if (mode == CameraMode.QR) "QR-код чека" else "Фото чека · ${photoCount + 1}/4",
+                    if (mode == CameraMode.QR) tr(Message.RECEIPT_QR_CODE)
+                    else tr(Message.RECEIPT_PHOTO_1_S_4, photoCount + 1),
                     color = Color.White,
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center,
@@ -348,7 +357,8 @@ fun CameraScreen(
                 ) {
                     LineIcon(
                         Glyph.FLASH,
-                        if (torch) "Выключить фонарик" else "Включить фонарик",
+                        if (torch) tr(Message.TURN_FLASHLIGHT_OFF)
+                        else tr(Message.TURN_FLASHLIGHT_ON),
                         tint = if (torch) Mint else Color.White,
                     )
                 }
@@ -356,9 +366,8 @@ fun CameraScreen(
             Spacer(Modifier.height(22.dp))
             Text(
                 if (mode == CameraMode.QR)
-                    "Наведите на QR внизу чека.\nКоснитесь кода для фокусировки."
-                else
-                    "Держите телефон параллельно чеку.\nЗахватите недостающую часть с небольшим перекрытием.",
+                    tr(Message.POINT_AT_THE_QR_CODE_AT_THE_BOTTOM_OF_THE_RECEIPT_TAP_THE)
+                else tr(Message.KEEP_THE_PHONE_PARALLEL_TO_THE_RECEIPT_CAPTURE_THE_MISSING),
                 color = Color.White,
                 textAlign = TextAlign.Center,
             )
@@ -402,7 +411,7 @@ fun CameraScreen(
                                 override fun onError(exception: ImageCaptureException) {
                                     taking = false
                                     file.delete()
-                                    onError("Не удалось сделать фото. Попробуйте ещё раз.")
+                                    onError(tr(Message.COULD_NOT_TAKE_A_PHOTO_PLEASE_TRY_AGAIN))
                                 }
                             },
                         )
@@ -418,10 +427,21 @@ fun CameraScreen(
                     Box(contentAlignment = Alignment.Center) {
                         if (taking || busy)
                             CircularProgressIndicator(Modifier.size(28.dp), color = Forest)
-                        else LineIcon(Glyph.CAMERA, "Снять чек", tint = Forest, size = 30.dp)
+                        else
+                            LineIcon(
+                                Glyph.CAMERA,
+                                tr(Message.CAPTURE_RECEIPT),
+                                tint = Forest,
+                                size = 30.dp,
+                            )
                     }
                 }
-            } else Text("QR электронного чека", color = Mint, modifier = Modifier.padding(20.dp))
+            } else
+                Text(
+                    tr(Message.ELECTRONIC_RECEIPT_QR),
+                    color = Mint,
+                    modifier = Modifier.padding(20.dp),
+                )
             Spacer(Modifier.height(14.dp))
         }
     }

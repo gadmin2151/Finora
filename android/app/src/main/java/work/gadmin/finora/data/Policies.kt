@@ -5,6 +5,10 @@ import java.net.URI
 import java.security.MessageDigest
 import java.text.NumberFormat
 import java.util.Locale
+import work.gadmin.finora.localization.AppLanguage
+import work.gadmin.finora.localization.LanguageRuntime
+import work.gadmin.finora.localization.Message
+import work.gadmin.finora.localization.tr
 
 const val DEFAULT_SERVER = "https://finora.gadmin.work"
 const val MAX_PHOTOS = 4
@@ -15,10 +19,10 @@ fun serverOrigin(input: String): String {
         try {
             URI(normalized)
         } catch (_: Exception) {
-            throw IllegalArgumentException("Проверьте адрес сервера")
+            throw IllegalArgumentException(tr(Message.CHECK_THE_SERVER_ADDRESS))
         }
     require(uri.scheme.equals("https", ignoreCase = true)) {
-        "Подключение возможно только по HTTPS"
+        tr(Message.ONLY_HTTPS_CONNECTIONS_ARE_SUPPORTED)
     }
     require(
         !uri.host.isNullOrBlank() &&
@@ -26,12 +30,12 @@ fun serverOrigin(input: String): String {
             uri.rawQuery == null &&
             uri.rawFragment == null
     ) {
-        "Укажите адрес сервера без логина, параметров и ссылки на раздел"
+        tr(Message.ENTER_A_SERVER_ADDRESS_WITHOUT_CREDENTIALS_PARAMETERS_OR_A)
     }
     require(uri.path.isNullOrEmpty() || uri.path == "/") {
-        "Укажите только адрес сервера, например https://finora.gadmin.work"
+        tr(Message.ENTER_ONLY_THE_SERVER_ADDRESS_FOR_EXAMPLE_HTTPS_FINORA_GAD)
     }
-    require(uri.port == -1 || uri.port in 1..65535) { "Некорректный порт сервера" }
+    require(uri.port == -1 || uri.port in 1..65535) { tr(Message.INVALID_SERVER_PORT) }
     return URI(
             "https",
             null,
@@ -49,7 +53,9 @@ fun mevLink(input: String): String {
         try {
             URI(input.trim())
         } catch (_: Exception) {
-            throw IllegalArgumentException("QR-код не содержит ссылку чека MEV")
+            throw IllegalArgumentException(
+                tr(Message.THIS_QR_CODE_DOES_NOT_CONTAIN_A_MEV_RECEIPT_LINK)
+            )
         }
     require(
         uri.scheme == "https" &&
@@ -59,7 +65,7 @@ fun mevLink(input: String): String {
             uri.rawQuery == null &&
             uri.rawFragment == null
     ) {
-        "QR прочитан, но это не ссылка на фискальный чек MEV"
+        tr(Message.QR_CODE_READ_BUT_IT_IS_NOT_A_MEV_FISCAL_RECEIPT_LINK)
     }
     val match =
         Regex(
@@ -67,7 +73,7 @@ fun mevLink(input: String): String {
                 else "^/(?:ro/|ru/|en/)?receipt-verifier/([A-Za-z0-9_-]{16,128})/?$"
             )
             .matchEntire(uri.rawPath ?: "")
-            ?: throw IllegalArgumentException("Этот QR-код не является чеком MEV")
+            ?: throw IllegalArgumentException(tr(Message.THIS_QR_CODE_IS_NOT_A_MEV_RECEIPT))
     return "https://mev.sfs.md/receipt-verifier/${match.groupValues[1]}"
 }
 
@@ -75,14 +81,14 @@ fun receiptLink(input: String): String {
     // Open the actual QR target on the phone; the server canonicalizes its deduplication key.
     val text = input.trim()
     require(text.length <= 1000 && text.none { it.isWhitespace() || it == '\\' }) {
-        "Некорректная ссылка чека"
+        tr(Message.INVALID_RECEIPT_LINK)
     }
     val uri =
         try {
             URI(text)
         } catch (_: Exception) {
             throw IllegalArgumentException(
-                "QR прочитан, но не содержит ссылку. Сфотографируйте чек."
+                tr(Message.QR_CODE_READ_BUT_IT_CONTAINS_NO_LINK_TAKE_A_PHOTO_OF_THE_R)
             )
         }
     require(
@@ -91,7 +97,7 @@ fun receiptLink(input: String): String {
             uri.userInfo == null &&
             uri.port in listOf(-1, 443)
     ) {
-        "Нужна HTTPS-ссылка на электронный чек. Можно сфотографировать бумажный чек."
+        tr(Message.AN_HTTPS_RECEIPT_LINK_IS_REQUIRED_YOU_CAN_PHOTOGRAPH_THE_P)
     }
     val host = requireNotNull(uri.host).lowercase(Locale.ROOT).trimEnd('.')
     require(
@@ -100,11 +106,11 @@ fun receiptLink(input: String): String {
             !host.endsWith(".local") &&
             !host.endsWith(".internal")
     ) {
-        "Нужна публичная ссылка на чек"
+        tr(Message.A_PUBLIC_RECEIPT_LINK_IS_REQUIRED)
     }
     if (host.matches(Regex("[0-9.]+"))) {
         val address = java.net.InetAddress.getByName(host)
-        require(publicReceiptAddress(address)) { "Нужна публичная ссылка на чек" }
+        require(publicReceiptAddress(address)) { tr(Message.A_PUBLIC_RECEIPT_LINK_IS_REQUIRED) }
     }
     return uri.toASCIIString()
 }
@@ -133,7 +139,7 @@ fun scopeKey(server: String, user: String, organization: String): String =
         .joinToString("") { "%02x".format(it) }
 
 fun money(minor: Long, currency: String = "MDL"): String =
-    NumberFormat.getNumberInstance(Locale.forLanguageTag("ru-MD"))
+    NumberFormat.getNumberInstance(LanguageRuntime.language.locale)
         .apply {
             minimumFractionDigits = 2
             maximumFractionDigits = 2
@@ -142,14 +148,35 @@ fun money(minor: Long, currency: String = "MDL"): String =
 
 fun statusLabel(status: String): String =
     when (status) {
-        "queued" -> "В очереди"
-        "processing" -> "Распознаётся"
-        "posted" -> "В учёте"
+        "queued" -> tr(Message.QUEUED)
+        "processing" -> tr(Message.PROCESSING)
+        "posted" -> tr(Message.RECORDED)
         "review",
         "needs_review",
-        "ready" -> "Проверить"
+        "ready" -> tr(Message.REVIEW)
         "error",
-        "failed" -> "Нужна помощь"
-        "duplicate" -> "Уже добавлен"
-        else -> "Проверить"
+        "failed" -> tr(Message.NEEDS_ATTENTION)
+        "duplicate" -> tr(Message.ALREADY_ADDED)
+        else -> tr(Message.REVIEW)
     }
+
+/** Display labels only: the canonical receipt unit is never modified or written back. */
+fun unitLabel(unit: String, language: AppLanguage = LanguageRuntime.language): String {
+    if (language == AppLanguage.RUSSIAN) return unit
+    return when (unit.trim().lowercase(Locale.ROOT)) {
+        "шт",
+        "шт.",
+        "штук" -> "pcs"
+        "кг" -> "kg"
+        "г",
+        "гр" -> "g"
+        "л" -> "L"
+        "мл" -> "mL"
+        "м" -> "m"
+        "уп",
+        "уп.",
+        "упак",
+        "упак." -> "pack"
+        else -> unit
+    }
+}

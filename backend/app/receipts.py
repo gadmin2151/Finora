@@ -38,6 +38,7 @@ from .finance import (
     rate_for,
     today,
 )
+from .i18n import current_language, t, translated_notice
 from .schemas import ReceiptConfirm, SplitInput, TransactionInput
 from .web_receipts import WebReceiptError, capture_receipt_page, receipt_link
 
@@ -826,8 +827,8 @@ def receipt_dict(db, receipt: m.Receipt, preloaded=None):
         "currency": receipt.currency,
         "total_minor": receipt.total_minor,
         "status": receipt.status,
-        "error": receipt.error,
-        "warnings": receipt.warnings,
+        "error": translated_notice(receipt.error),
+        "warnings": [translated_notice(notice) for notice in receipt.warnings],
         "account_id": receipt.account_id,
         "fx_rate": str(receipt.fx_rate),
         "version": receipt.version,
@@ -1069,7 +1070,12 @@ async def process_receipt(receipt_id: str):
                 result, _ = await ai.generate(
                     organization_id,
                     "receipt",
-                    RECEIPT_PROMPT,
+                    RECEIPT_PROMPT
+                    + (
+                        "\nWrite warnings in English. Keep all receipt content in its original language."
+                        if current_language() == "en"
+                        else ""
+                    ),
                     "Категории: "
                     + json.dumps(categories, ensure_ascii=False)
                     + "\n"
@@ -1090,8 +1096,10 @@ async def process_receipt(receipt_id: str):
                 extraction_provider = "local_ocr" if ocr_text else "mev"
         elif result is None:
             raise ReceiptError(
-                (warning + " " if warning else "")
-                + "Локальный OCR не смог прочитать фото. Включите AI с поддержкой изображений или заполните чек вручную."
+                (t(warning) + " " if warning else "")
+                + t(
+                    "Локальный OCR не смог прочитать фото. Включите AI с поддержкой изображений или заполните чек вручную."
+                )
             )
     try:
         parsed = ExtractedReceipt.model_validate(result)
@@ -1342,10 +1350,11 @@ async def process_receipt(receipt_id: str):
                     ],
                 ),
             )
-        text = f"Чек «{receipt.merchant or 'Покупка'}»: " + (
-            "расход добавлен. Можно открыть и проверить товары."
+        text = t(
+            "Чек «{merchant}»: расход добавлен. Можно открыть и проверить товары."
             if receipt.status == "posted"
-            else "готов к проверке. Откройте карточку, проверьте строки и сохраните расход."
+            else "Чек «{merchant}»: готов к проверке. Откройте карточку, проверьте строки и сохраните расход.",
+            merchant=receipt.merchant or t("Покупка"),
         )
         db.add(
             m.Message(

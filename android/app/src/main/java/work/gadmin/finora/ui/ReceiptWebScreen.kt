@@ -26,6 +26,8 @@ import kotlinx.coroutines.*
 import kotlinx.serialization.json.Json
 import work.gadmin.finora.data.publicReceiptAddress
 import work.gadmin.finora.data.receiptLink
+import work.gadmin.finora.localization.Message
+import work.gadmin.finora.localization.tr
 
 /** The document is downloaded by Android. API credentials never enter this WebView. */
 private class ReceiptDocumentView(context: Context) : WebView(context) {
@@ -115,7 +117,7 @@ private suspend fun WebView.awaitDocumentDraw() {
                 invalidate()
             }
         }
-    require(ready == true) { "Страница ещё обновляется. Повторите распознавание." }
+    require(ready == true) { tr(Message.THE_PAGE_IS_STILL_UPDATING_TRY_RECOGNITION_AGAIN) }
 }
 
 @Suppress("DEPRECATION")
@@ -126,13 +128,13 @@ private suspend fun ReceiptDocumentView.captureDocument(): Pair<String, List<Fil
     val text = documentText()
     val rawHeight = ceil(contentHeight * scale.toDouble()).toInt().coerceAtLeast(height)
     require(width > 0 && rawHeight > 0 && rawHeight <= 60000) {
-        "Слишком длинная страница. Сфотографируйте чек частями."
+        tr(Message.THE_PAGE_IS_TOO_LONG_PHOTOGRAPH_THE_RECEIPT_IN_PARTS)
     }
     val ratio = minOf(1f, 1440f / width)
     val targetWidth = (width * ratio).toInt().coerceAtLeast(1)
     val targetHeight = ceil(rawHeight * ratio.toDouble()).toInt()
     require(targetHeight <= 19800 && targetWidth.toLong() * targetHeight <= 25_000_000) {
-        "Страница слишком большая. Сфотографируйте сам чек."
+        tr(Message.THE_PAGE_IS_TOO_LARGE_PHOTOGRAPH_THE_RECEIPT_ITSELF)
     }
     val oldX = scrollX
     val oldY = scrollY
@@ -203,7 +205,7 @@ fun ReceiptWebScreen(
         error = null
         val allowed = withContext(Dispatchers.IO) { policy.permits(url) }
         if (allowed) view.loadUrl(url)
-        else error = "Страница недоступна или адрес не является публичным HTTPS-сайтом."
+        else error = tr(Message.THE_PAGE_IS_UNAVAILABLE_OR_ITS_ADDRESS_IS_NOT_A_PUBLIC_HTT)
     }
     DisposableEffect(web) {
         val view = web
@@ -227,14 +229,17 @@ fun ReceiptWebScreen(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     IconButton(onClose, enabled = !working) {
-                        LineIcon(Glyph.CLOSE, "Закрыть страницу чека")
+                        LineIcon(Glyph.CLOSE, tr(Message.CLOSE_RECEIPT_PAGE))
                     }
                     Column(Modifier.weight(1f)) {
-                        Text("Электронный чек", style = MaterialTheme.typography.titleLarge)
+                        Text(
+                            tr(Message.ELECTRONIC_RECEIPT),
+                            style = MaterialTheme.typography.titleLarge,
+                        )
                         Text(currentHost, color = Muted, style = MaterialTheme.typography.bodySmall)
                     }
                     IconButton({ if (!crashed) reload++ }, enabled = !working && !crashed) {
-                        LineIcon(Glyph.REFRESH, "Обновить страницу чека")
+                        LineIcon(Glyph.REFRESH, tr(Message.REFRESH_RECEIPT_PAGE))
                     }
                 }
                 if (progress < 100)
@@ -251,7 +256,7 @@ fun ReceiptWebScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
-                        "Страницу открывает ваш телефон. Когда чек загрузится, отправьте его на распознавание.",
+                        tr(Message.YOUR_PHONE_OPENS_THIS_PAGE_WHEN_THE_RECEIPT_LOADS_SEND_IT),
                         style = MaterialTheme.typography.bodySmall,
                         color = Muted,
                     )
@@ -263,7 +268,8 @@ fun ReceiptWebScreen(
                         )
                     }
                     PrimaryButton(
-                        if (working) "Готовим чек…" else "Распознать этот чек",
+                        if (working) tr(Message.PREPARING_RECEIPT)
+                        else tr(Message.READ_THIS_RECEIPT),
                         {
                             scope.launch {
                                 capturing = true
@@ -277,7 +283,10 @@ fun ReceiptWebScreen(
                                     if (failure is CancellationException) throw failure
                                     error =
                                         failure.message?.take(200)
-                                            ?: "Не удалось подготовить страницу. Повторите или сфотографируйте чек."
+                                            ?: tr(
+                                                Message
+                                                    .COULD_NOT_PREPARE_THE_PAGE_RETRY_OR_TAKE_A_RECEIPT_PHOTO
+                                            )
                                 } finally {
                                     capturing = false
                                 }
@@ -315,7 +324,7 @@ fun ReceiptWebScreen(
                         .blockNetworkLoads = true
                     setDownloadListener { _, _, _, _, _ ->
                         error =
-                            "Сайт предлагает скачать файл. Сфотографируйте чек или откройте его веб-страницу."
+                            tr(Message.THE_WEBSITE_OFFERS_A_DOWNLOAD_PHOTOGRAPH_THE_RECEIPT_OR_OP)
                     }
                     webChromeClient =
                         object : WebChromeClient() {
@@ -362,7 +371,7 @@ fun ReceiptWebScreen(
                                 error = null
                                 if (runCatching { receiptLink(target) }.isFailure) {
                                     view.stopLoading()
-                                    error = "Разрешены только публичные HTTPS-страницы чеков"
+                                    error = tr(Message.ONLY_PUBLIC_HTTPS_RECEIPT_PAGES_ARE_ALLOWED)
                                 } else currentHost = URI(target).host.orEmpty()
                             }
 
@@ -384,7 +393,10 @@ fun ReceiptWebScreen(
                                 if (request.isForMainFrame) {
                                     ready = false
                                     error =
-                                        "Телефон не смог открыть страницу. Проверьте интернет и повторите."
+                                        tr(
+                                            Message
+                                                .YOUR_PHONE_COULD_NOT_OPEN_THE_PAGE_CHECK_YOUR_CONNECTION_A
+                                        )
                                 }
                             }
 
@@ -396,7 +408,11 @@ fun ReceiptWebScreen(
                                 if (request.isForMainFrame) {
                                     ready = false
                                     error =
-                                        "Сайт чека ответил ${response.statusCode}. Попробуйте другое подключение или фото чека."
+                                        tr(
+                                            Message
+                                                .THE_RECEIPT_WEBSITE_RETURNED_1_S_TRY_ANOTHER_CONNECTION_OR,
+                                            response.statusCode,
+                                        )
                                 }
                             }
 
@@ -407,7 +423,11 @@ fun ReceiptWebScreen(
                             ) {
                                 handler.cancel()
                                 ready = false
-                                error = "Не удалось проверить HTTPS-сертификат сайта чека"
+                                error =
+                                    tr(
+                                        Message
+                                            .COULD_NOT_VERIFY_THE_RECEIPT_WEBSITE_S_HTTPS_CERTIFICATE
+                                    )
                             }
 
                             override fun onRenderProcessGone(
@@ -417,7 +437,10 @@ fun ReceiptWebScreen(
                                 ready = false
                                 crashed = true
                                 error =
-                                    "Страница использовала слишком много памяти. Закройте её и повторите или сфотографируйте чек."
+                                    tr(
+                                        Message
+                                            .THE_PAGE_USED_TOO_MUCH_MEMORY_CLOSE_IT_AND_TRY_AGAIN_OR_PH
+                                    )
                                 (view.parent as? android.view.ViewGroup)?.removeView(view)
                                 return true
                             }

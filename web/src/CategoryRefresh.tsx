@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import { useState } from "react";
 import { RefreshCw, Sparkles } from "lucide-react";
 import { api, useAction } from "./api";
@@ -27,8 +28,8 @@ export function CategoryRefresh() {
     });
     toast(
       response.added
-        ? `Добавлено категорий: ${response.added}`
-        : "Повседневные категории уже добавлены",
+        ? t("Добавлено категорий: {0}", response.added)
+        : t("Повседневные категории уже добавлены"),
     );
   });
   const refresh = useAction(
@@ -68,16 +69,16 @@ export function CategoryRefresh() {
       } while (cursor);
       setResult(summary);
     },
-    () => toast("Категории чеков и аналитика обновлены"),
+    () => toast(t("Категории чеков и аналитика обновлены")),
   );
   const pending = add.isPending || refresh.isPending;
   return (
     <div className="category-refresh">
-      <strong>Повседневные покупки — подробнее</strong>
+      <strong>{t("Повседневные покупки — подробнее")}</strong>
       <p>
-        Продукты, сладости, кофе, энергетики, табак, уход и товары для дома.
-        Перераспределение обновит товары и аналитику без изменения сумм. Ваши
-        правила имеют приоритет, собственные категории сохраняются.
+        {t(
+          "Продукты, сладости, кофе, энергетики, табак, уход и товары для дома. Перераспределение обновит товары и аналитику без изменения сумм. Ваши правила имеют приоритет, собственные категории сохраняются.",
+        )}
       </p>
       <div className="category-refresh-actions">
         <button
@@ -85,22 +86,22 @@ export function CategoryRefresh() {
           disabled={pending}
           onClick={() => add.mutate(undefined)}
         >
-          <Sparkles size={16} /> Добавить категории
+          <Sparkles size={16} /> {t("Добавить категории")}
         </button>
         <button
           className="button secondary"
           disabled={pending}
           onClick={() => refresh.mutate(undefined)}
         >
-          <RefreshCw size={16} /> Перераспределить чеки
+          <RefreshCw size={16} /> {t("Перераспределить чеки")}
         </button>
       </div>
       {pending && (
         <Loading
           text={
             refresh.isPending
-              ? `Проверено чеков: ${progress}…`
-              : "Добавляю категории…"
+              ? t("Проверено чеков: {0}…", progress)
+              : t("Добавляю категории…")
           }
         />
       )}
@@ -108,18 +109,19 @@ export function CategoryRefresh() {
       {result && (
         <div role="status">
           <p>
-            Проверено: {result.scanned}. Обновлено чеков:{" "}
-            {result.receipts_updated}, категорий товаров: {result.items_updated}
-            , названий: {result.names_repaired}.
+            {t("Проверено:")} {result.scanned}
+            {t(". Обновлено чеков:")} {result.receipts_updated}
+            {t(", категорий товаров:")} {result.items_updated}
+            {t(", названий:")} {result.names_repaired}.
           </p>
           {Object.entries(result.skipped).map(([reason, count]) => (
             <p className="muted" key={reason}>
               {{
-                refund: "С возвратами — требуют ручной проверки категорий",
-                processing: "Ещё распознаются",
-                inactive: "Без действующей покупки или товаров",
-                amount_mismatch: "Требуют сверки сумм",
-              }[reason] ?? "Пропущено"}
+                refund: t("С возвратами — требуют ручной проверки категорий"),
+                processing: t("Ещё распознаются"),
+                inactive: t("Без действующей покупки или товаров"),
+                amount_mismatch: t("Требуют сверки сумм"),
+              }[reason] ?? t("Пропущено")}
               : {count}
             </p>
           ))}

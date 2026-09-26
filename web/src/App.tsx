@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useIsMutating, useMutation, useQuery } from "@tanstack/react-query";
 import {
@@ -43,6 +44,8 @@ import {
   monthLabel,
 } from "./ui";
 import { AppearanceToggle } from "./Appearance";
+import { LanguageSelect } from "./Language";
+import { useLanguage } from "./i18n";
 import { BrandMark } from "./BrandMark";
 import TransactionForm from "./TransactionForm";
 import Sidebar from "./Sidebar";
@@ -98,6 +101,7 @@ function Logo() {
 }
 
 export default function App() {
+  useLanguage();
   const auth = useQuery({
     queryKey: ["me"],
     queryFn: () => api<User | null>("/auth/me"),
@@ -119,7 +123,7 @@ export default function App() {
     return (
       <div className="boot">
         <Logo />
-        <Loading text="Открываю ваше пространство…" />
+        <Loading text={t("Открываю ваше пространство…")} />
       </div>
     );
   if (!auth.data) return <Login />;
@@ -143,8 +147,8 @@ function Login() {
           <div className="orbital orbital-two" />
           <div className="login-card-shape">
             <Wallet size={33} />
-            <span>Больше ясности</span>
-            <strong>в каждом дне.</strong>
+            <span>{t("Больше ясности")}</span>
+            <strong>{t("в каждом дне.")}</strong>
             <div className="abstract-chart">
               <i />
               <i />
@@ -161,26 +165,33 @@ function Login() {
         </div>
         <div className="login-story-text">
           <h1>
-            Спокойствие начинается
-            <br />с понятных финансов.
+            {t("Спокойствие начинается")}
+            <br />
+            {t("с понятных финансов.")}
           </h1>
           <p>
-            Расходы, планы и маленькие шаги к большим целям — в вашем личном
-            пространстве.
+            {t(
+              "Расходы, планы и маленькие шаги к большим целям — в вашем личном пространстве.",
+            )}
           </p>
         </div>
         <span className="private-note">
           <ShieldCheck size={17} />
-          Ваш сервер. Ваши данные. Ваши решения.
+          {t("Ваш сервер. Ваши данные. Ваши решения.")}
         </span>
       </aside>
       <main className="login-main">
         <div className="login-form">
-          <span className="eyebrow">РАДЫ ВАС ВИДЕТЬ</span>
-          <h2>Добро пожаловать</h2>
-          <p>Войдите, чтобы продолжить заботиться о своих финансах.</p>
+          <LanguageSelect
+            compact
+            disabled={action.isPending}
+            onChange={() => action.reset()}
+          />
+          <span className="eyebrow">{t("РАДЫ ВАС ВИДЕТЬ")}</span>
+          <h2>{t("Добро пожаловать")}</h2>
+          <p>{t("Войдите, чтобы продолжить заботиться о своих финансах.")}</p>
           <Form onSubmit={() => action.mutate(undefined)}>
-            <Field label="Логин">
+            <Field label={t("Логин")}>
               <input
                 autoFocus
                 autoComplete="username"
@@ -188,10 +199,10 @@ function Login() {
                 onChange={(e) => setUsername(e.target.value)}
                 required
                 maxLength={80}
-                placeholder="Ваш логин"
+                placeholder={t("Ваш логин")}
               />
             </Field>
-            <Field label="Пароль">
+            <Field label={t("Пароль")}>
               <input
                 type="password"
                 autoComplete="current-password"
@@ -199,20 +210,21 @@ function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 maxLength={256}
-                placeholder="Введите пароль"
+                placeholder={t("Введите пароль")}
               />
             </Field>
             <ErrorBox error={action.error} />
             <Submit pending={action.isPending}>
-              Войти в Finora
+              {t("Войти в Finora")}
               <ArrowRight size={18} />
             </Submit>
           </Form>
           <div className="login-help">
             <CircleHelp size={18} />
             <span>
-              Первый вход? Логин и пароль выданы владельцем сервера.
-              Самостоятельная регистрация закрыта.
+              {t(
+                "Первый вход? Логин и пароль выданы владельцем сервера. Самостоятельная регистрация закрыта.",
+              )}
             </span>
           </div>
         </div>
@@ -256,7 +268,7 @@ function OrganizationGate({ user }: { user: User }) {
     return (
       <div className="boot">
         <Logo />
-        <Loading text="Открываю организацию…" />
+        <Loading text={t("Открываю организацию…")} />
       </div>
     );
   if (managing || (!organization && Boolean(selected)))
@@ -275,11 +287,12 @@ function OrganizationGate({ user }: { user: User }) {
     return (
       <main className="organization-picker">
         <Logo />
-        <span className="eyebrow">ВАШИ ОРГАНИЗАЦИИ</span>
-        <h1>Где будем вести учёт?</h1>
+        <span className="eyebrow">{t("ВАШИ ОРГАНИЗАЦИИ")}</span>
+        <h1>{t("Где будем вести учёт?")}</h1>
         <p>
-          Выберите организацию. Все новые чеки и операции попадут в её общую
-          историю.
+          {t(
+            "Выберите организацию. Все новые чеки и операции попадут в её общую историю.",
+          )}
         </p>
         <div className="organization-grid">
           {user.organizations.map((org) => (
@@ -293,7 +306,7 @@ function OrganizationGate({ user }: { user: User }) {
               <Building2 size={28} />
               <strong>{org.name}</strong>
               <small>
-                {org.role === "admin" ? "Администратор" : "Пользователь"}
+                {org.role === "admin" ? t("Администратор") : t("Пользователь")}
               </small>
               <ArrowRight size={20} />
             </button>
@@ -301,8 +314,10 @@ function OrganizationGate({ user }: { user: User }) {
         </div>
         {!user.organizations.length && (
           <p>
-            Нет доступных организаций. Попросите администратора добавить ваш
-            логин: {user.username}.
+            {t(
+              "Нет доступных организаций. Попросите администратора добавить ваш логин:",
+            )}{" "}
+            {user.username}.
           </p>
         )}
         <ErrorBox error={failure ?? logout.error} />
@@ -313,15 +328,15 @@ function OrganizationGate({ user }: { user: User }) {
             setManaging(true);
           }}
         >
-          <Building2 size={18} /> Управление организациями
-          {user.is_server_admin ? " и пользователями" : ""}
+          <Building2 size={18} /> {t("Управление организациями")}
+          {user.is_server_admin ? t(" и пользователями") : ""}
         </button>
         <button
           className="text-button"
           disabled={logout.isPending}
           onClick={() => logout.mutate()}
         >
-          Выйти из аккаунта
+          {t("Выйти из аккаунта")}
         </button>
       </main>
     );
@@ -350,7 +365,7 @@ function ManagementLobby({
     <AppContext.Provider
       value={{
         user,
-        organization: { id: "", name: "Управление", role: "user" },
+        organization: { id: "", name: t("Управление"), role: "user" },
         isAdmin: false,
         switchOrganization,
         month: currentMonth(),
@@ -370,7 +385,7 @@ function ManagementLobby({
         <header className="management-lobby-header">
           <Logo />
           <button className="button secondary" onClick={onBack}>
-            <ChevronLeft size={18} /> К выбору организации
+            <ChevronLeft size={18} /> {t("К выбору организации")}
           </button>
         </header>
         {message && (
@@ -378,7 +393,7 @@ function ManagementLobby({
             {message}
             <button
               className="icon-button"
-              aria-label="Закрыть уведомление"
+              aria-label={t("Закрыть уведомление")}
               onClick={() => setMessage("")}
             >
               <X size={16} />
@@ -520,7 +535,7 @@ function Workspace({
           document.getElementById("main-content")?.focus();
         }}
       >
-        Перейти к содержимому
+        {t("Перейти к содержимому")}
       </a>
       <Sidebar
         user={user}
@@ -541,7 +556,7 @@ function Workspace({
             <button
               className="icon-button mobile-only"
               ref={menuButton}
-              aria-label="Открыть меню"
+              aria-label={t("Открыть меню")}
               aria-expanded={menu}
               aria-controls="app-navigation"
               onClick={() => setMenu(true)}
@@ -561,16 +576,16 @@ function Workspace({
             <div className="month-control">
               <button
                 className="icon-button"
-                aria-label="Предыдущий месяц"
+                aria-label={t("Предыдущий месяц")}
                 onClick={() => stepMonth(-1)}
               >
                 <ChevronLeft size={17} />
               </button>
-              <label title="Выбрать месяц">
+              <label title={t("Выбрать месяц")}>
                 <span>{monthLabel(month)}</span>
                 <input
                   type="month"
-                  aria-label="Месяц отчёта"
+                  aria-label={t("Месяц отчёта")}
                   value={month}
                   min="1990-01"
                   max="2100-12"
@@ -582,7 +597,7 @@ function Workspace({
               </label>
               <button
                 className="icon-button"
-                aria-label="Следующий месяц"
+                aria-label={t("Следующий месяц")}
                 onClick={() => stepMonth(1)}
               >
                 <ChevronRight size={17} />
@@ -590,21 +605,22 @@ function Workspace({
             </div>
             <button
               className="button primary quick-add"
-              aria-label={isAdmin ? "Добавить операцию" : "Добавить чек"}
+              aria-label={isAdmin ? t("Добавить операцию") : t("Добавить чек")}
               onClick={() =>
                 setModal({ type: isAdmin ? "transaction" : "upload" })
               }
             >
               <Plus size={19} />
-              <span>Добавить</span>
+              <span>{t("Добавить")}</span>
             </button>
           </div>
         </header>
         {!online && (
           <div className="offline-banner">
             <WifiOff size={17} />
-            Нет связи. Уже открытые данные остаются на экране. Перед сохранением
-            восстановите соединение.
+            {t(
+              "Нет связи. Уже открытые данные остаются на экране. Перед сохранением восстановите соединение.",
+            )}
           </div>
         )}
         <main
@@ -628,7 +644,7 @@ function Workspace({
         </main>
         <footer className="workspace-footer">
           <span>27G Finora · Personal Finance</span>
-          <span>Учёт в MDL · Europe/Chisinau</span>
+          <span>{t("Учёт в MDL · Europe/Chisinau")}</span>
         </footer>
       </div>
       {isAdmin && modal?.type === "transaction" && (
@@ -646,7 +662,7 @@ function Workspace({
           {notice}
           <button
             className="icon-button"
-            aria-label="Закрыть уведомление"
+            aria-label={t("Закрыть уведомление")}
             onClick={() => setNotice("")}
           >
             <X size={15} />
@@ -662,10 +678,12 @@ export function FatalError({ error }: { error: unknown }) {
     <div className="boot">
       <Logo />
       <ErrorBox
-        error={new Error(`Не удалось открыть интерфейс. ${errorText(error)}`)}
+        error={
+          new Error(t("Не удалось открыть интерфейс. {0}", errorText(error)))
+        }
       />
       <button className="button primary" onClick={() => location.reload()}>
-        Перезагрузить
+        {t("Перезагрузить")}
       </button>
     </div>
   );

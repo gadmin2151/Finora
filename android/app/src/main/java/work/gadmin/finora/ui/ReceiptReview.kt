@@ -12,6 +12,8 @@ import work.gadmin.finora.AppState
 import work.gadmin.finora.FinoraViewModel
 import work.gadmin.finora.data.Receipt
 import work.gadmin.finora.data.money
+import work.gadmin.finora.localization.Message
+import work.gadmin.finora.localization.tr
 
 @Composable
 fun ReceiptReview(state: AppState, receipt: Receipt, vm: FinoraViewModel) {
@@ -35,15 +37,19 @@ fun ReceiptReview(state: AppState, receipt: Receipt, vm: FinoraViewModel) {
             Modifier.fillMaxWidth().padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("Проверьте чек", style = MaterialTheme.typography.titleLarge)
+            Text(tr(Message.REVIEW_YOUR_RECEIPT), style = MaterialTheme.typography.titleLarge)
             Text(
-                "Сверьте магазин, дату и каждую позицию. До подтверждения расход не добавляется.",
+                tr(Message.CHECK_THE_STORE_DATE_AND_EACH_ITEM_NO_EXPENSE_IS_ADDED_UNT),
                 color = Muted,
             )
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Итого · ${receipt.items.size} позиций", fontWeight = FontWeight.SemiBold)
                 Text(
-                    receipt.total_minor?.let { money(it, receipt.currency) } ?: "Не распознано",
+                    tr(Message.TOTAL_1_S_ITEMS, receipt.items.size),
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    receipt.total_minor?.let { money(it, receipt.currency) }
+                        ?: tr(Message.NOT_RECOGNIZED),
                     fontWeight = FontWeight.Bold,
                 )
             }
@@ -53,7 +59,7 @@ fun ReceiptReview(state: AppState, receipt: Receipt, vm: FinoraViewModel) {
                     Modifier.fillMaxWidth(),
                     enabled = !state.busy,
                 ) {
-                    Text("Исправить данные и позиции")
+                    Text(tr(Message.EDIT_DETAILS_AND_ITEMS))
                 }
                 Box {
                     OutlinedButton(
@@ -61,7 +67,10 @@ fun ReceiptReview(state: AppState, receipt: Receipt, vm: FinoraViewModel) {
                         Modifier.fillMaxWidth(),
                         enabled = !state.busy,
                     ) {
-                        Text(accounts.firstOrNull { it.id == accountId }?.name ?: "Выберите счёт")
+                        Text(
+                            accounts.firstOrNull { it.id == accountId }?.name
+                                ?: tr(Message.CHOOSE_AN_ACCOUNT)
+                        )
                         Spacer(Modifier.weight(1f))
                         LineIcon(Glyph.DOWN)
                     }
@@ -78,37 +87,37 @@ fun ReceiptReview(state: AppState, receipt: Receipt, vm: FinoraViewModel) {
                     }
                 }
                 PrimaryButton(
-                    if (state.busy) "Сохраняем…" else "Всё верно · подтвердить",
+                    if (state.busy) tr(Message.SAVING) else tr(Message.LOOKS_RIGHT_CONFIRM),
                     { confirm = true },
                     Modifier.fillMaxWidth(),
                     enabled = !state.busy && complete && accounts.any { it.id == accountId },
                 )
                 if (!complete) {
                     val problems = buildList {
-                        if (receipt.purchased_on == null) add("Укажите дату покупки.")
-                        if (receipt.merchant.isBlank()) add("Укажите магазин.")
-                        if (receipt.items.isEmpty()) add("Добавьте позиции чека.")
+                        if (receipt.purchased_on == null) add(tr(Message.ENTER_THE_PURCHASE_DATE))
+                        if (receipt.merchant.isBlank()) add(tr(Message.ENTER_THE_STORE))
+                        if (receipt.items.isEmpty()) add(tr(Message.ADD_RECEIPT_ITEMS))
                         if (receipt.total_minor == null || receipt.total_minor <= 0)
-                            add("Укажите итог чека.")
+                            add(tr(Message.ENTER_THE_RECEIPT_TOTAL))
                         else if (
                             receipt.items.isNotEmpty() &&
                                 receipt.items.sumOf { it.total_minor } != receipt.total_minor
                         )
-                            add("Сумма позиций отличается от итога чека.")
+                            add(tr(Message.THE_ITEM_SUM_DIFFERS_FROM_THE_RECEIPT_TOTAL))
                     }
                     Text(
-                        problems.joinToString(" ") + " Нажмите «Исправить данные и позиции».",
+                        problems.joinToString(" ") + tr(Message.TAP_EDIT_DETAILS_AND_ITEMS),
                         color = MaterialTheme.colorScheme.error,
                     )
                 }
                 if (accounts.isEmpty())
                     Text(
-                        "Добавьте счёт в валюте ${receipt.currency} через веб-версию.",
+                        tr(Message.ADD_A_1_S_ACCOUNT_ON_THE_WEBSITE, receipt.currency),
                         color = Muted,
                     )
             } else
                 Text(
-                    "Автор чека или администратор подтвердит расход. Замечания можно оставить в комментарии.",
+                    tr(Message.THE_RECEIPT_AUTHOR_OR_AN_ADMINISTRATOR_WILL_CONFIRM_THE_EX),
                     color = Muted,
                 )
         }
@@ -116,10 +125,17 @@ fun ReceiptReview(state: AppState, receipt: Receipt, vm: FinoraViewModel) {
     if (confirm)
         AlertDialog(
             onDismissRequest = { confirm = false },
-            title = { Text("Добавить этот расход?") },
+            title = { Text(tr(Message.ADD_THIS_EXPENSE)) },
             text = {
                 Text(
-                    "${receipt.title}\n${receipt.purchased_on}\n${receipt.items.size} позиций · ${money(requireNotNull(receipt.total_minor), receipt.currency)}\nСчёт: ${accounts.firstOrNull { it.id == accountId }?.name}"
+                    tr(
+                        Message.TEXT_1_S_2_S_3_S_ITEMS_4_S_ACCOUNT_5_S,
+                        receipt.title,
+                        receipt.purchased_on,
+                        receipt.items.size,
+                        money(requireNotNull(receipt.total_minor), receipt.currency),
+                        accounts.firstOrNull { it.id == accountId }?.name,
+                    )
                 )
             },
             confirmButton = {
@@ -127,9 +143,9 @@ fun ReceiptReview(state: AppState, receipt: Receipt, vm: FinoraViewModel) {
                     confirm = false
                     accountId?.let(vm::acceptReceipt)
                 }) {
-                    Text("Подтвердить")
+                    Text(tr(Message.CONFIRM))
                 }
             },
-            dismissButton = { TextButton({ confirm = false }) { Text("Ещё проверить") } },
+            dismissButton = { TextButton({ confirm = false }) { Text(tr(Message.REVIEW_AGAIN)) } },
         )
 }

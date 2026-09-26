@@ -16,7 +16,9 @@ import work.gadmin.finora.data.*
 
 @RunWith(AndroidJUnit4::class)
 class FinanceScreenAcceptanceTest {
-    @get:Rule val rule = createAndroidComposeRule<MainActivity>()
+    @get:Rule(order = 0) val languageRule = RussianUiLanguageRule()
+
+    @get:Rule(order = 1) val rule = createAndroidComposeRule<MainActivity>()
 
     @Test
     fun nativeMenuIncomeAndDebtFormsOverHttps() {

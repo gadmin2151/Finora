@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -55,7 +56,7 @@ export default function Transactions() {
     (tx: Transaction) =>
       send(`/transactions/${tx.id}?version=${tx.version}`, undefined, "DELETE"),
     () => {
-      toast("Операция отменена, остатки пересчитаны");
+      toast(t("Операция отменена, остатки пересчитаны"));
       setRemove(null);
     },
   );
@@ -70,9 +71,9 @@ export default function Transactions() {
   return (
     <>
       <PageHeading
-        eyebrow="ИСТОРИЯ"
-        title="Каждая операция на месте"
-        text="Покупки, доходы, переводы и возвраты — в единой истории."
+        eyebrow={t("ИСТОРИЯ")}
+        title={t("Каждая операция на месте")}
+        text={t("Покупки, доходы, переводы и возвраты — в единой истории.")}
         actions={
           isAdmin && (
             <>
@@ -89,7 +90,7 @@ export default function Transactions() {
                 onClick={() => open({ type: "transaction" })}
               >
                 <Plus size={18} />
-                Операция
+                {t("Операция")}
               </button>
             </>
           )
@@ -100,18 +101,18 @@ export default function Transactions() {
           <div className="search-field">
             <Search size={18} />
             <input
-              aria-label="Поиск операций"
-              placeholder="Магазин или примечание"
+              aria-label={t("Поиск операций")}
+              placeholder={t("Магазин или примечание")}
               value={search}
               onChange={(e) => reset(() => setSearch(e.target.value))}
             />
           </div>
           <select
-            aria-label="Тип операции"
+            aria-label={t("Тип операции")}
             value={kind}
             onChange={(e) => reset(() => setKind(e.target.value))}
           >
-            <option value="">Все операции</option>
+            <option value="">{t("Все операции")}</option>
             {Object.entries(kinds).map(([k, v]) => (
               <option key={k} value={k}>
                 {v}
@@ -119,11 +120,11 @@ export default function Transactions() {
             ))}
           </select>
           <select
-            aria-label="Фильтр категории"
+            aria-label={t("Фильтр категории")}
             value={category}
             onChange={(e) => reset(() => setCategory(e.target.value))}
           >
-            <option value="">Все категории</option>
+            <option value="">{t("Все категории")}</option>
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -131,11 +132,11 @@ export default function Transactions() {
             ))}
           </select>
           <select
-            aria-label="Фильтр счёта"
+            aria-label={t("Фильтр счёта")}
             value={account}
             onChange={(e) => reset(() => setAccount(e.target.value))}
           >
-            <option value="">Все счета</option>
+            <option value="">{t("Все счета")}</option>
             {accounts.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.name}
@@ -148,7 +149,7 @@ export default function Transactions() {
               checked={all}
               onChange={(e) => reset(() => setAll(e.target.checked))}
             />
-            Вся история
+            {t("Вся история")}
           </label>
         </div>
         <ErrorBox error={query.error ?? receiptAction.error} />
@@ -160,12 +161,12 @@ export default function Transactions() {
               <table>
                 <thead>
                   <tr>
-                    <th>Операция</th>
-                    <th>Категория</th>
-                    <th>Счёт</th>
-                    <th>Дата</th>
-                    <th className="align-right">Сумма</th>
-                    <th aria-label="Действия" />
+                    <th>{t("Операция")}</th>
+                    <th>{t("Категория")}</th>
+                    <th>{t("Счёт")}</th>
+                    <th>{t("Дата")}</th>
+                    <th className="align-right">{t("Сумма")}</th>
+                    <th aria-label={t("Действия")} />
                   </tr>
                 </thead>
                 <tbody>
@@ -194,7 +195,7 @@ export default function Transactions() {
                                     receiptAction.mutate(tx.receipt_id!)
                                   }
                                 >
-                                  Чек и товары ↗
+                                  {t("Чек и товары ↗")}
                                 </button>
                               )}
                             </div>
@@ -202,7 +203,9 @@ export default function Transactions() {
                         </td>
                         <td>
                           {tx.splits.length > 1 ? (
-                            <Badge>{tx.splits.length} категории</Badge>
+                            <Badge>
+                              {tx.splits.length} {t("категории")}
+                            </Badge>
                           ) : (
                             (cat?.name ?? "—")
                           )}
@@ -251,8 +254,11 @@ export default function Transactions() {
                             {isAdmin && !linked && (
                               <button
                                 className="icon-button"
-                                title="Изменить"
-                                aria-label={`Изменить ${tx.merchant || "операцию"}`}
+                                title={t("Изменить")}
+                                aria-label={t(
+                                  "Изменить {0}",
+                                  tx.merchant || t("операцию"),
+                                )}
                                 onClick={() =>
                                   open({ type: "transaction", transaction: tx })
                                 }
@@ -263,8 +269,11 @@ export default function Transactions() {
                             {isAdmin && tx.kind === "expense" && (
                               <button
                                 className="icon-button"
-                                title="Возврат покупки"
-                                aria-label={`Возврат ${tx.merchant || "покупки"}`}
+                                title={t("Возврат покупки")}
+                                aria-label={t(
+                                  "Возврат {0}",
+                                  tx.merchant || t("покупки"),
+                                )}
                                 onClick={() =>
                                   open({ type: "transaction", refund: tx })
                                 }
@@ -274,8 +283,11 @@ export default function Transactions() {
                             )}
                             <button
                               className="icon-button danger-hover"
-                              title="Отменить операцию"
-                              aria-label={`Отменить ${tx.merchant || "операцию"}`}
+                              title={t("Отменить операцию")}
+                              aria-label={t(
+                                "Отменить {0}",
+                                tx.merchant || t("операцию"),
+                              )}
                               onClick={() => setRemove(tx)}
                             >
                               <Trash2 size={16} />
@@ -290,13 +302,13 @@ export default function Transactions() {
             </div>
             <div className="pagination">
               <span>
-                Показано {offset + 1}–{offset + query.data.items.length} из{" "}
-                {query.data.total}
+                {t("Показано")} {offset + 1}–{offset + query.data.items.length}{" "}
+                {t("из")} {query.data.total}
               </span>
               <div>
                 <button
                   className="icon-button"
-                  aria-label="Предыдущая страница"
+                  aria-label={t("Предыдущая страница")}
                   disabled={offset === 0}
                   onClick={() => setOffset(Math.max(0, offset - 50))}
                 >
@@ -304,7 +316,7 @@ export default function Transactions() {
                 </button>
                 <button
                   className="icon-button"
-                  aria-label="Следующая страница"
+                  aria-label={t("Следующая страница")}
                   disabled={offset + 50 >= query.data.total}
                   onClick={() => setOffset(offset + 50)}
                 >
@@ -315,8 +327,8 @@ export default function Transactions() {
           </>
         ) : (
           <Empty
-            title="Здесь пока пусто"
-            text="Измените фильтры или добавьте первую операцию."
+            title={t("Здесь пока пусто")}
+            text={t("Измените фильтры или добавьте первую операцию.")}
             action={
               isAdmin && (
                 <button
@@ -324,7 +336,7 @@ export default function Transactions() {
                   onClick={() => open({ type: "transaction" })}
                 >
                   <Plus size={17} />
-                  Добавить
+                  {t("Добавить")}
                 </button>
               )
             }
@@ -333,13 +345,14 @@ export default function Transactions() {
       </section>
       {remove && (
         <Modal
-          title="Отменить операцию?"
+          title={t("Отменить операцию?")}
           description={`${remove.merchant || kinds[remove.kind]} · ${amount(remove.amount_minor, remove.currency)}`}
           onClose={() => setRemove(null)}
         >
           <p>
-            Операция перестанет влиять на остатки, долги и отчёты. История
-            отмены сохранится в журнале.
+            {t(
+              "Операция перестанет влиять на остатки, долги и отчёты. История отмены сохранится в журнале.",
+            )}
           </p>
           <ErrorBox error={action.error} />
           <footer className="modal-footer">
@@ -347,14 +360,14 @@ export default function Transactions() {
               className="button secondary"
               onClick={() => setRemove(null)}
             >
-              Оставить
+              {t("Оставить")}
             </button>
             <button
               className="button danger"
               disabled={action.isPending}
               onClick={() => action.mutate(remove)}
             >
-              Отменить операцию
+              {t("Отменить операцию")}
             </button>
           </footer>
         </Modal>

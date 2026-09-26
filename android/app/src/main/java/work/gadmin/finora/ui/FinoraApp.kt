@@ -34,10 +34,15 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.delay
 import work.gadmin.finora.*
+import work.gadmin.finora.localization.LanguageRuntime
+import work.gadmin.finora.localization.Message
+import work.gadmin.finora.localization.tr
 
 @Composable
 fun FinoraApp(vm: FinoraViewModel) {
     val state by vm.state.collectAsStateWithLifecycle()
+    val language = LanguageRuntime.language
+    LaunchedEffect(language) { vm.languageChanged(language) }
     val view = LocalView.current
     val lightSystemBars = !LocalAppearance.current.dark && state.camera == null
     SideEffect {
@@ -74,7 +79,7 @@ fun FinoraApp(vm: FinoraViewModel) {
                 ) {
                     Brand()
                     BrandPulse(Modifier.size(96.dp))
-                    Text("Открываем ваше пространство", color = Muted)
+                    Text(tr(Message.OPENING_YOUR_SPACE), color = Muted)
                 }
             }
         state.user == null -> LoginScreen(state, vm)
@@ -127,7 +132,7 @@ fun FinoraApp(vm: FinoraViewModel) {
                             ) {
                                 if (state.detailId != null)
                                     IconButton(vm::closeDetail, enabled = !state.busy) {
-                                        LineIcon(Glyph.BACK, "Назад к чекам")
+                                        LineIcon(Glyph.BACK, tr(Message.BACK_TO_RECEIPTS))
                                     }
                                 Surface(
                                     onClick = { vm.chooseOrganization() },
@@ -151,7 +156,7 @@ fun FinoraApp(vm: FinoraViewModel) {
                                         }
                                         Column(Modifier.weight(1f)) {
                                             Text(
-                                                "ОРГАНИЗАЦИЯ",
+                                                tr(Message.ORGANIZATION),
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = Muted,
                                             )
@@ -162,7 +167,11 @@ fun FinoraApp(vm: FinoraViewModel) {
                                                 overflow = TextOverflow.Ellipsis,
                                             )
                                         }
-                                        LineIcon(Glyph.DOWN, "Выбрать организацию", size = 18.dp)
+                                        LineIcon(
+                                            Glyph.DOWN,
+                                            tr(Message.CHOOSE_ORGANIZATION),
+                                            size = 18.dp,
+                                        )
                                     }
                                 }
                                 Spacer(Modifier.width(18.dp))
@@ -170,7 +179,7 @@ fun FinoraApp(vm: FinoraViewModel) {
                                     onClick = { vm.navigate(Page.PROFILE) },
                                     modifier =
                                         Modifier.semantics {
-                                            contentDescription = "Открыть профиль"
+                                            contentDescription = tr(Message.OPEN_PROFILE)
                                         },
                                     color = Forest,
                                     shape = CircleShape,
@@ -185,16 +194,17 @@ fun FinoraApp(vm: FinoraViewModel) {
                             ) {
                                 val updated = state.lastRefreshedAt
                                 Text(
-                                    if (updated == null) "Потяните вниз, чтобы обновить"
+                                    if (updated == null) tr(Message.PULL_DOWN_TO_REFRESH)
                                     else
-                                        "Обновлено в " +
+                                        tr(Message.UPDATED_AT) +
                                             Instant.ofEpochMilli(updated)
                                                 .atZone(ZoneId.systemDefault())
                                                 .format(DateTimeFormatter.ofPattern("HH:mm:ss")),
                                     Modifier.weight(1f).semantics {
                                         contentDescription =
-                                            if (updated == null) "Обновление жестом сверху вниз"
-                                            else "Данные обновлены"
+                                            if (updated == null)
+                                                tr(Message.PULL_DOWN_TO_REFRESH_12F09)
+                                            else tr(Message.DATA_UPDATED)
                                     },
                                     color = if (updated == null) Muted else Green,
                                     style = MaterialTheme.typography.labelSmall,
@@ -205,7 +215,7 @@ fun FinoraApp(vm: FinoraViewModel) {
                                         !state.busy && !state.refreshing && !state.workspaceLoading,
                                     modifier = Modifier.size(48.dp),
                                 ) {
-                                    LineIcon(Glyph.REFRESH, "Обновить данные", size = 18.dp)
+                                    LineIcon(Glyph.REFRESH, tr(Message.REFRESH_DATA), size = 18.dp)
                                 }
                             }
                             state.error?.let { message ->
@@ -226,7 +236,7 @@ fun FinoraApp(vm: FinoraViewModel) {
                                         IconButton(vm::dismissError) {
                                             LineIcon(
                                                 Glyph.CLOSE,
-                                                "Скрыть сообщение",
+                                                tr(Message.DISMISS_MESSAGE),
                                                 tint = MaterialTheme.colorScheme.onErrorContainer,
                                                 size = 18.dp,
                                             )
@@ -251,11 +261,11 @@ fun FinoraApp(vm: FinoraViewModel) {
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 listOf(
-                                        Triple(Page.OVERVIEW, "Обзор", Glyph.CHART),
-                                        Triple(Page.FINANCES, "Финансы", Glyph.WALLET),
-                                        Triple(Page.CAPTURE, "Добавить", Glyph.SCAN),
-                                        Triple(Page.RECEIPTS, "Чеки", Glyph.RECEIPT),
-                                        Triple(Page.CHAT, "Помощник", Glyph.SPARK),
+                                        Triple(Page.OVERVIEW, tr(Message.OVERVIEW), Glyph.CHART),
+                                        Triple(Page.FINANCES, tr(Message.FINANCES), Glyph.WALLET),
+                                        Triple(Page.CAPTURE, tr(Message.ADD), Glyph.SCAN),
+                                        Triple(Page.RECEIPTS, tr(Message.RECEIPTS), Glyph.RECEIPT),
+                                        Triple(Page.CHAT, tr(Message.ASSISTANT), Glyph.SPARK),
                                     )
                                     .forEach { (page, label, glyph) ->
                                         val capture = page == Page.CAPTURE
@@ -271,7 +281,8 @@ fun FinoraApp(vm: FinoraViewModel) {
                                                 )
                                                 .semantics {
                                                     contentDescription =
-                                                        if (capture) "Добавить чек" else label
+                                                        if (capture) tr(Message.ADD_RECEIPT)
+                                                        else label
                                                 }
                                                 .padding(vertical = 4.dp),
                                             horizontalAlignment = Alignment.CenterHorizontally,

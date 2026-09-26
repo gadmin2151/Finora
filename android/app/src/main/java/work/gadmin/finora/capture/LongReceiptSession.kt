@@ -13,6 +13,8 @@ import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
+import work.gadmin.finora.localization.Message
+import work.gadmin.finora.localization.tr
 
 const val LONG_RECEIPT_MAX_HEIGHT = 14_000
 const val LONG_RECEIPT_MAX_WIDTH = 1920
@@ -21,7 +23,7 @@ private const val MAX_SEGMENTS = 160
 data class ScanProgress(
     val count: Int = 0,
     val height: Int = 0,
-    val message: String = "Поместите белую бумагу чека в рамку",
+    val message: String = tr(Message.PLACE_THE_WHITE_RECEIPT_PAPER_INSIDE_THE_FRAME),
     val warning: Boolean = false,
     val limitReached: Boolean = false,
     val thumbnail: Bitmap? = null,
@@ -74,7 +76,10 @@ class LongReceiptSession(cache: File) : Closeable {
             require(bitmap.width <= LONG_RECEIPT_MAX_WIDTH && bitmap.height <= 2400)
             features = registration.features(bitmap)
             if (features.points.size < 16 || features.paper.isEmpty)
-                return status("Наведите на белый чек с печатными строками", true)
+                return status(
+                    tr(Message.POINT_THE_CAMERA_AT_A_WHITE_RECEIPT_WITH_PRINTED_LINES),
+                    true,
+                )
             if (previous == null) {
                 frameWidth = bitmap.width
                 frameHeight = bitmap.height
@@ -93,27 +98,31 @@ class LongReceiptSession(cache: File) : Closeable {
                     )
                 )
                 retained = true
-                return status("Сканируем · плавно ведите телефон вниз")
+                return status(tr(Message.SCANNING_MOVE_THE_PHONE_SLOWLY_DOWN))
             }
             if (bitmap.width != frameWidth || bitmap.height != frameHeight)
-                return status("Держите телефон вертикально", true)
+                return status(tr(Message.KEEP_THE_PHONE_UPRIGHT), true)
             val match =
                 registration.match(requireNotNull(tracking), features, frameWidth, frameHeight)
-                    ?: return status("Вернитесь чуть вверх, чтобы снова увидеть общие строки", true)
+                    ?: return status(
+                        tr(Message.MOVE_UP_SLIGHTLY_TO_OVERLAP_THE_PREVIOUS_LINES),
+                        true,
+                    )
             val transform = trackingTransform * match
             val corners = transform.corners(frameWidth, frameHeight)
             val left = max(corners[0].x, corners[3].x)
             val right = min(corners[1].x, corners[2].x)
             if (min(commonRight, right) - max(commonLeft, left) < frameWidth * .65f)
-                return status("Держите бумагу по центру рамки", true)
+                return status(tr(Message.KEEP_THE_PAPER_IN_THE_MIDDLE_OF_THE_FRAME), true)
             val top = max(corners[0].y, corners[1].y)
             val bottom = min(corners[2].y, corners[3].y)
             if (!bottom.isFinite() || bottom - top !in frameHeight * .60f..frameHeight * 1.6f)
-                return status("Сохраняйте расстояние до бумаги", true)
+                return status(tr(Message.KEEP_THE_SAME_DISTANCE_FROM_THE_PAPER), true)
             val advance = bottom - totalHeight
-            if (advance < -frameHeight * .12f) return status("Ведите телефон сверху вниз", true)
+            if (advance < -frameHeight * .12f)
+                return status(tr(Message.MOVE_THE_PHONE_FROM_TOP_TO_BOTTOM), true)
             if (bottom - originTop > LONG_RECEIPT_MAX_HEIGHT || segments.size >= MAX_SEGMENTS)
-                return status("Достигнута максимальная длина. Нажмите «Готово»", limit = true)
+                return status(tr(Message.MAXIMUM_LENGTH_REACHED_TAP_DONE), limit = true)
             // Track each neighboring frame, even when movement is too small to add a strip.
             // This prevents accumulated handheld tilt from losing the original reference.
             tracking?.close()
@@ -130,7 +139,7 @@ class LongReceiptSession(cache: File) : Closeable {
                 )
             paperLeft = min(paperLeft, paperCorners.minOf { it.x })
             paperRight = max(paperRight, paperCorners.maxOf { it.x })
-            if (advance < 4) return status("Сканируем · продолжайте движение вниз")
+            if (advance < 4) return status(tr(Message.SCANNING_KEEP_MOVING_DOWN))
             val candidate = Pending(bitmap, transform, top, bottom)
             if (advance < frameHeight * .08f) {
                 if (pending == null || bottom > requireNotNull(pending).bottom) {
@@ -138,13 +147,13 @@ class LongReceiptSession(cache: File) : Closeable {
                     pending = candidate
                     retained = true
                 }
-                return status("Сканируем · полоса чека продолжается")
+                return status(tr(Message.SCANNING_EXTENDING_THE_RECEIPT))
             }
             pending?.bitmap?.recycle()
             pending = null
             append(candidate)
             retained = true
-            return status("Добавлен новый участок · ведите дальше вниз")
+            return status(tr(Message.NEW_SECTION_ADDED_CONTINUE_MOVING_DOWN))
         } finally {
             features?.close()
             if (!retained) bitmap.recycle()
@@ -207,7 +216,9 @@ class LongReceiptSession(cache: File) : Closeable {
     }
 
     fun finish(): File {
-        check(segments.isNotEmpty()) { "Сначала наведите камеру на печатную часть чека" }
+        check(segments.isNotEmpty()) {
+            tr(Message.POINT_THE_CAMERA_AT_THE_PRINTED_PART_OF_THE_RECEIPT_FIRST)
+        }
         pending?.let {
             pending = null
             append(it)
@@ -222,7 +233,7 @@ class LongReceiptSession(cache: File) : Closeable {
         try {
             output.outputStream().use { check(bitmap.compress(Bitmap.CompressFormat.JPEG, 97, it)) }
             check(output.length() <= 15L * 1024 * 1024) {
-                "Снимок слишком большой. Снимите чек двумя частями"
+                tr(Message.THE_IMAGE_IS_TOO_LARGE_CAPTURE_THE_RECEIPT_IN_TWO_PARTS)
             }
         } finally {
             bitmap.recycle()

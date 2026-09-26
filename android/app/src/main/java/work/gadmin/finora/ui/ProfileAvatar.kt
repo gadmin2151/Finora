@@ -20,6 +20,8 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.*
 import work.gadmin.finora.FinoraViewModel
 import work.gadmin.finora.data.User
+import work.gadmin.finora.localization.Message
+import work.gadmin.finora.localization.tr
 
 @Composable
 fun ProfileAvatar(user: User?, vm: FinoraViewModel, size: Dp = 44.dp) {
@@ -44,7 +46,12 @@ fun ProfileAvatar(user: User?, vm: FinoraViewModel, size: Dp = 44.dp) {
     Surface(color = SoftGreen, shape = CircleShape, modifier = Modifier.size(size)) {
         Box(contentAlignment = Alignment.Center) {
             bitmap?.let {
-                Image(it, "Фото профиля", Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                Image(
+                    it,
+                    tr(Message.PROFILE_PHOTO),
+                    Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                )
             }
                 ?: Text(
                     user?.name?.take(1)?.uppercase() ?: "F",
@@ -52,7 +59,9 @@ fun ProfileAvatar(user: User?, vm: FinoraViewModel, size: Dp = 44.dp) {
                     fontWeight = FontWeight.SemiBold,
                     modifier =
                         Modifier.semantics {
-                            if (failed) contentDescription = "Фото профиля временно недоступно"
+                            if (failed)
+                                contentDescription =
+                                    tr(Message.PROFILE_PHOTO_TEMPORARILY_UNAVAILABLE)
                         },
                 )
         }

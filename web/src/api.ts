@@ -1,3 +1,5 @@
+import { refreshLocalizedQueries } from "./i18nQueries";
+import { t, getLanguage } from "./i18n";
 import {
   QueryClient,
   useMutation,
@@ -10,6 +12,10 @@ export const queryClient = new QueryClient({
     mutations: { retry: false },
   },
 });
+// Language changes refresh server-generated labels without resetting forms or sessions.
+window.addEventListener("finora:language", () => {
+  void refreshLocalizedQueries(queryClient);
+});
 let csrf = "";
 let organization = "";
 let scopeGeneration = 0;
@@ -18,7 +24,7 @@ export function setOrganization(value: string) {
   scopeGeneration += 1;
 }
 export function organizationUrl(path: string) {
-  return `${path}${path.includes("?") ? "&" : "?"}organization_id=${encodeURIComponent(organization)}`;
+  return `${path}${path.includes("?") ? "&" : "?"}organization_id=${encodeURIComponent(organization)}&language=${getLanguage()}`;
 }
 export function setCsrf(value: string) {
   csrf = value;
@@ -45,6 +51,7 @@ export async function api<T>(
 ): Promise<T> {
   const isForm = options.body instanceof FormData;
   const generation = scopeGeneration;
+  const requestLanguage = getLanguage();
   const deadline = AbortSignal.timeout(isForm ? 180_000 : 45_000);
   const response = await fetch(`/api${path}`, {
     ...options,
@@ -56,19 +63,20 @@ export async function api<T>(
       ...(isForm ? {} : { "Content-Type": "application/json" }),
       "X-CSRF-Token": csrf,
       "X-Finora-Client": "web",
+      "Accept-Language": requestLanguage,
       ...(organization ? { "X-Organization-ID": organization } : {}),
       ...options.headers,
     },
   }).catch((error: unknown) => {
     if (error instanceof DOMException && error.name === "TimeoutError")
       throw new ApiError(
-        "Сервер не успел ответить. Проверьте соединение и повторите.",
+        t("Сервер не успел ответить. Проверьте соединение и повторите."),
         0,
       );
     throw error;
   });
   if (generation !== scopeGeneration && !path.startsWith("/auth/"))
-    throw new DOMException("Организация изменена", "AbortError");
+    throw new DOMException(t("Организация изменена"), "AbortError");
   if (!response.ok) {
     const body: { detail?: string } = await response.json().catch(() => ({}));
     if (response.status === 401 && path !== "/auth/login")
@@ -76,13 +84,19 @@ export async function api<T>(
     throw new ApiError(
       typeof body.detail === "string"
         ? body.detail
-        : "Не удалось выполнить действие",
+        : t("Не удалось выполнить действие"),
       response.status,
     );
   }
   const body: T = await response.json();
+  if (
+    (options.method ?? "GET").toUpperCase() === "GET" &&
+    !path.startsWith("/auth/") &&
+    requestLanguage !== getLanguage()
+  )
+    throw new DOMException("Interface language changed", "AbortError");
   if (generation !== scopeGeneration && !path.startsWith("/auth/"))
-    throw new DOMException("Организация изменена", "AbortError");
+    throw new DOMException(t("Организация изменена"), "AbortError");
   return body;
 }
 export function send<T = unknown>(
@@ -113,7 +127,7 @@ export function useAction<T>(
 export function errorText(error: unknown) {
   return error instanceof Error
     ? error instanceof TypeError
-      ? "Нет соединения с сервером. Проверьте интернет и повторите."
+      ? t("Нет соединения с сервером. Проверьте интернет и повторите.")
       : error.message
-    : "Не удалось выполнить действие";
+    : t("Не удалось выполнить действие");
 }

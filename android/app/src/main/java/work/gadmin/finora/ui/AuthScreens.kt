@@ -18,6 +18,8 @@ import androidx.compose.ui.unit.dp
 import work.gadmin.finora.AppState
 import work.gadmin.finora.FinoraViewModel
 import work.gadmin.finora.data.Organization
+import work.gadmin.finora.localization.Message
+import work.gadmin.finora.localization.tr
 
 @Composable
 fun LoginScreen(state: AppState, vm: FinoraViewModel) {
@@ -37,22 +39,23 @@ fun LoginScreen(state: AppState, vm: FinoraViewModel) {
             .padding(26.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
-        Brand(Modifier.padding(top = 20.dp, bottom = 24.dp))
-        Text("Ваши деньги.\nВсё понятно.", style = MaterialTheme.typography.headlineLarge)
+        LoginLanguageSwitch()
+        Brand(Modifier.padding(top = 2.dp, bottom = 14.dp))
+        Text(tr(Message.YOUR_MONEY_MADE_CLEAR), style = MaterialTheme.typography.headlineLarge)
         Text(
-            "Чеки, покупки и спокойствие за бюджет — всегда под рукой.",
+            tr(Message.RECEIPTS_PURCHASES_AND_PEACE_OF_MIND_ALWAYS_AT_HAND),
             color = Muted,
             style = MaterialTheme.typography.bodyLarge,
         )
         Spacer(Modifier.height(8.dp))
         Surface(shape = RoundedCornerShape(26.dp), color = SurfaceColor) {
             Column(Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text("Войти в Finora", style = MaterialTheme.typography.titleLarge)
+                Text(tr(Message.SIGN_IN_TO_FINORA), style = MaterialTheme.typography.titleLarge)
                 OutlinedTextField(
                     server,
                     { server = it },
                     Modifier.fillMaxWidth(),
-                    label = { Text("Сервер HTTPS") },
+                    label = { Text(tr(Message.HTTPS_SERVER)) },
                     singleLine = true,
                     leadingIcon = { LineIcon(Glyph.LOCK) },
                     keyboardOptions =
@@ -66,7 +69,7 @@ fun LoginScreen(state: AppState, vm: FinoraViewModel) {
                     username,
                     { username = it },
                     Modifier.fillMaxWidth(),
-                    label = { Text("Логин") },
+                    label = { Text(tr(Message.USERNAME)) },
                     singleLine = true,
                     keyboardOptions =
                         KeyboardOptions(autoCorrectEnabled = false, imeAction = ImeAction.Next),
@@ -76,7 +79,7 @@ fun LoginScreen(state: AppState, vm: FinoraViewModel) {
                     password,
                     { password = it },
                     Modifier.fillMaxWidth(),
-                    label = { Text("Пароль") },
+                    label = { Text(tr(Message.PASSWORD)) },
                     singleLine = true,
                     visualTransformation =
                         if (showPassword) VisualTransformation.None
@@ -85,7 +88,8 @@ fun LoginScreen(state: AppState, vm: FinoraViewModel) {
                         IconButton({ showPassword = !showPassword }) {
                             LineIcon(
                                 Glyph.EYE,
-                                if (showPassword) "Скрыть пароль" else "Показать пароль",
+                                if (showPassword) tr(Message.HIDE_PASSWORD)
+                                else tr(Message.SHOW_PASSWORD),
                             )
                         }
                     },
@@ -108,7 +112,7 @@ fun LoginScreen(state: AppState, vm: FinoraViewModel) {
                     )
                 }
                 PrimaryButton(
-                    if (state.busy) "Подключаемся…" else "Войти",
+                    if (state.busy) tr(Message.CONNECTING) else tr(Message.SIGN_IN),
                     { vm.login(server, username, password) },
                     Modifier.fillMaxWidth(),
                     enabled = !state.busy && username.isNotBlank() && password.isNotEmpty(),
@@ -116,11 +120,9 @@ fun LoginScreen(state: AppState, vm: FinoraViewModel) {
                 )
             }
         }
-        InfoCard(
-            "Защищённое соединение с вашим сервером. Используйте тот же логин, что и в веб-версии."
-        )
+        InfoCard(tr(Message.A_SECURE_CONNECTION_TO_YOUR_SERVER_USE_THE_SAME_USERNAME_A))
         Text(
-            "УЧЁТ БЕЗ ЛИШНИХ УСИЛИЙ",
+            tr(Message.FINANCES_WITHOUT_THE_FUSS),
             style = MaterialTheme.typography.labelSmall,
             color = Muted,
             modifier = Modifier.align(Alignment.CenterHorizontally).padding(12.dp),
@@ -148,12 +150,17 @@ fun OrganizationScreen(
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Brand(Modifier.weight(1f))
             if (state.organization != null)
-                IconButton(onBack) { LineIcon(Glyph.CLOSE, "Закрыть выбор организации") }
+                IconButton(onBack) {
+                    LineIcon(Glyph.CLOSE, tr(Message.CLOSE_ORGANIZATION_SELECTION))
+                }
         }
         Spacer(Modifier.height(24.dp))
-        Text("Какой бюджет\nведём сегодня?", style = MaterialTheme.typography.headlineLarge)
         Text(
-            "Выберите организацию. Чеки и статистика будут общими для её участников.",
+            tr(Message.WHICH_BUDGET_ARE_WE_MANAGING_TODAY),
+            style = MaterialTheme.typography.headlineLarge,
+        )
+        Text(
+            tr(Message.CHOOSE_AN_ORGANIZATION_RECEIPTS_AND_STATISTICS_ARE_SHARED),
             color = Muted,
         )
         Spacer(Modifier.height(8.dp))
@@ -174,7 +181,8 @@ fun OrganizationScreen(
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(organization.name, style = MaterialTheme.typography.titleMedium)
                         Text(
-                            if (organization.isAdmin) "Администратор" else "Участник",
+                            if (organization.isAdmin) tr(Message.ADMINISTRATOR)
+                            else tr(Message.MEMBER),
                             color = Muted,
                             style = MaterialTheme.typography.bodyMedium,
                         )
@@ -185,12 +193,12 @@ fun OrganizationScreen(
         }
         if (state.user?.organizations.isNullOrEmpty())
             InfoCard(
-                "Пока нет доступных организаций. Попросите администратора добавить вас через веб-версию.",
+                tr(Message.NO_ORGANIZATIONS_AVAILABLE_YET_ASK_AN_ADMINISTRATOR_TO_ADD),
                 Glyph.HOME,
             )
         state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         TextButton(onLogout, enabled = !state.busy) {
-            Text("Выйти из аккаунта", fontWeight = FontWeight.Medium)
+            Text(tr(Message.SIGN_OUT), fontWeight = FontWeight.Medium)
         }
     }
 }

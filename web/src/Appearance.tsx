@@ -1,11 +1,30 @@
+import { t } from "./i18n";
 import { useId } from "react";
 import { Check, Monitor, Moon, Sun } from "lucide-react";
 import { useAppearance, type ThemePreference } from "./themeStore";
 
 const choices = [
-  { value: "system", title: "Как в системе", icon: Monitor },
-  { value: "light", title: "Светлая", icon: Sun },
-  { value: "dark", title: "Тёмная", icon: Moon },
+  {
+    value: "system",
+    get title() {
+      return t("Как в системе");
+    },
+    icon: Monitor,
+  },
+  {
+    value: "light",
+    get title() {
+      return t("Светлая");
+    },
+    icon: Sun,
+  },
+  {
+    value: "dark",
+    get title() {
+      return t("Тёмная");
+    },
+    icon: Moon,
+  },
 ] as const;
 
 export function AppearanceSettings() {
@@ -13,8 +32,8 @@ export function AppearanceSettings() {
   const id = useId();
   return (
     <fieldset className="appearance-settings panel">
-      <legend>Оформление</legend>
-      <p>Выберите тему, в которой вам комфортно.</p>
+      <legend>{t("Оформление")}</legend>
+      <p>{t("Выберите тему, в которой вам комфортно.")}</p>
       <div className="appearance-choices">
         {choices.map(({ value, title, icon: Icon }) => (
           <label
@@ -48,9 +67,12 @@ export function AppearanceSettings() {
       </div>
       <small aria-live="polite">
         {preference === "system"
-          ? `Сейчас ${dark ? "тёмная" : "светлая"} · меняется вместе с системой.`
-          : "Выбрана вручную."}{" "}
-        Выбор сохраняется на этом устройстве.
+          ? t(
+              "Сейчас {0} · меняется вместе с системой.",
+              dark ? t("тёмная") : t("светлая"),
+            )
+          : t("Выбрана вручную.")}{" "}
+        {t("Выбор сохраняется на этом устройстве.")}
       </small>
     </fieldset>
   );
@@ -58,7 +80,7 @@ export function AppearanceSettings() {
 
 export function AppearanceToggle() {
   const { dark, setTheme } = useAppearance();
-  const label = dark ? "Включить светлую тему" : "Включить тёмную тему";
+  const label = dark ? t("Включить светлую тему") : t("Включить тёмную тему");
   return (
     <button
       type="button"

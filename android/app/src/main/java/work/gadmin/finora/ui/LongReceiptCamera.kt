@@ -48,6 +48,8 @@ import java.io.File
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import work.gadmin.finora.capture.*
+import work.gadmin.finora.localization.Message
+import work.gadmin.finora.localization.tr
 
 @Composable
 fun LongReceiptCamera(
@@ -91,7 +93,7 @@ fun LongReceiptCamera(
                 working = false
                 if (progress.warning)
                     captureError =
-                        "Последние кадры не совместились. Проверьте, что весь чек, включая итог, попал в снимок."
+                        tr(Message.THE_LAST_FRAMES_DID_NOT_ALIGN_CHECK_THAT_THE_FULL_RECEIPT)
             },
             {
                 recording = false
@@ -182,7 +184,10 @@ fun LongReceiptCamera(
                             if (torch) camera?.cameraControl?.enableTorch(true)
                         } catch (_: Exception) {
                             captureError =
-                                "Не удалось открыть камеру. Закройте другое приложение с камерой и повторите."
+                                tr(
+                                    Message
+                                        .COULD_NOT_OPEN_THE_CAMERA_CLOSE_ANOTHER_CAMERA_APP_AND_TRY
+                                )
                         }
                 },
                 ContextCompat.getMainExecutor(context),
@@ -274,10 +279,10 @@ fun LongReceiptCamera(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton({ close() }, enabled = !busy && !working) {
-                        LineIcon(Glyph.CLOSE, "Закрыть съёмку чека", tint = Color.White)
+                        LineIcon(Glyph.CLOSE, tr(Message.CLOSE_RECEIPT_CAPTURE), tint = Color.White)
                     }
                     Text(
-                        "Съёмка чека",
+                        tr(Message.CAPTURE_RECEIPT_DEDC0),
                         Modifier.weight(1f),
                         color = Color.White,
                         textAlign = TextAlign.Center,
@@ -292,15 +297,16 @@ fun LongReceiptCamera(
                     ) {
                         LineIcon(
                             Glyph.FLASH,
-                            if (torch) "Выключить фонарик" else "Включить фонарик",
+                            if (torch) tr(Message.TURN_FLASHLIGHT_OFF)
+                            else tr(Message.TURN_FLASHLIGHT_ON),
                             tint = if (torch) Mint else Color.White,
                         )
                     }
                 }
                 Text(
                     if (progress.count == 0)
-                        "Наведите на белую бумагу. В рамке должна быть вся ширина чека."
-                    else "Плавно ведите сверху вниз. Полоса чека собирается на ходу.",
+                        tr(Message.POINT_AT_THE_WHITE_PAPER_THE_FULL_WIDTH_OF_THE_RECEIPT_SHO)
+                    else tr(Message.MOVE_SLOWLY_FROM_TOP_TO_BOTTOM_YOUR_RECEIPT_IS_ASSEMBLED_A),
                     Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
                     color = Color.White,
                     textAlign = TextAlign.Center,
@@ -309,7 +315,7 @@ fun LongReceiptCamera(
                 progress.thumbnail?.let {
                     Image(
                         it.asImageBitmap(),
-                        "Уже собранная часть чека",
+                        tr(Message.RECEIPT_CAPTURED_SO_FAR),
                         Modifier.align(Alignment.End)
                             .size(45.dp, 110.dp)
                             .background(Color.White, RoundedCornerShape(5.dp)),
@@ -323,13 +329,13 @@ fun LongReceiptCamera(
                         verticalArrangement = Arrangement.spacedBy(7.dp),
                     ) {
                         Text(
-                            if (working) "Завершаем снимок…" else progress.message,
+                            if (working) tr(Message.FINISHING_THE_IMAGE) else progress.message,
                             color = if (progress.warning) Amber else Mint,
                             style = MaterialTheme.typography.bodyMedium,
                         )
                         if (capturedFrames > 0) {
                             Text(
-                                "Кадров: $capturedFrames · участков: ${progress.count}",
+                                tr(Message.FRAMES_1_S_SECTIONS_2_S, capturedFrames, progress.count),
                                 color = Color.White.copy(alpha = .75f),
                                 style = MaterialTheme.typography.labelSmall,
                             )
@@ -365,11 +371,11 @@ fun LongReceiptCamera(
                             Modifier.weight(1f),
                             enabled = !working,
                         ) {
-                            Text("Пауза", color = Color.White)
+                            Text(tr(Message.PAUSE), color = Color.White)
                         }
                     else
                         PrimaryButton(
-                            if (progress.count == 0) "Начать" else "Продолжить",
+                            if (progress.count == 0) tr(Message.START) else tr(Message.CONTINUE),
                             {
                                 captureError = null
                                 controller.start()
@@ -380,7 +386,7 @@ fun LongReceiptCamera(
                         )
                     if (progress.count > 0)
                         PrimaryButton(
-                            "Готово",
+                            tr(Message.DONE),
                             {
                                 recording = false
                                 working = true
@@ -393,7 +399,7 @@ fun LongReceiptCamera(
                 }
                 if (progress.count == 0)
                     Text(
-                        "Кадр каждые 0,3 с · фон убирается автоматически",
+                        tr(Message.ONE_FRAME_EVERY_0_3_S_BACKGROUND_REMOVED_AUTOMATICALLY),
                         Modifier.padding(top = 10.dp),
                         color = Color.White.copy(alpha = .65f),
                         style = MaterialTheme.typography.labelSmall,
@@ -403,20 +409,18 @@ fun LongReceiptCamera(
     if (discard)
         AlertDialog(
             onDismissRequest = { discard = false },
-            title = { Text("Закрыть съёмку?") },
+            title = { Text(tr(Message.CLOSE_THE_CAMERA)) },
             text = {
-                Text(
-                    "Собранный снимок ещё не добавлен в черновик. Можно продолжить или переснять его позже."
-                )
+                Text(tr(Message.THE_CAPTURED_IMAGE_HAS_NOT_BEEN_ADDED_TO_YOUR_DRAFT_YET_YO))
             },
             confirmButton = {
                 TextButton({
                     discard = false
                     onClose()
                 }) {
-                    Text("Закрыть")
+                    Text(tr(Message.CLOSE))
                 }
             },
-            dismissButton = { TextButton({ discard = false }) { Text("Продолжить") } },
+            dismissButton = { TextButton({ discard = false }) { Text(tr(Message.CONTINUE)) } },
         )
 }

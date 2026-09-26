@@ -12,6 +12,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import work.gadmin.finora.data.*
+import work.gadmin.finora.localization.AppLanguage
+import work.gadmin.finora.localization.LanguageRuntime
+import work.gadmin.finora.localization.Message
+import work.gadmin.finora.localization.tr
 
 enum class Page {
     CAPTURE,
@@ -82,6 +86,9 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
     private var detailJob: Job? = null
     private var dashboardJob: Job? = null
     private var chatJob: Job? = null
+    private var localizedContentJob: Job? = null
+    private var lastLanguage = LanguageRuntime.language
+    private var localizedContentStale = false
     private var chatRequest: Pair<String, String>? = null
     private var avatarCache: Pair<String, ByteArray>? = null
     private val refresh =
@@ -126,7 +133,10 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
                                 server = saved.server,
                                 choosingOrganization = true,
                                 error =
-                                    "Нет связи с сервером. Можно подготовить черновик и отправить позже.",
+                                    tr(
+                                        Message
+                                            .CANNOT_REACH_THE_SERVER_YOU_CAN_PREPARE_A_DRAFT_AND_SEND_I
+                                    ),
                             )
                         }
                     } else handleError(error)
@@ -155,12 +165,13 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
         val message =
             when (error) {
                 is ApiException,
-                is IllegalArgumentException -> error.message ?: "Проверьте введённые данные"
+                is IllegalArgumentException ->
+                    error.message ?: tr(Message.CHECK_THE_DETAILS_YOU_ENTERED)
                 is javax.net.ssl.SSLException ->
-                    "Не удалось проверить сертификат HTTPS. Проверьте адрес и сертификат сервера."
+                    tr(Message.COULD_NOT_VERIFY_THE_HTTPS_CERTIFICATE_CHECK_THE_SERVER_AD)
                 is IOException ->
-                    "Нет связи с сервером. Проверьте интернет и повторите. Черновик сохранён."
-                else -> "Не удалось выполнить действие. Повторите попытку."
+                    tr(Message.CANNOT_REACH_THE_SERVER_CHECK_YOUR_CONNECTION_AND_TRY_AGAI)
+                else -> tr(Message.THE_ACTION_COULD_NOT_BE_COMPLETED_PLEASE_TRY_AGAIN)
             }
         mutable.update { it.copy(error = message) }
     }
@@ -181,7 +192,9 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun login(server: String, username: String, password: String) = writeAction {
-        require(username.isNotBlank() && password.isNotEmpty()) { "Введите логин и пароль" }
+        require(username.isNotBlank() && password.isNotEmpty()) {
+            tr(Message.ENTER_YOUR_USERNAME_AND_PASSWORD)
+        }
         val client = ApiClient(serverOrigin(server))
         val user = client.login(username.trim(), password)
         api?.cancel()
@@ -213,6 +226,8 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
         detailJob?.cancel()
         dashboardJob?.cancel()
         chatJob?.cancel()
+        localizedContentJob?.cancel()
+        localizedContentStale = false
         chatRequest = null
     }
 
@@ -257,6 +272,7 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
         if (mutable.value.busy) return
         closeDetail()
         mutable.update { it.copy(page = page, error = null, lastRefreshedAt = null) }
+        if (localizedContentStale) refreshLocalizedContent()
         when (page) {
             Page.RECEIPTS -> loadReceipts()
             Page.OVERVIEW -> loadDashboard()
@@ -279,7 +295,7 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
             mode in setOf(CameraMode.PHOTO, CameraMode.LONG_RECEIPT) &&
                 mutable.value.draft.photos.size >= MAX_PHOTOS
         ) {
-            reportError("В одном чеке может быть до 4 фотографий")
+            reportError(tr(Message.A_RECEIPT_CAN_HAVE_UP_TO_4_PHOTOS))
             return
         }
         mutable.update { it.copy(camera = mode, error = null) }
@@ -292,7 +308,7 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
 
     fun setQr(value: String) = writeAction {
         require(mutable.value.draft.photos.isEmpty()) {
-            "В черновике уже есть фотографии. Отправьте или очистите его перед сканированием другого чека."
+            tr(Message.YOUR_DRAFT_ALREADY_HAS_PHOTOS_SEND_OR_CLEAR_IT_BEFORE_SCAN)
         }
         saveDraft(
             mutable.value.draft.copy(qr = receiptLink(value), pageCaptured = false, pageText = "")
@@ -309,10 +325,10 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
 
     fun addPhotos(uris: List<Uri>) = writeAction {
         require(uris.size + mutable.value.draft.photos.size <= MAX_PHOTOS) {
-            "Выберите не больше ${MAX_PHOTOS - mutable.value.draft.photos.size} фотографий"
+            tr(Message.CHOOSE_NO_MORE_THAN_1_S_PHOTOS, MAX_PHOTOS - mutable.value.draft.photos.size)
         }
         require(mutable.value.draft.qr.isBlank()) {
-            "Сначала отправьте или очистите найденный QR-код"
+            tr(Message.SEND_OR_CLEAR_THE_CURRENT_QR_CODE_FIRST)
         }
         for (uri in uris) {
             val name = withContext(Dispatchers.IO) { requireNotNull(drafts).importPhoto(uri) }
@@ -325,7 +341,7 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
             require(
                 mutable.value.draft.photos.size < MAX_PHOTOS && mutable.value.draft.qr.isBlank()
             ) {
-                "Очистите или отправьте текущий черновик"
+                tr(Message.CLEAR_OR_SEND_YOUR_CURRENT_DRAFT)
             }
             val name = withContext(Dispatchers.IO) { requireNotNull(drafts).importPhoto(file) }
             saveDraft(mutable.value.draft.copy(photos = mutable.value.draft.photos + name))
@@ -364,7 +380,9 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
         val imported = mutableListOf<String>()
         try {
             require(files.size in 1..MAX_PHOTOS && mutable.value.draft.qr.isNotBlank())
-            require(mutable.value.draft.photos.isEmpty()) { "В черновике уже есть снимки" }
+            require(mutable.value.draft.photos.isEmpty()) {
+                tr(Message.THE_DRAFT_ALREADY_CONTAINS_PHOTOS)
+            }
             for (file in files) imported += withContext(Dispatchers.IO) { store.importPhoto(file) }
             saveDraft(
                 mutable.value.draft.copy(
@@ -389,13 +407,13 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
     private suspend fun submitDraft() {
         val current = mutable.value
         val org = requireNotNull(current.organization)
-        require(current.draft.hasContent) { "Добавьте QR-код или фотографию" }
+        require(current.draft.hasContent) { tr(Message.ADD_A_QR_CODE_OR_PHOTO) }
         if (current.draft.qr.isNotBlank() && !current.draft.pageCaptured) {
             mutable.update { it.copy(receiptPageUrl = current.draft.qr) }
             return
         }
         require(current.draft.photos.isNotEmpty()) {
-            "Сначала откройте страницу или добавьте фото чека"
+            tr(Message.OPEN_THE_RECEIPT_PAGE_OR_ADD_A_RECEIPT_PHOTO_FIRST)
         }
         val result = run {
             mutable.update { it.copy(progress = 0f) }
@@ -413,8 +431,8 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
                 draft = Draft(),
                 page = Page.RECEIPTS,
                 notice =
-                    if (result.duplicate) "Этот чек уже есть в истории"
-                    else "Распознаём черновик. Проверьте товары и сумму перед подтверждением.",
+                    if (result.duplicate) tr(Message.THIS_RECEIPT_IS_ALREADY_IN_YOUR_HISTORY)
+                    else tr(Message.READING_YOUR_DRAFT_CHECK_THE_ITEMS_AND_TOTAL_BEFORE_CONFIR),
             )
         }
         loadReceipts()
@@ -433,7 +451,9 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
                     receipt.version,
                     accountId,
                 )
-        mutable.update { it.copy(detail = confirmed, notice = "Чек подтверждён. Расход добавлен.") }
+        mutable.update {
+            it.copy(detail = confirmed, notice = tr(Message.RECEIPT_CONFIRMED_EXPENSE_ADDED))
+        }
         loadReceipts()
         loadDashboard()
     }
@@ -455,7 +475,7 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
             it.copy(
                 detail = confirmed,
                 editingReceipt = false,
-                notice = "Чек подтверждён. Расход добавлен.",
+                notice = tr(Message.RECEIPT_CONFIRMED_EXPENSE_ADDED),
             )
         }
         loadReceipts()
@@ -557,9 +577,9 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
                         count += read
                     }
                     val raw = buffer.copyOf(count)
-                    require(raw.size <= 5 * 1024 * 1024) { "Выберите фотографию размером до 5 МБ" }
+                    require(raw.size <= 5 * 1024 * 1024) { tr(Message.CHOOSE_A_PHOTO_UP_TO_5_MB) }
                     raw
-                } ?: throw IllegalArgumentException("Не удалось открыть фотографию")
+                } ?: throw IllegalArgumentException(tr(Message.COULD_NOT_OPEN_THE_PHOTO))
             }
         }
         val user = requireNotNull(api).updateAvatar(bytes)
@@ -568,7 +588,9 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
         mutable.update {
             it.copy(
                 user = user,
-                notice = if (uri == null) "Фото удалено" else "Фото профиля обновлено",
+                notice =
+                    if (uri == null) tr(Message.PHOTO_REMOVED)
+                    else tr(Message.PROFILE_PHOTO_UPDATED),
             )
         }
     }
@@ -576,7 +598,7 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
     fun addComment(text: String, onSuccess: () -> Unit) = writeAction {
         val current = mutable.value
         require(text.isNotBlank() && text.length <= 2000) {
-            "Комментарий должен содержать от 1 до 2000 символов"
+            tr(Message.A_COMMENT_MUST_CONTAIN_1_2_000_CHARACTERS)
         }
         requireNotNull(api)
             .comment(
@@ -590,7 +612,7 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
 
     fun retryReceipt() = writeAction {
         val current = mutable.value
-        require(current.organization?.isAdmin == true) { "Доступно администратору" }
+        require(current.organization?.isAdmin == true) { tr(Message.AVAILABLE_TO_ADMINISTRATORS) }
         requireNotNull(api).retry(current.organization.id, requireNotNull(current.detailId))
         openReceipt(current.detailId)
         loadReceipts()
@@ -625,6 +647,53 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
             } finally {
                 if (currentCoroutineContext().isActive)
                     mutable.update { it.copy(dashboardLoading = false) }
+            }
+        }
+    }
+
+    /**
+     * Refresh only server-owned UI copy; never re-authenticate, reset drafts or rewrite chat
+     * history.
+     */
+    fun languageChanged(language: AppLanguage) {
+        if (lastLanguage == language) return
+        lastLanguage = language
+        localizedContentJob?.cancel()
+        localizedContentStale = true
+        refreshLocalizedContent()
+    }
+
+    private fun refreshLocalizedContent() {
+        val current = mutable.value
+        val client = api ?: return
+        val org = current.organization?.id ?: return
+        if (current.user == null || localizedContentJob?.isActive == true) return
+        localizedContentJob = viewModelScope.launch {
+            try {
+                val result = coroutineScope {
+                    val insights = async { client.insights(org, current.month) }
+                    val jobs = async { client.chatJobs(org) }
+                    insights.await() to jobs.await()
+                }
+                ensureActive()
+                mutable.update {
+                    if (it.organization?.id == org && it.month == current.month)
+                        it.copy(insights = result.first, chatJobs = result.second)
+                    else it
+                }
+                localizedContentStale = false
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: IOException) {
+                // Secondary refresh: retain the current screen and retry on the next navigation.
+                localizedContentStale = true
+            } catch (_: ApiException) {
+                // Normal screen requests handle authentication; language changes preserve the
+                // session.
+                localizedContentStale = true
+            } catch (error: Exception) {
+                localizedContentStale = true
+                handleError(error)
             }
         }
     }
@@ -719,13 +788,13 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
         val org = requireNotNull(current.organization).id
         val text =
             when (report) {
-                "summary" -> "Покажи финансовую сводку"
-                "categories" -> "Покажи расходы по категориям"
-                "prices" -> "Сравни цены в моих чеках"
+                "summary" -> tr(Message.SHOW_MY_FINANCIAL_SUMMARY)
+                "categories" -> tr(Message.SHOW_SPENDING_BY_CATEGORY)
+                "prices" -> tr(Message.COMPARE_PRICES_IN_MY_RECEIPTS)
                 null -> current.chatDraft.trim()
-                else -> throw IllegalArgumentException("Неизвестный отчёт")
+                else -> throw IllegalArgumentException(tr(Message.UNKNOWN_REPORT))
             }
-        require(text.isNotBlank()) { "Напишите вопрос" }
+        require(text.isNotBlank()) { tr(Message.ENTER_A_QUESTION) }
         val signature = "$org:${current.month}:$report:$text"
         val key =
             chatRequest?.takeIf { it.first == signature }?.second
@@ -755,7 +824,8 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
                 else
                     mutable.update {
                         it.copy(
-                            chatSyncError = "Нет связи. Показаны последние загруженные сообщения."
+                            chatSyncError =
+                                tr(Message.NO_CONNECTION_SHOWING_THE_LATEST_LOADED_MESSAGES)
                         )
                     }
             } finally {
@@ -861,8 +931,7 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
                 server = it.server,
                 error =
                     if (serverRevoked) null
-                    else
-                        "Вы вышли на этом устройстве. Сервер был недоступен; сессию можно отозвать в настройках веб-версии.",
+                    else tr(Message.YOU_ARE_SIGNED_OUT_ON_THIS_DEVICE_THE_SERVER_WAS_UNAVAILAB),
             )
         }
     }

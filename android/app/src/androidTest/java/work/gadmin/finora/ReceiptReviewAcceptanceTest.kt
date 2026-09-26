@@ -22,7 +22,9 @@ import work.gadmin.finora.ui.*
 /** Offline partial-draft review. No login, upload or financial posting. */
 @RunWith(AndroidJUnit4::class)
 class ReceiptReviewAcceptanceTest {
-    @get:Rule val rule = createComposeRule()
+    @get:Rule(order = 0) val languageRule = RussianUiLanguageRule()
+
+    @get:Rule(order = 1) val rule = createComposeRule()
 
     @Test
     fun missingDatePreservesTotalAndTodayIsAnExplicitEditableChoice() {

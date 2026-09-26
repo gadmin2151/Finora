@@ -16,10 +16,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 import work.gadmin.finora.AppState
 import work.gadmin.finora.FinoraViewModel
 import work.gadmin.finora.data.*
+import work.gadmin.finora.localization.LanguageRuntime
+import work.gadmin.finora.localization.Message
+import work.gadmin.finora.localization.tr
 
 @Composable
 fun FinanceScreen(app: AppState, vm: FinoraViewModel) {
@@ -67,40 +69,42 @@ fun FinanceContent(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item {
-            SectionTitle("Ваши финансы", "Доходы и долги в одном месте")
+            SectionTitle(tr(Message.YOUR_FINANCES), tr(Message.INCOME_AND_DEBTS_IN_ONE_PLACE))
             Spacer(Modifier.height(14.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                listOf(FinanceTab.INCOME to "Доходы", FinanceTab.DEBTS to "Долги").forEach {
-                    (tab, title) ->
-                    FilterChip(
-                        data.tab == tab,
-                        { actions.tab(tab) },
-                        { Text(title) },
-                        Modifier.weight(1f),
-                        enabled = !busy,
-                        leadingIcon = {
-                            LineIcon(
-                                if (tab == FinanceTab.INCOME) Glyph.WALLET else Glyph.USER,
-                                size = 18.dp,
-                            )
-                        },
+                listOf(
+                        FinanceTab.INCOME to tr(Message.INCOME),
+                        FinanceTab.DEBTS to tr(Message.DEBTS),
                     )
-                }
+                    .forEach { (tab, title) ->
+                        FilterChip(
+                            data.tab == tab,
+                            { actions.tab(tab) },
+                            { Text(title) },
+                            Modifier.weight(1f),
+                            enabled = !busy,
+                            leadingIcon = {
+                                LineIcon(
+                                    if (tab == FinanceTab.INCOME) Glyph.WALLET else Glyph.USER,
+                                    size = 18.dp,
+                                )
+                            },
+                        )
+                    }
             }
         }
         if (!admin)
             item {
-                InfoCard(
-                    "Вы можете смотреть общие финансы. Изменения доступны администратору организации."
-                )
+                InfoCard(tr(Message.YOU_CAN_VIEW_SHARED_FINANCES_ONLY_ORGANIZATION_ADMINISTRAT))
             }
         data.error?.let { error ->
             item {
                 InfoCard(error, Glyph.REFRESH)
-                TextButton(actions::load, enabled = !busy) { Text("Обновить финансы") }
+                TextButton(actions::load, enabled = !busy) { Text(tr(Message.REFRESH_FINANCES)) }
             }
         }
-        if (data.loading) item { BrandLoading("Обновляем доходы и долги", compact = true) }
+        if (data.loading)
+            item { BrandLoading(tr(Message.REFRESHING_INCOME_AND_DEBTS), compact = true) }
         if (data.tab == FinanceTab.INCOME) {
             item {
                 Row(
@@ -109,23 +113,23 @@ fun FinanceContent(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     IconButton({ changeMonth(-1) }, enabled = !busy) {
-                        LineIcon(Glyph.BACK, "Предыдущий месяц")
+                        LineIcon(Glyph.BACK, tr(Message.PREVIOUS_MONTH))
                     }
                     Text(
-                        if (data.month.isBlank()) "Загрузка…"
+                        if (data.month.isBlank()) tr(Message.LOADING_B6819)
                         else
                             YearMonth.parse(data.month)
                                 .format(
                                     DateTimeFormatter.ofPattern(
                                         "LLLL yyyy",
-                                        Locale.forLanguageTag("ru"),
+                                        LanguageRuntime.language.locale,
                                     )
                                 )
                                 .replaceFirstChar(Char::titlecase),
                         fontWeight = FontWeight.SemiBold,
                     )
                     IconButton({ changeMonth(1) }, enabled = !busy) {
-                        LineIcon(Glyph.CHEVRON, "Следующий месяц")
+                        LineIcon(Glyph.CHEVRON, tr(Message.NEXT_MONTH))
                     }
                 }
             }
@@ -136,18 +140,21 @@ fun FinanceContent(
                             Modifier.fillMaxWidth().padding(22.dp),
                             verticalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
-                            Text("Получено за месяц", color = Mint)
+                            Text(tr(Message.RECEIVED_THIS_MONTH), color = Mint)
                             Text(
                                 money(report.received_minor),
                                 style = MaterialTheme.typography.headlineMedium,
                                 color = Mint,
                             )
                             HorizontalDivider(color = Border)
-                            FinanceMetric("Регулярные", money(report.regular_minor))
-                            FinanceMetric("Разовые", money(report.occasional_minor))
-                            FinanceMetric("Ожидается по плану", money(report.expected_minor))
+                            FinanceMetric(tr(Message.RECURRING), money(report.regular_minor))
+                            FinanceMetric(tr(Message.ONE_TIME), money(report.occasional_minor))
+                            FinanceMetric(
+                                tr(Message.EXPECTED_FROM_PLAN),
+                                money(report.expected_minor),
+                            )
                             Text(
-                                "Сводка в MDL по курсам операций",
+                                tr(Message.SUMMARY_IN_MDL_USING_TRANSACTION_EXCHANGE_RATES),
                                 color = Muted,
                                 style = MaterialTheme.typography.labelSmall,
                             )
@@ -158,7 +165,7 @@ fun FinanceContent(
             if (admin)
                 item {
                     PrimaryButton(
-                        "Разовый доход",
+                        tr(Message.ONE_TIME_INCOME),
                         { actions.open(fresh(FinanceEditKind.INCOME)) },
                         Modifier.fillMaxWidth(),
                         enabled = !busy && !data.loading,
@@ -169,12 +176,16 @@ fun FinanceContent(
                         Modifier.fillMaxWidth().padding(top = 8.dp),
                         enabled = !busy && !data.loading,
                     ) {
-                        Text("Добавить источник дохода")
+                        Text(tr(Message.ADD_AN_INCOME_SOURCE))
                     }
                 }
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    listOf("schedule" to "План", "sources" to "Источники", "history" to "История")
+                    listOf(
+                            "schedule" to tr(Message.PLAN),
+                            "sources" to tr(Message.SOURCES),
+                            "history" to tr(Message.HISTORY),
+                        )
                         .forEach { (key, title) ->
                             FilterChip(
                                 incomeSection == key,
@@ -191,8 +202,8 @@ fun FinanceContent(
                     if (!data.loading && data.report != null && rows.isEmpty())
                         item {
                             EmptyState(
-                                "В этом месяце нет плана",
-                                "Добавьте зарплату, аренду или другой источник дохода.",
+                                tr(Message.NO_PLAN_FOR_THIS_MONTH),
+                                tr(Message.ADD_A_SALARY_RENT_OR_ANOTHER_INCOME_SOURCE),
                                 Glyph.WALLET,
                             )
                         }
@@ -206,11 +217,14 @@ fun FinanceContent(
                             Text(
                                 when (row.status) {
                                     "received" ->
-                                        "Получено ${row.received_on?.let(::financeDateLabel).orEmpty()}"
-                                    "skipped" -> "Пропущено"
-                                    "paused" -> "Источник приостановлен"
-                                    "overdue" -> "Пока не получено · срок прошёл"
-                                    else -> "Ожидается"
+                                        tr(
+                                            Message.RECEIVED_1_S,
+                                            row.received_on?.let(::financeDateLabel).orEmpty(),
+                                        )
+                                    "skipped" -> tr(Message.SKIPPED)
+                                    "paused" -> tr(Message.SOURCE_PAUSED)
+                                    "overdue" -> tr(Message.NOT_RECEIVED_OVERDUE)
+                                    else -> tr(Message.EXPECTED)
                                 },
                                 color = if (row.status == "overdue") Amber else Muted,
                                 style = MaterialTheme.typography.bodySmall,
@@ -239,12 +253,12 @@ fun FinanceContent(
                                             },
                                             enabled = !busy,
                                         ) {
-                                            Text("Получить")
+                                            Text(tr(Message.RECEIVE))
                                         }
                                     TextButton({ actions.skip(row) }, enabled = !busy) {
                                         Text(
-                                            if (row.status == "skipped") "Вернуть в план"
-                                            else "Пропустить"
+                                            if (row.status == "skipped") tr(Message.RETURN_TO_PLAN)
+                                            else tr(Message.SKIP)
                                         )
                                     }
                                 }
@@ -256,8 +270,11 @@ fun FinanceContent(
                     if (!data.loading && data.plans.isEmpty())
                         item {
                             EmptyState(
-                                "Нет источников дохода",
-                                "Создайте расписание. Деньги зачисляются только после подтверждения.",
+                                tr(Message.NO_INCOME_SOURCES),
+                                tr(
+                                    Message
+                                        .CREATE_A_SCHEDULE_MONEY_IS_CREDITED_ONLY_AFTER_CONFIRMATIO
+                                ),
                                 Glyph.WALLET,
                             )
                         }
@@ -270,11 +287,15 @@ fun FinanceContent(
                                 style = MaterialTheme.typography.titleLarge,
                             )
                             Text(
-                                "${incomeRecurrences[plan.recurrence] ?: plan.recurrence} · с ${financeDateLabel(plan.start_date)}",
+                                tr(
+                                    Message.TEXT_1_S_FROM_2_S,
+                                    incomeRecurrences[plan.recurrence] ?: plan.recurrence,
+                                    financeDateLabel(plan.start_date),
+                                ),
                                 color = Muted,
                             )
                             Text(
-                                if (plan.active) "Активен" else "Приостановлен",
+                                if (plan.active) tr(Message.ACTIVE) else tr(Message.PAUSED),
                                 color = if (plan.active) Mint else Muted,
                             )
                             if (admin)
@@ -302,10 +323,13 @@ fun FinanceContent(
                                         },
                                         enabled = !busy,
                                     ) {
-                                        Text("Изменить")
+                                        Text(tr(Message.EDIT))
                                     }
                                     TextButton({ actions.toggle(plan) }, enabled = !busy) {
-                                        Text(if (plan.active) "Пауза" else "Возобновить")
+                                        Text(
+                                            if (plan.active) tr(Message.PAUSE)
+                                            else tr(Message.RESUME)
+                                        )
                                     }
                                 }
                         }
@@ -315,15 +339,15 @@ fun FinanceContent(
                     if (!data.loading && data.history.isEmpty())
                         item {
                             EmptyState(
-                                "Поступлений пока нет",
-                                "Добавьте разовый доход или подтвердите поступление по плану.",
+                                tr(Message.NO_INCOME_RECEIVED_YET),
+                                tr(Message.ADD_ONE_TIME_INCOME_OR_CONFIRM_A_PLANNED_PAYMENT),
                                 Glyph.WALLET,
                             )
                         }
                     items(data.history, key = { it.id }) { tx ->
                         FinanceCard {
                             Text(
-                                tx.merchant.ifBlank { "Доход" },
+                                tx.merchant.ifBlank { tr(Message.INCOME_40B65) },
                                 style = MaterialTheme.typography.titleMedium,
                             )
                             Text(
@@ -332,7 +356,7 @@ fun FinanceContent(
                                 style = MaterialTheme.typography.titleLarge,
                             )
                             Text(
-                                "${financeDateLabel(tx.occurred_on)} · ${if (tx.occurrence_id == null) "Разовое поступление" else "По плану"}",
+                                "${financeDateLabel(tx.occurred_on)} · ${if (tx.occurrence_id == null) tr(Message.ONE_TIME_PAYMENT) else tr(Message.AS_PLANNED)}",
                                 color = Muted,
                             )
                             if (tx.note.isNotBlank())
@@ -359,10 +383,10 @@ fun FinanceContent(
                                             },
                                             enabled = !busy,
                                         ) {
-                                            Text("Изменить")
+                                            Text(tr(Message.EDIT))
                                         }
                                     TextButton({ cancelling = tx }, enabled = !busy) {
-                                        Text("Отменить зачисление", color = Amber)
+                                        Text(tr(Message.REVERSE_INCOME_ENTRY), color = Amber)
                                     }
                                 }
                         }
@@ -375,9 +399,13 @@ fun FinanceContent(
                                 enabled = !data.loadingMore && !busy,
                             ) {
                                 Text(
-                                    if (data.loadingMore) "Загружаем…"
+                                    if (data.loadingMore) tr(Message.LOADING_B00E2)
                                     else
-                                        "Ещё поступления · ${data.history.size} из ${data.historyCount}"
+                                        tr(
+                                            Message.MORE_INCOME_1_S_OF_2_S,
+                                            data.history.size,
+                                            data.historyCount,
+                                        )
                                 )
                             }
                         }
@@ -386,11 +414,11 @@ fun FinanceContent(
         } else {
             item {
                 FinanceCard {
-                    FinanceMetric("Мне должны", debtTotal(data.debts, "lent"))
+                    FinanceMetric(tr(Message.OWED_TO_ME), debtTotal(data.debts, "lent"))
                     HorizontalDivider(color = Border)
-                    FinanceMetric("Я должен", debtTotal(data.debts, "borrowed"))
+                    FinanceMetric(tr(Message.I_OWE), debtTotal(data.debts, "borrowed"))
                     Text(
-                        "Долги и возвраты не считаются доходами или расходами",
+                        tr(Message.DEBTS_AND_REPAYMENTS_ARE_NOT_COUNTED_AS_INCOME_OR_EXPENSES),
                         color = Muted,
                         style = MaterialTheme.typography.bodySmall,
                     )
@@ -399,7 +427,7 @@ fun FinanceContent(
             if (admin)
                 item {
                     PrimaryButton(
-                        "Записать долг",
+                        tr(Message.RECORD_A_DEBT),
                         { actions.open(fresh(FinanceEditKind.DEBT)) },
                         Modifier.fillMaxWidth(),
                         !busy && !data.loading,
@@ -411,13 +439,17 @@ fun FinanceContent(
                     search,
                     { search = it.take(100) },
                     Modifier.fillMaxWidth(),
-                    label = { Text("Поиск по имени или примечанию") },
+                    label = { Text(tr(Message.SEARCH_BY_NAME_OR_NOTE)) },
                     singleLine = true,
                     leadingIcon = { LineIcon(Glyph.SEARCH) },
                     shape = RoundedCornerShape(16.dp),
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    listOf("all" to "Все", "lent" to "Мне должны", "borrowed" to "Я должен")
+                    listOf(
+                            "all" to tr(Message.ALL),
+                            "lent" to tr(Message.OWED_TO_ME),
+                            "borrowed" to tr(Message.I_OWE),
+                        )
                         .forEach { (key, title) ->
                             FilterChip(
                                 direction == key,
@@ -428,7 +460,7 @@ fun FinanceContent(
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(closed, { closed = it })
-                    Text("Показывать закрытые", style = MaterialTheme.typography.bodyMedium)
+                    Text(tr(Message.SHOW_CLOSED_DEBTS), style = MaterialTheme.typography.bodyMedium)
                 }
             }
             val shown =
@@ -440,15 +472,18 @@ fun FinanceContent(
             if (!data.loading && shown.isEmpty())
                 item {
                     EmptyState(
-                        "Здесь всё спокойно",
-                        "Нет долгов по выбранным условиям.",
+                        tr(Message.ALL_CLEAR_HERE),
+                        tr(Message.NO_DEBTS_MATCH_YOUR_FILTERS),
                         Glyph.USER,
                     )
                 }
             items(shown, key = { it.id }) { debt ->
                 FinanceCard {
                     Text(debt.person, style = MaterialTheme.typography.titleMedium)
-                    Text(if (debt.direction == "lent") "Мне должны" else "Я должен", color = Muted)
+                    Text(
+                        if (debt.direction == "lent") tr(Message.OWED_TO_ME) else tr(Message.I_OWE),
+                        color = Muted,
+                    )
                     Text(
                         money(debt.remaining_minor, debt.currency),
                         color = Mint,
@@ -458,11 +493,11 @@ fun FinanceContent(
                         debt.remaining_minor > 0 &&
                             debt.due_date?.let { it < LocalDate.now().toString() } == true
                     Text(
-                        if (debt.remaining_minor == 0L) "Закрыт"
+                        if (debt.remaining_minor == 0L) tr(Message.CLOSED)
                         else
                             debt.due_date?.let {
-                                "${if (overdue) "Срок прошёл" else "Вернуть до"} · ${financeDateLabel(it)}"
-                            } ?: "Без срока",
+                                "${if (overdue) tr(Message.OVERDUE) else tr(Message.DUE_BY)} · ${financeDateLabel(it)}"
+                            } ?: tr(Message.NO_DUE_DATE),
                         color = if (overdue) Amber else Muted,
                     )
                     if (debt.note.isNotBlank())
@@ -490,14 +525,14 @@ fun FinanceContent(
                                 Modifier.fillMaxWidth(),
                                 enabled = !busy,
                             ) {
-                                Text("Погасить частично")
+                                Text(tr(Message.REPAY_PART))
                             }
                             OutlinedButton(
                                 { openMovement(full = true) },
                                 Modifier.fillMaxWidth(),
                                 enabled = !busy,
                             ) {
-                                Text("Погасить полностью")
+                                Text(tr(Message.REPAY_IN_FULL))
                             }
                         }
                         TextButton(
@@ -507,7 +542,7 @@ fun FinanceContent(
                         ) {
                             LineIcon(Glyph.PLUS)
                             Spacer(Modifier.width(8.dp))
-                            Text("Увеличить долг")
+                            Text(tr(Message.INCREASE_DEBT))
                         }
                     }
                 }
@@ -517,10 +552,14 @@ fun FinanceContent(
     cancelling?.let { tx ->
         AlertDialog(
             onDismissRequest = { if (!busy) cancelling = null },
-            title = { Text("Отменить зачисление?") },
+            title = { Text(tr(Message.REVERSE_THIS_INCOME_ENTRY)) },
             text = {
                 Text(
-                    "${tx.merchant.ifBlank { "Доход" }} · ${money(tx.amount_minor, tx.currency)}\nБаланс счёта уменьшится. Если поступление связано с планом, оно снова станет ожидаемым."
+                    tr(
+                        Message.TEXT_1_S_2_S_THE_ACCOUNT_BALANCE_WILL_DECREASE_IF_THIS_INCOME_I,
+                        tx.merchant.ifBlank { tr(Message.INCOME_40B65) },
+                        money(tx.amount_minor, tx.currency),
+                    )
                 )
             },
             confirmButton = {
@@ -531,11 +570,11 @@ fun FinanceContent(
                     },
                     enabled = !busy,
                 ) {
-                    Text("Отменить зачисление")
+                    Text(tr(Message.REVERSE_INCOME_ENTRY))
                 }
             },
             dismissButton = {
-                TextButton({ cancelling = null }, enabled = !busy) { Text("Оставить") }
+                TextButton({ cancelling = null }, enabled = !busy) { Text(tr(Message.KEEP)) }
             },
         )
     }
@@ -575,6 +614,10 @@ private fun debtTotal(debts: List<Debt>, direction: String) =
         .ifBlank { money(0) }
 
 fun financeDateLabel(date: String): String = runCatching {
-    LocalDate.parse(date).format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
+    LocalDate.parse(date)
+        .format(
+            DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM)
+                .withLocale(LanguageRuntime.language.locale)
+        )
 }
     .getOrDefault(date)

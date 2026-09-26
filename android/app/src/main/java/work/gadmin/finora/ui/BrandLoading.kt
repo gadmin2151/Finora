@@ -24,6 +24,8 @@ import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import work.gadmin.finora.localization.Message
+import work.gadmin.finora.localization.tr
 
 /** The stationary 27G signature stays readable while the surrounding trace moves. */
 @Composable
@@ -92,7 +94,7 @@ fun BrandLoading(title: String, modifier: Modifier = Modifier, compact: Boolean 
                 Text(title, color = Ink, style = MaterialTheme.typography.titleSmall)
                 if (!compact)
                     Text(
-                        "Всё важное — в одном месте",
+                        tr(Message.EVERYTHING_THAT_MATTERS_TOGETHER),
                         color = Muted,
                         style = MaterialTheme.typography.bodySmall,
                     )
@@ -151,8 +153,9 @@ fun RefreshSurface(
                 ) {
                     BrandPulse(Modifier.size(44.dp), refreshing, pull.distanceFraction)
                     Text(
-                        if (refreshing) "Обновляем данные"
-                        else if (ready) "Отпустите для обновления" else "Потяните ещё немного",
+                        if (refreshing) tr(Message.REFRESHING_DATA)
+                        else if (ready) tr(Message.RELEASE_TO_REFRESH)
+                        else tr(Message.PULL_A_LITTLE_FURTHER),
                         Modifier.padding(end = 6.dp),
                         color = Ink,
                         style = MaterialTheme.typography.labelMedium,

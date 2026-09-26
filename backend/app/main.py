@@ -7,11 +7,13 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy.exc import IntegrityError
+from starlette.exceptions import HTTPException
 from starlette.staticfiles import StaticFiles
 
 from .api import router
 from .config import settings
 from .feature_api import router as feature_router
+from .i18n import LocaleMiddleware, t
 from .organizations import router as organization_router
 from .request_limits import RequestBodyLimit
 from .users import router as user_router
@@ -26,18 +28,26 @@ app.include_router(user_router)
 app.add_middleware(RequestBodyLimit)
 
 
+@app.exception_handler(HTTPException)
+async def http_error(request, exc):
+    detail = t(exc.detail) if isinstance(exc.detail, str) else exc.detail
+    return JSONResponse({"detail": detail}, status_code=exc.status_code, headers=exc.headers)
+
+
 @app.exception_handler(RequestValidationError)
 async def validation_error(request, exc):
     # Never echo passwords, uploaded documents, or key values from invalid requests.
     fields = ", ".join(str(e["loc"][-1]) for e in exc.errors()[:5])
-    return JSONResponse({"detail": "Проверьте заполнение полей: " + fields}, status_code=422)
+    return JSONResponse(
+        {"detail": t("Проверьте заполнение полей: {fields}", fields=fields)}, status_code=422
+    )
 
 
 @app.exception_handler(IntegrityError)
 async def integrity_error(request, exc):
     logger.warning("data_conflict request_id=%s", getattr(request.state, "request_id", "unknown"))
     return JSONResponse(
-        {"detail": "Такая запись уже существует или связана с другими данными"}, status_code=409
+        {"detail": t("Такая запись уже существует или связана с другими данными")}, status_code=409
     )
 
 
@@ -47,7 +57,7 @@ async def guard(request: Request, call_next):
     if request.method not in {"GET", "HEAD", "OPTIONS"}:
         origin = request.headers.get("origin")
         if origin and origin.rstrip("/") != settings().app_url.rstrip("/"):
-            return JSONResponse({"detail": "Недопустимый адрес приложения"}, status_code=403)
+            return JSONResponse({"detail": t("Недопустимый адрес приложения")}, status_code=403)
     started = time.monotonic()
     try:
         response = await call_next(request)
@@ -57,7 +67,7 @@ async def guard(request: Request, call_next):
         )
         return JSONResponse(
             {
-                "detail": "Ошибка сервера. Повторите действие",
+                "detail": t("Ошибка сервера. Повторите действие"),
                 "request_id": request.state.request_id,
             },
             status_code=500,
@@ -86,6 +96,10 @@ async def guard(request: Request, call_next):
     return response
 
 
+# Outermost application middleware: include security and request-size failures.
+app.add_middleware(LocaleMiddleware)
+
+
 static = Path(__file__).resolve().parent.parent / "static"
 if static.exists():
     app.mount("/assets", StaticFiles(directory=static / "assets"), name="assets")
@@ -93,7 +107,7 @@ if static.exists():
     @app.get("/{path:path}")
     def web(path: str):
         if path.startswith("api/"):
-            return JSONResponse({"detail": "Не найдено"}, status_code=404)
+            return JSONResponse({"detail": t("Не найдено")}, status_code=404)
         if path in {"favicon.svg", "finora-icon.png", "manifest.webmanifest", "sw.js"}:
             return FileResponse(static / path)
         return FileResponse(static / "index.html", headers={"Cache-Control": "no-cache"})

@@ -10,6 +10,8 @@ import org.opencv.core.*
 import org.opencv.features2d.BFMatcher
 import org.opencv.features2d.ORB
 import org.opencv.imgproc.Imgproc
+import work.gadmin.finora.localization.Message
+import work.gadmin.finora.localization.tr
 
 /** Native feature registration; owned by the stitching worker, never the camera callback. */
 class ReceiptRegistration : Closeable {
@@ -26,7 +28,7 @@ class ReceiptRegistration : Closeable {
     private val matcher: BFMatcher
 
     init {
-        check(OpenCVLoader.initLocal()) { "Не удалось загрузить обработку панорамы" }
+        check(OpenCVLoader.initLocal()) { tr(Message.COULD_NOT_LOAD_PANORAMA_PROCESSING) }
         detector = ORB.create(1800, 1.2f, 8, 15, 0, 2, ORB.HARRIS_SCORE, 31, 10)
         matcher = BFMatcher.create(Core.NORM_HAMMING, false)
     }

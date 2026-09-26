@@ -15,6 +15,9 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import okio.BufferedSink
 import okio.ForwardingSink
 import okio.buffer
+import work.gadmin.finora.localization.LanguageRuntime
+import work.gadmin.finora.localization.Message
+import work.gadmin.finora.localization.tr
 
 class ApiClient(val server: String, savedCookie: String? = null) {
     private val origin = serverOrigin(server).toHttpUrl()
@@ -63,7 +66,7 @@ class ApiClient(val server: String, savedCookie: String? = null) {
         cookie?.takeIf { it.expiresAt > System.currentTimeMillis() }?.toString()
             ?: throw ApiException(
                 401,
-                "Сервер не создал защищённую сессию. Проверьте HTTPS и Secure Cookie в настройках сервера.",
+                tr(Message.THE_SERVER_DID_NOT_CREATE_A_SECURE_SESSION_CHECK_HTTPS_AND),
             )
 
     fun cancel() = client.dispatcher.cancelAll()
@@ -75,11 +78,13 @@ class ApiClient(val server: String, savedCookie: String? = null) {
         body: RequestBody? = null,
     ): Request {
         require(path.startsWith("/api/") && !path.contains("\\"))
-        val url = origin.resolve(path) ?: throw IllegalArgumentException("Некорректный путь API")
+        val url =
+            origin.resolve(path) ?: throw IllegalArgumentException(tr(Message.INVALID_API_PATH))
         require(sameOrigin(url) && url.encodedPath.startsWith("/api/"))
         return Request.Builder()
             .url(url)
             .header("Accept", "application/json")
+            .header("Accept-Language", LanguageRuntime.language.tag)
             // Existing server protocol uses this CSRF guard for all first-party clients.
             .header("X-Finora-Client", "web")
             .header("User-Agent", "Finora-Android/1.0")
@@ -122,15 +127,33 @@ class ApiClient(val server: String, savedCookie: String? = null) {
                                     val fallback =
                                         when (it.code) {
                                             401 ->
-                                                "Сессия истекла. Войдите снова — черновик сохранён."
-                                            403 -> "Недостаточно прав для этого действия"
-                                            409 -> "Данные изменились. Обновите экран и повторите."
-                                            413 -> "Фотографии слишком большие"
-                                            429 -> "Слишком много попыток. Попробуйте позже."
+                                                tr(
+                                                    Message
+                                                        .YOUR_SESSION_EXPIRED_SIGN_IN_AGAIN_YOUR_DRAFT_IS_SAVED
+                                                )
+                                            403 ->
+                                                tr(
+                                                    Message
+                                                        .YOU_DO_NOT_HAVE_PERMISSION_FOR_THIS_ACTION
+                                                )
+                                            409 ->
+                                                tr(
+                                                    Message
+                                                        .THE_DATA_HAS_CHANGED_REFRESH_THE_SCREEN_AND_TRY_AGAIN
+                                                )
+                                            413 -> tr(Message.THE_PHOTOS_ARE_TOO_LARGE)
+                                            429 ->
+                                                tr(Message.TOO_MANY_ATTEMPTS_PLEASE_TRY_AGAIN_LATER)
                                             in 300..399 ->
-                                                "Сервер перенаправляет запрос. Укажите его конечный HTTPS-адрес."
+                                                tr(
+                                                    Message
+                                                        .THE_SERVER_REDIRECTS_THIS_REQUEST_ENTER_ITS_FINAL_HTTPS_AD
+                                                )
                                             else ->
-                                                "Сервер недоступен (${it.code}). Попробуйте ещё раз."
+                                                tr(
+                                                    Message.SERVER_UNAVAILABLE_1_S_PLEASE_TRY_AGAIN,
+                                                    it.code,
+                                                )
                                         }
                                     throw ApiException(
                                         it.code,
@@ -152,7 +175,8 @@ class ApiClient(val server: String, savedCookie: String? = null) {
     private fun ResponseBody.bytesBounded(limit: Long): ByteArray {
         val source = source()
         source.request(limit + 1)
-        if (source.buffer.size > limit) throw IOException("Слишком большой ответ сервера")
+        if (source.buffer.size > limit)
+            throw IOException(tr(Message.THE_SERVER_RESPONSE_IS_TOO_LARGE))
         return source.readByteArray()
     }
 

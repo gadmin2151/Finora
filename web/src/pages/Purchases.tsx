@@ -1,3 +1,5 @@
+import { receiptUnitOptions, unitLabel } from "../units";
+import { t, getLocale } from "../i18n";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Search, SlidersHorizontal, ArrowUpRight } from "lucide-react";
@@ -97,18 +99,20 @@ export default function Purchases() {
     open({ type: "receipt", receipt });
   });
   const categoryName = (id: string | null) =>
-    categories.find((c) => c.id === id)?.name ?? "Без категории";
+    categories.find((c) => c.id === id)?.name ?? t("Без категории");
   return (
     <>
       <PageHeading
-        eyebrow="АНАЛИТИКА ПОКУПОК"
-        title="Что вы покупаете"
-        text="Найдите любой товар, сравните свои цены и посмотрите, на что уходит больше всего."
+        eyebrow={t("АНАЛИТИКА ПОКУПОК")}
+        title={t("Что вы покупаете")}
+        text={t(
+          "Найдите любой товар, сравните свои цены и посмотрите, на что уходит больше всего.",
+        )}
       />
       <section className="panel purchase-filters">
         <div className="panel-heading">
           <h2>
-            <SlidersHorizontal size={18} /> Фильтры
+            <SlidersHorizontal size={18} /> {t("Фильтры")}
           </h2>
           <button
             className="text-button"
@@ -117,28 +121,28 @@ export default function Purchases() {
               setOffset(0);
             }}
           >
-            Сбросить
+            {t("Сбросить")}
           </button>
         </div>
         <div className="purchase-filter-grid">
-          <Field label="Название товара">
+          <Field label={t("Название товара")}>
             <div className="search-field">
               <Search size={18} />
               <input
-                placeholder="Молоко, LAPTE, кофе…"
+                placeholder={t("Молоко, LAPTE, кофе…")}
                 maxLength={100}
                 value={filters.search}
                 onChange={(e) => change("search", e.target.value)}
               />
             </div>
           </Field>
-          <Field label="Категория">
+          <Field label={t("Категория")}>
             <select
               value={filters.category_id}
               onChange={(e) => change("category_id", e.target.value)}
             >
-              <option value="">Все категории</option>
-              <option value="uncategorized">Без категории</option>
+              <option value="">{t("Все категории")}</option>
+              <option value="uncategorized">{t("Без категории")}</option>
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -146,34 +150,36 @@ export default function Purchases() {
               ))}
             </select>
           </Field>
-          <Field label="Магазин">
+          <Field label={t("Магазин")}>
             <input
-              placeholder="Название магазина"
+              placeholder={t("Название магазина")}
               maxLength={100}
               value={filters.merchant}
               onChange={(e) => change("merchant", e.target.value)}
             />
           </Field>
-          <Field label="Период">
+          <Field label={t("Период")}>
             <select
               value={filters.period}
               onChange={(e) => change("period", e.target.value)}
             >
-              <option value="month">Месяц · {month}</option>
-              <option value="all">Вся история</option>
-              <option value="custom">Выбрать даты</option>
+              <option value="month">
+                {t("Месяц ·")} {month}
+              </option>
+              <option value="all">{t("Вся история")}</option>
+              <option value="custom">{t("Выбрать даты")}</option>
             </select>
           </Field>
           {filters.period === "custom" && (
             <>
-              <Field label="С даты">
+              <Field label={t("С даты")}>
                 <input
                   type="date"
                   value={filters.date_from}
                   onChange={(e) => change("date_from", e.target.value)}
                 />
               </Field>
-              <Field label="По дату">
+              <Field label={t("По дату")}>
                 <input
                   type="date"
                   value={filters.date_to}
@@ -184,12 +190,12 @@ export default function Purchases() {
           )}
         </div>
         <div className="purchase-filter-grid secondary-filters">
-          <Field label="Счёт">
+          <Field label={t("Счёт")}>
             <select
               value={filters.account_id}
               onChange={(e) => change("account_id", e.target.value)}
             >
-              <option value="">Все счета</option>
+              <option value="">{t("Все счета")}</option>
               {accounts.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.name} · {a.currency}
@@ -197,38 +203,40 @@ export default function Purchases() {
               ))}
             </select>
           </Field>
-          <Field label="Валюта">
+          <Field label={t("Валюта")}>
             <select
               value={filters.currency}
               onChange={(e) => change("currency", e.target.value)}
             >
-              <option value="">Все валюты</option>
+              <option value="">{t("Все валюты")}</option>
               {["MDL", "EUR", "USD", "RON"].map((c) => (
                 <option key={c}>{c}</option>
               ))}
             </select>
           </Field>
-          <Field label="Единица">
+          <Field label={t("Единица")}>
             <select
               value={filters.unit}
               onChange={(e) => change("unit", e.target.value)}
             >
-              <option value="">Все единицы</option>
-              {["шт", "кг", "г", "л", "мл"].map((u) => (
-                <option key={u}>{u}</option>
+              <option value="">{t("Все единицы")}</option>
+              {receiptUnitOptions.map((u) => (
+                <option key={u.value} value={u.value}>
+                  {u.label}
+                </option>
               ))}
             </select>
           </Field>
-          <Field label="Сортировка">
+          <Field label={t("Сортировка")}>
             <select
               value={filters.sort}
               onChange={(e) => change("sort", e.target.value)}
             >
-              <option value="newest">Сначала новые</option>
-              <option value="oldest">Сначала старые</option>
-              <option value="amount_desc">По сумме покупки ↓</option>
-              <option value="price_asc">По цене единицы ↑</option>
-              <option value="price_desc">По цене единицы ↓</option>
+              <option value="newest">{t("Сначала новые")}</option>
+              <option value="oldest">{t("Сначала старые")}</option>
+              <option value="amount_desc">{t("По сумме покупки ↓")}</option>
+              <option value="price_asc">{t("По цене единицы ↑")}</option>
+              <option value="price_desc">{t("По цене единицы ↓")}</option>
             </select>
           </Field>
         </div>
@@ -241,16 +249,18 @@ export default function Purchases() {
           <>
             <div className="purchase-summary">
               <div>
-                <span>Найдено позиций</span>
+                <span>{t("Найдено позиций")}</span>
                 <strong>{query.data.total}</strong>
               </div>
               <div>
-                <span>Чеков</span>
+                <span>{t("Чеков")}</span>
                 <strong>{query.data.receipt_count}</strong>
               </div>
               {query.data.totals.map((total) => (
                 <div key={total.currency}>
-                  <span>Потрачено · {total.currency}</span>
+                  <span>
+                    {t("Потрачено ·")} {total.currency}
+                  </span>
                   <strong>{amount(total.total_minor, total.currency)}</strong>
                 </div>
               ))}
@@ -262,14 +272,14 @@ export default function Purchases() {
                     <table>
                       <thead>
                         <tr>
-                          <th>Товар / магазин</th>
-                          <th>Дата</th>
-                          <th>Категория</th>
-                          <th>Количество</th>
-                          <th>Цена за единицу</th>
-                          <th>Сумма</th>
+                          <th>{t("Товар / магазин")}</th>
+                          <th>{t("Дата")}</th>
+                          <th>{t("Категория")}</th>
+                          <th>{t("Количество")}</th>
+                          <th>{t("Цена за единицу")}</th>
+                          <th>{t("Сумма")}</th>
                           <th>
-                            <span className="sr-only">Чек</span>
+                            <span className="sr-only">{t("Чек")}</span>
                           </th>
                         </tr>
                       </thead>
@@ -285,14 +295,17 @@ export default function Purchases() {
                             <td>{dateLabel(item.purchased_on)}</td>
                             <td>{categoryName(item.category_id)}</td>
                             <td>
-                              {Number(item.quantity).toLocaleString("ru-RU", {
-                                maximumFractionDigits: 6,
-                              })}{" "}
-                              {item.unit}
+                              {Number(item.quantity).toLocaleString(
+                                getLocale(),
+                                {
+                                  maximumFractionDigits: 6,
+                                },
+                              )}{" "}
+                              {unitLabel(item.unit)}
                             </td>
                             <td>
                               {amount(Number(item.unit_minor), item.currency)} /{" "}
-                              {item.unit}
+                              {unitLabel(item.unit)}
                             </td>
                             <td className="money">
                               {amount(item.total_minor, item.currency)}
@@ -301,7 +314,7 @@ export default function Purchases() {
                               <button
                                 className="icon-button"
                                 disabled={details.isPending}
-                                aria-label={`Открыть чек: ${item.name}`}
+                                aria-label={t("Открыть чек: {0}", item.name)}
                                 onClick={() => details.mutate(item.receipt_id)}
                               >
                                 <ArrowUpRight size={18} />
@@ -314,7 +327,7 @@ export default function Purchases() {
                   </div>
                   <div className="pagination">
                     <span>
-                      {offset + 1}–{offset + query.data.items.length} из{" "}
+                      {offset + 1}–{offset + query.data.items.length} {t("из")}{" "}
                       {query.data.total}
                     </span>
                     <div className="button-row">
@@ -322,21 +335,23 @@ export default function Purchases() {
                         disabled={!offset}
                         onClick={() => setOffset(Math.max(0, offset - 30))}
                       >
-                        Назад
+                        {t("Назад")}
                       </button>
                       <button
                         disabled={offset + 30 >= query.data.total}
                         onClick={() => setOffset(offset + 30)}
                       >
-                        Далее
+                        {t("Далее")}
                       </button>
                     </div>
                   </div>
                 </>
               ) : (
                 <Empty
-                  title="Покупки не найдены"
-                  text="Измените фильтры или период. Здесь появляются товары из подтверждённых чеков."
+                  title={t("Покупки не найдены")}
+                  text={t(
+                    "Измените фильтры или период. Здесь появляются товары из подтверждённых чеков.",
+                  )}
                 />
               )}
             </section>
@@ -344,8 +359,8 @@ export default function Purchases() {
               <section className="panel">
                 <div className="panel-heading">
                   <div>
-                    <h2>Расходы по категориям</h2>
-                    <p>Итоги по всей выборке, включая другие страницы</p>
+                    <h2>{t("Расходы по категориям")}</h2>
+                    <p>{t("Итоги по всей выборке, включая другие страницы")}</p>
                   </div>
                 </div>
                 <div className="purchase-categories">
@@ -366,10 +381,11 @@ export default function Purchases() {
             <section className="panel">
               <div className="panel-heading">
                 <div>
-                  <h2>Где цена была ниже</h2>
+                  <h2>{t("Где цена была ниже")}</h2>
                   <p>
-                    Одинаковые названия, валюта и единицы · минимум два разных
-                    чека
+                    {t(
+                      "Одинаковые названия, валюта и единицы · минимум два разных чека",
+                    )}
                   </p>
                 </div>
               </div>
@@ -384,16 +400,20 @@ export default function Purchases() {
                         </strong>
                         <span>
                           — {amount(Number(item.max_unit_minor), item.currency)}{" "}
-                          / {item.unit}
+                          / {unitLabel(item.unit)}
                         </span>
                       </div>
                       <p>
-                        Ниже всего: {item.best_merchant},{" "}
+                        {t("Ниже всего:")} {item.best_merchant},{" "}
                         {dateLabel(item.best_on)}
                       </p>
                       <small>
-                        {counted(item.receipt_count, ["чек", "чека", "чеков"])}{" "}
-                        · разница при минимальной цене:{" "}
+                        {counted(item.receipt_count, [
+                          t("чек"),
+                          t("чека"),
+                          t("чеков"),
+                        ])}{" "}
+                        {t("· разница при минимальной цене:")}{" "}
                         {amount(item.potential_minor, item.currency)}
                       </small>
                     </article>
@@ -401,14 +421,16 @@ export default function Purchases() {
                 </div>
               ) : (
                 <Empty
-                  title="Для сравнения нужно больше покупок"
-                  text="При повторных покупках одного товара покажем разброс цен и магазин с самой низкой ценой в выбранном периоде."
+                  title={t("Для сравнения нужно больше покупок")}
+                  text={t(
+                    "При повторных покупках одного товара покажем разброс цен и магазин с самой низкой ценой в выбранном периоде.",
+                  )}
                 />
               )}
               <p className="analysis-footnote">
-                Цены рассчитаны с учётом скидок в строках чека. Исторический
-                минимум не гарантирует сегодняшнюю цену. Возвраты учитываются в
-                общем отчёте, но не распределены по отдельным товарам.
+                {t(
+                  "Цены рассчитаны с учётом скидок в строках чека. Исторический минимум не гарантирует сегодняшнюю цену. Возвраты учитываются в общем отчёте, но не распределены по отдельным товарам.",
+                )}
               </p>
             </section>
           </>

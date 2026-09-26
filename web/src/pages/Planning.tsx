@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -55,14 +56,14 @@ export function Budgets() {
       send("/budgets", { month, category_id: editing, amount: value }, "PUT"),
     () => {
       setEditing(null);
-      toast("Лимит сохранён");
+      toast(t("Лимит сохранён"));
     },
   );
   const remove = useAction(
     (id: string) => send(`/budgets/${id}`, undefined, "DELETE"),
     () => {
       setEditing(null);
-      toast("Лимит удалён");
+      toast(t("Лимит удалён"));
     },
   );
   const data = query.data;
@@ -72,26 +73,28 @@ export function Budgets() {
   return (
     <>
       <PageHeading
-        eyebrow="ПЛАН НА МЕСЯЦ"
-        title="Тратьте с намерением"
-        text="Установите комфортные лимиты. Приложение покажет, сколько ещё доступно."
+        eyebrow={t("ПЛАН НА МЕСЯЦ")}
+        title={t("Тратьте с намерением")}
+        text={t(
+          "Установите комфортные лимиты. Приложение покажет, сколько ещё доступно.",
+        )}
       />
       <div className="budget-summary panel">
         <div className="round-icon mint">
           <Target size={25} />
         </div>
         <div>
-          <span>Запланировано по категориям</span>
+          <span>{t("Запланировано по категориям")}</span>
           <strong>{amount(total)}</strong>
         </div>
         <div>
-          <span>Фактические расходы</span>
+          <span>{t("Фактические расходы")}</span>
           <strong>{amount(data?.expense_minor)}</strong>
         </div>
         <p>
-          Лимиты не списывают деньги.
+          {t("Лимиты не списывают деньги.")}
           <br />
-          Каждый месяц имеет собственный план.
+          {t("Каждый месяц имеет собственный план.")}
         </p>
       </div>
       <ErrorBox error={query.error ?? remove.error} />
@@ -112,11 +115,14 @@ export function Budgets() {
                     {budget ? (
                       <Badge status={over ? "overdue" : "posted"}>
                         {over
-                          ? "Лимит превышен"
-                          : `${Math.round((spent / budget) * 100)}% использовано`}
+                          ? t("Лимит превышен")
+                          : t(
+                              "{0}% использовано",
+                              Math.round((spent / budget) * 100),
+                            )}
                       </Badge>
                     ) : (
-                      <Badge>Без лимита</Badge>
+                      <Badge>{t("Без лимита")}</Badge>
                     )}
                   </div>
                   <h2>{c.name}</h2>
@@ -124,8 +130,8 @@ export function Budgets() {
                     <strong>{amount(spent, "MDL", true)}</strong>
                     <span>
                       {budget
-                        ? `из ${amount(budget, "MDL", true)}`
-                        : "потрачено"}
+                        ? t("из {0}", amount(budget, "MDL", true))
+                        : t("потрачено")}
                     </span>
                   </div>
                   <div className="meter">
@@ -142,9 +148,9 @@ export function Budgets() {
                     <small>
                       {budget
                         ? over
-                          ? `Сверх лимита ${amount(spent - budget)}`
-                          : `Осталось ${amount(budget - spent)}`
-                        : "Вы решаете, сколько потратить"}
+                          ? t("Сверх лимита {0}", amount(spent - budget))
+                          : t("Осталось {0}", amount(budget - spent))
+                        : t("Вы решаете, сколько потратить")}
                     </small>
                     <button
                       className="text-button"
@@ -153,7 +159,7 @@ export function Budgets() {
                         setValue(budget ? decimal(budget) : "");
                       }}
                     >
-                      {budget ? "Изменить" : "Задать лимит"}
+                      {budget ? t("Изменить") : t("Задать лимит")}
                     </button>
                   </div>
                 </section>
@@ -163,12 +169,15 @@ export function Budgets() {
       )}
       {editing && (
         <Modal
-          title={`Лимит: ${categories.find((c) => c.id === editing)?.name}`}
-          description="Сумма в MDL для выбранного месяца."
+          title={t(
+            "Лимит: {0}",
+            categories.find((c) => c.id === editing)?.name,
+          )}
+          description={t("Сумма в MDL для выбранного месяца.")}
           onClose={() => setEditing(null)}
         >
           <Form onSubmit={() => save.mutate(undefined)}>
-            <Field label="Лимит, MDL">
+            <Field label={t("Лимит, MDL")}>
               <MoneyInput value={value} onChange={setValue} autoFocus />
             </Field>
             <ErrorBox error={save.error} />
@@ -179,7 +188,7 @@ export function Budgets() {
                   className="button secondary"
                   onClick={() => remove.mutate(category.budget_id!)}
                 >
-                  Удалить лимит
+                  {t("Удалить лимит")}
                 </button>
               )}
               <Submit pending={save.isPending} />
@@ -224,9 +233,11 @@ export function Debts() {
   return (
     <>
       <PageHeading
-        eyebrow="ДЕНЬГИ И ЛЮДИ"
-        title="Долги без неловкости"
-        text="Помните, кому дали и у кого заняли. Частичные возвраты учитываются автоматически."
+        eyebrow={t("ДЕНЬГИ И ЛЮДИ")}
+        title={t("Долги без неловкости")}
+        text={t(
+          "Помните, кому дали и у кого заняли. Частичные возвраты учитываются автоматически.",
+        )}
         actions={
           isAdmin && (
             <button
@@ -234,7 +245,7 @@ export function Debts() {
               onClick={() => setCreating(true)}
             >
               <Plus size={18} />
-              Записать долг
+              {t("Записать долг")}
             </button>
           )
         }
@@ -245,7 +256,7 @@ export function Debts() {
             <ArrowDownLeft size={22} />
           </span>
           <div>
-            <span>Вам должны</span>
+            <span>{t("Вам должны")}</span>
             <strong>{totals("lent")}</strong>
           </div>
         </section>
@@ -254,7 +265,7 @@ export function Debts() {
             <ArrowUpRight size={22} />
           </span>
           <div>
-            <span>Вы должны</span>
+            <span>{t("Вы должны")}</span>
             <strong>{totals("borrowed")}</strong>
           </div>
         </section>
@@ -266,19 +277,19 @@ export function Debts() {
               className={direction === "all" ? "selected" : ""}
               onClick={() => setDirection("all")}
             >
-              Все
+              {t("Все")}
             </button>
             <button
               className={direction === "lent" ? "selected" : ""}
               onClick={() => setDirection("lent")}
             >
-              Мне должны
+              {t("Мне должны")}
             </button>
             <button
               className={direction === "borrowed" ? "selected" : ""}
               onClick={() => setDirection("borrowed")}
             >
-              Я должен
+              {t("Я должен")}
             </button>
           </div>
           <label className="check-field">
@@ -287,7 +298,7 @@ export function Debts() {
               checked={closed}
               onChange={(e) => setClosed(e.target.checked)}
             />
-            Показывать закрытые
+            {t("Показывать закрытые")}
           </label>
         </div>
         <ErrorBox error={query.error} />
@@ -303,8 +314,8 @@ export function Debts() {
                 <div className="grow">
                   <strong>{d.person}</strong>
                   <p>
-                    {d.direction === "lent" ? "Вам должны" : "Вы должны"}
-                    {d.due_date ? ` · до ${dateLabel(d.due_date)}` : ""}
+                    {d.direction === "lent" ? t("Вам должны") : t("Вы должны")}
+                    {d.due_date ? t(" · до {0}", dateLabel(d.due_date)) : ""}
                   </p>
                   {d.note && <small>{d.note}</small>}
                 </div>
@@ -320,10 +331,10 @@ export function Debts() {
                     }
                   >
                     {d.remaining_minor === 0
-                      ? "Закрыт"
+                      ? t("Закрыт")
                       : d.due_date && d.due_date < today()
-                        ? "Срок прошёл"
-                        : "Открыт"}
+                        ? t("Срок прошёл")
+                        : t("Открыт")}
                   </Badge>
                 </div>
                 {isAdmin && (
@@ -336,13 +347,13 @@ export function Debts() {
                             setMovement({ debt: d, mode: "partial" })
                           }
                         >
-                          Погасить частично
+                          {t("Погасить частично")}
                         </button>
                         <button
                           className="button secondary"
                           onClick={() => setMovement({ debt: d, mode: "full" })}
                         >
-                          <Check size={16} /> Погасить полностью
+                          <Check size={16} /> {t("Погасить полностью")}
                         </button>
                       </>
                     )}
@@ -350,7 +361,7 @@ export function Debts() {
                       className="text-button"
                       onClick={() => setMovement({ debt: d, mode: "increase" })}
                     >
-                      <Plus size={16} /> Увеличить долг
+                      <Plus size={16} /> {t("Увеличить долг")}
                     </button>
                   </div>
                 )}
@@ -360,8 +371,10 @@ export function Debts() {
         ) : (
           <Empty
             icon={<Users size={28} />}
-            title="Всё спокойно"
-            text="Здесь будут ваши долги и возвраты. Выдача и получение долга не считаются расходом и доходом."
+            title={t("Всё спокойно")}
+            text={t(
+              "Здесь будут ваши долги и возвраты. Выдача и получение долга не считаются расходом и доходом.",
+            )}
             action={
               isAdmin && (
                 <button
@@ -369,7 +382,7 @@ export function Debts() {
                   onClick={() => setCreating(true)}
                 >
                   <Plus size={17} />
-                  Добавить запись
+                  {t("Добавить запись")}
                 </button>
               )
             }
@@ -381,7 +394,7 @@ export function Debts() {
           onClose={() => setCreating(false)}
           onDone={() => {
             setCreating(false);
-            toast("Долг записан");
+            toast(t("Долг записан"));
           }}
         />
       )}{" "}
@@ -394,10 +407,10 @@ export function Debts() {
             setMovement(null);
             toast(
               movement.mode === "increase"
-                ? "Долг увеличен"
+                ? t("Долг увеличен")
                 : movement.mode === "full"
-                  ? "Долг полностью погашен"
-                  : "Погашение учтено",
+                  ? t("Долг полностью погашен")
+                  : t("Погашение учтено"),
             );
           }}
         />
@@ -443,7 +456,7 @@ function DebtForm({
     onDone,
   );
   return (
-    <Modal title="Новый долг" onClose={onClose}>
+    <Modal title={t("Новый долг")} onClose={onClose}>
       <Form onSubmit={() => save.mutate(undefined)}>
         <div className="segmented">
           <button
@@ -451,45 +464,45 @@ function DebtForm({
             className={direction === "lent" ? "selected" : ""}
             onClick={() => setDirection("lent")}
           >
-            Я дал в долг
+            {t("Я дал в долг")}
           </button>
           <button
             type="button"
             className={direction === "borrowed" ? "selected" : ""}
             onClick={() => setDirection("borrowed")}
           >
-            Я взял в долг
+            {t("Я взял в долг")}
           </button>
         </div>
         <div className="form-grid">
-          <Field label="Имя человека" wide>
+          <Field label={t("Имя человека")} wide>
             <input
               required
               maxLength={100}
               value={person}
               onChange={(e) => setPerson(e.target.value)}
-              placeholder="Например, Андрей"
+              placeholder={t("Например, Андрей")}
               autoFocus
             />
           </Field>
-          <Field label="Сумма">
+          <Field label={t("Сумма")}>
             <MoneyInput value={value} onChange={setValue} />
           </Field>
-          <Field label="Валюта">
+          <Field label={t("Валюта")}>
             <CurrencySelect value={currency} onChange={setCurrency} />
           </Field>
-          <Field label="Как учитывать" wide>
+          <Field label={t("Как учитывать")} wide>
             <select value={mode} onChange={(e) => setMode(e.target.value)}>
               <option value="new">
-                Деньги передаются сейчас — изменить остаток счёта
+                {t("Деньги передаются сейчас — изменить остаток счёта")}
               </option>
               <option value="existing">
-                Старый долг — остаток счёта уже учитывает его
+                {t("Старый долг — остаток счёта уже учитывает его")}
               </option>
             </select>
           </Field>
           {mode === "new" && (
-            <Field label="Счёт">
+            <Field label={t("Счёт")}>
               <AccountSelect
                 accounts={accounts}
                 value={account}
@@ -498,7 +511,7 @@ function DebtForm({
               />
             </Field>
           )}
-          <Field label="Дата передачи">
+          <Field label={t("Дата передачи")}>
             <input
               type="date"
               required
@@ -508,7 +521,7 @@ function DebtForm({
               onChange={(e) => setDate(e.target.value)}
             />
           </Field>
-          <Field label="Вернуть до · необязательно">
+          <Field label={t("Вернуть до · необязательно")}>
             <input
               type="date"
               value={due}
@@ -518,7 +531,7 @@ function DebtForm({
             />
           </Field>
           {currency !== "MDL" && mode === "new" && (
-            <Field label="Курс к MDL">
+            <Field label={t("Курс к MDL")}>
               <input
                 type="number"
                 min="0.00000001"
@@ -529,7 +542,7 @@ function DebtForm({
               />
             </Field>
           )}
-          <Field label="Примечание" wide>
+          <Field label={t("Примечание")} wide>
             <textarea
               rows={2}
               value={note}
@@ -586,20 +599,30 @@ function DebtMovementForm({
   );
   return (
     <Modal
-      title={`${increasing ? "Увеличить долг" : full ? "Погасить полностью" : "Погасить частично"}: ${debt.person}`}
-      description={`Остаток ${amount(debt.remaining_minor, debt.currency)}. ${increasing ? "Укажите дополнительную сумму. Передача денег изменит баланс выбранного счёта." : full ? "Весь остаток будет погашен после подтверждения." : "Укажите сумму фактического возврата."}`}
+      title={`${increasing ? t("Увеличить долг") : full ? t("Погасить полностью") : t("Погасить частично")}: ${debt.person}`}
+      description={t(
+        "Остаток {0}. {1}",
+        amount(debt.remaining_minor, debt.currency),
+        increasing
+          ? t(
+              "Укажите дополнительную сумму. Передача денег изменит баланс выбранного счёта.",
+            )
+          : full
+            ? t("Весь остаток будет погашен после подтверждения.")
+            : t("Укажите сумму фактического возврата."),
+      )}
       onClose={onClose}
     >
       <Form onSubmit={() => action.mutate(undefined)}>
         <div className="form-grid">
-          <Field label={`Сумма · ${debt.currency}`}>
+          <Field label={t("Сумма · {0}", debt.currency)}>
             {full ? (
               <input value={value} readOnly aria-readonly="true" />
             ) : (
               <MoneyInput value={value} onChange={setValue} autoFocus />
             )}
           </Field>
-          <Field label="Дата">
+          <Field label={t("Дата")}>
             <input
               required
               type="date"
@@ -612,8 +635,8 @@ function DebtMovementForm({
           <Field
             label={
               (debt.direction === "lent") !== increasing
-                ? "Получено на счёт"
-                : "Списать со счёта"
+                ? t("Получено на счёт")
+                : t("Списать со счёта")
             }
             wide
           >
@@ -625,7 +648,7 @@ function DebtMovementForm({
             />
           </Field>
           {debt.currency !== "MDL" && (
-            <Field label="Курс к MDL">
+            <Field label={t("Курс к MDL")}>
               <input
                 required
                 type="number"
@@ -636,7 +659,7 @@ function DebtMovementForm({
               />
             </Field>
           )}
-          <Field label="Примечание · необязательно" wide>
+          <Field label={t("Примечание · необязательно")} wide>
             <textarea
               rows={2}
               value={note}
@@ -649,10 +672,10 @@ function DebtMovementForm({
         <footer className="modal-footer">
           <Submit pending={action.isPending}>
             {increasing
-              ? "Увеличить долг"
+              ? t("Увеличить долг")
               : full
-                ? "Погасить весь остаток"
-                : "Записать погашение"}
+                ? t("Погасить весь остаток")
+                : t("Записать погашение")}
           </Submit>
         </footer>
       </Form>
@@ -675,22 +698,24 @@ export function Bills() {
   const [tab, setTab] = useState("month");
   const toggle = useAction(
     (id: string) => send(`/bills/${id}/toggle`),
-    () => toast("План обновлён"),
+    () => toast(t("План обновлён")),
   );
   const skip = useAction(
     (id: string) => send(`/occurrences/${id}/skip`),
-    () => toast("Платёж обновлён"),
+    () => toast(t("Платёж обновлён")),
   );
   return (
     <>
       <PageHeading
-        eyebrow="КАЛЕНДАРЬ ОБЯЗАТЕЛЬСТВ"
-        title="Платежи без сюрпризов"
-        text="Аренда, связь, подписки и регулярные расходы. План превращается в расход только после оплаты."
+        eyebrow={t("КАЛЕНДАРЬ ОБЯЗАТЕЛЬСТВ")}
+        title={t("Платежи без сюрпризов")}
+        text={t(
+          "Аренда, связь, подписки и регулярные расходы. План превращается в расход только после оплаты.",
+        )}
         actions={
           <button className="button primary" onClick={() => setCreating(true)}>
             <Plus size={18} />
-            Добавить платёж
+            {t("Добавить платёж")}
           </button>
         }
       />
@@ -701,18 +726,18 @@ export function Bills() {
               className={tab === "month" ? "selected" : ""}
               onClick={() => setTab("month")}
             >
-              Этот месяц
+              {t("Этот месяц")}
             </button>
             <button
               className={tab === "templates" ? "selected" : ""}
               onClick={() => setTab("templates")}
             >
-              Все регулярные
+              {t("Все регулярные")}
             </button>
           </div>
           <span className="muted">
             {query.data?.filter((b) => b.status === "paid").length ?? 0}{" "}
-            оплачено в этом месяце
+            {t("оплачено в этом месяце")}
           </span>
         </div>
         <ErrorBox
@@ -748,20 +773,20 @@ export function Bills() {
                         onClick={() => setPaying(b)}
                       >
                         <Check size={16} />
-                        Оплачен
+                        {t("Оплачен")}
                       </button>
                       <button
                         className="icon-button"
                         disabled={skip.isPending}
                         title={
                           b.status === "skipped"
-                            ? "Вернуть в план"
-                            : "Пропустить этот платёж"
+                            ? t("Вернуть в план")
+                            : t("Пропустить этот платёж")
                         }
                         aria-label={
                           b.status === "skipped"
-                            ? "Вернуть в план"
-                            : "Пропустить платёж"
+                            ? t("Вернуть в план")
+                            : t("Пропустить платёж")
                         }
                         onClick={() => skip.mutate(b.id)}
                       >
@@ -775,8 +800,10 @@ export function Bills() {
           ) : (
             <Empty
               icon={<CalendarClock size={28} />}
-              title="Месяц без запланированных платежей"
-              text="Добавьте регулярные обязательства — и свободный остаток станет понятнее."
+              title={t("Месяц без запланированных платежей")}
+              text={t(
+                "Добавьте регулярные обязательства — и свободный остаток станет понятнее.",
+              )}
             />
           )
         ) : templates.data?.length ? (
@@ -789,28 +816,30 @@ export function Bills() {
                 <div className="grow">
                   <strong>{b.name}</strong>
                   <p>
-                    {recurrenceLabels[b.recurrence]} · с{" "}
+                    {recurrenceLabels[b.recurrence]} {t("· с")}{" "}
                     {dateLabel(b.start_date)}
                   </p>
                 </div>
                 <strong>{amount(b.amount_minor, b.currency)}</strong>
                 <Badge status={b.active ? "posted" : "skipped"}>
-                  {b.active ? "Активен" : "Остановлен"}
+                  {b.active ? t("Активен") : t("Остановлен")}
                 </Badge>
                 <button
                   className="button secondary"
                   disabled={toggle.isPending}
                   onClick={() => toggle.mutate(b.id)}
                 >
-                  {b.active ? "Остановить" : "Возобновить"}
+                  {b.active ? t("Остановить") : t("Возобновить")}
                 </button>
               </div>
             ))}
           </div>
         ) : (
           <Empty
-            title="Регулярных платежей пока нет"
-            text="Создайте первый шаблон, и платежи будут появляться каждый месяц."
+            title={t("Регулярных платежей пока нет")}
+            text={t(
+              "Создайте первый шаблон, и платежи будут появляться каждый месяц.",
+            )}
           />
         )}
       </section>
@@ -819,7 +848,7 @@ export function Bills() {
           onClose={() => setCreating(false)}
           onDone={() => {
             setCreating(false);
-            toast("Платёж добавлен");
+            toast(t("Платёж добавлен"));
           }}
         />
       )}{" "}
@@ -829,7 +858,7 @@ export function Bills() {
           onClose={() => setPaying(null)}
           onDone={() => {
             setPaying(null);
-            toast("Оплата записана");
+            toast(t("Оплата записана"));
           }}
         />
       )}
@@ -868,26 +897,26 @@ function BillForm({
     onDone,
   );
   return (
-    <Modal title="Запланировать платёж" onClose={onClose}>
+    <Modal title={t("Запланировать платёж")} onClose={onClose}>
       <Form onSubmit={() => save.mutate(undefined)}>
         <div className="form-grid">
-          <Field label="Название" wide>
+          <Field label={t("Название")} wide>
             <input
               required
               autoFocus
               value={name}
               maxLength={100}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Например, интернет"
+              placeholder={t("Например, интернет")}
             />
           </Field>
-          <Field label="Сумма">
+          <Field label={t("Сумма")}>
             <MoneyInput value={value} onChange={setValue} />
           </Field>
-          <Field label="Валюта">
+          <Field label={t("Валюта")}>
             <CurrencySelect value={currency} onChange={setCurrency} />
           </Field>
-          <Field label="Первая дата оплаты">
+          <Field label={t("Первая дата оплаты")}>
             <input
               type="date"
               min="1990-01-01"
@@ -897,7 +926,7 @@ function BillForm({
               onChange={(e) => setDate(e.target.value)}
             />
           </Field>
-          <Field label="Повторять">
+          <Field label={t("Повторять")}>
             <select value={repeat} onChange={(e) => setRepeat(e.target.value)}>
               {Object.entries(recurrenceLabels).map(([k, v]) => (
                 <option key={k} value={k}>
@@ -906,14 +935,14 @@ function BillForm({
               ))}
             </select>
           </Field>
-          <Field label="Категория">
+          <Field label={t("Категория")}>
             <CategorySelect
               categories={categories}
               value={category}
               onChange={setCategory}
             />
           </Field>
-          <Field label="Счёт по умолчанию">
+          <Field label={t("Счёт по умолчанию")}>
             <AccountSelect
               accounts={accounts}
               value={account}
@@ -923,7 +952,7 @@ function BillForm({
             />
           </Field>
           {currency !== "MDL" && (
-            <Field label="Плановый курс к MDL">
+            <Field label={t("Плановый курс к MDL")}>
               <input
                 required
                 type="number"
@@ -991,16 +1020,18 @@ function BillPay({
   );
   return (
     <Modal
-      title={`Оплата: ${bill.name}`}
-      description="Укажите фактическую сумму — она может отличаться от плановой."
+      title={t("Оплата: {0}", bill.name)}
+      description={t(
+        "Укажите фактическую сумму — она может отличаться от плановой.",
+      )}
       onClose={onClose}
     >
       <Form onSubmit={() => save.mutate(undefined)}>
         <div className="form-grid">
-          <Field label={`Сумма · ${bill.currency}`}>
+          <Field label={t("Сумма · {0}", bill.currency)}>
             <MoneyInput value={value} onChange={setValue} autoFocus />
           </Field>
-          <Field label="Дата оплаты">
+          <Field label={t("Дата оплаты")}>
             <input
               required
               type="date"
@@ -1010,7 +1041,7 @@ function BillPay({
               onChange={(e) => setDate(e.target.value)}
             />
           </Field>
-          <Field label="Счёт" wide>
+          <Field label={t("Счёт")} wide>
             <AccountSelect
               accounts={accounts}
               value={account}
@@ -1019,7 +1050,7 @@ function BillPay({
             />
           </Field>
           {bill.currency !== "MDL" && (
-            <Field label="Курс на дату оплаты">
+            <Field label={t("Курс на дату оплаты")}>
               <input
                 required
                 type="number"
@@ -1031,7 +1062,7 @@ function BillPay({
             </Field>
           )}
         </div>
-        <Field label="Учёт оплаты">
+        <Field label={t("Учёт оплаты")}>
           <select
             value={
               candidates.some((item) => item.id === transaction)
@@ -1040,22 +1071,23 @@ function BillPay({
             }
             onChange={(e) => setTransaction(e.target.value)}
           >
-            <option value="">Создать новый расход</option>
+            <option value="">{t("Создать новый расход")}</option>
             {candidates.map((item) => (
               <option key={item.id} value={item.id}>
-                Уже записано: {item.merchant || "Расход"} ·{" "}
+                {t("Уже записано:")} {item.merchant || t("Расход")} ·{" "}
                 {amount(item.amount_minor, item.currency)}
               </option>
             ))}
           </select>
           <small>
-            Здесь появятся расходы с той же датой, суммой и счётом. Привязка не
-            списывает деньги повторно.
+            {t(
+              "Здесь появятся расходы с той же датой, суммой и счётом. Привязка не списывает деньги повторно.",
+            )}
           </small>
         </Field>
         <ErrorBox error={save.error ?? matches.error} />
         <footer className="modal-footer">
-          <Submit pending={save.isPending}>Записать оплату</Submit>
+          <Submit pending={save.isPending}>{t("Записать оплату")}</Submit>
         </footer>
       </Form>
     </Modal>

@@ -238,7 +238,9 @@ def test_income_edit_pause_and_link_existing(client, accounts):
     )
 
 
-def test_purchase_filters_totals_comparisons(client, accounts, categories, owner):
+@pytest.mark.parametrize("language", ["ru", "en"])
+def test_purchase_filters_totals_comparisons(client, accounts, categories, owner, language):
+    client.headers["Accept-Language"] = language
     cheapest = receipt(
         client, accounts, categories, owner, name="Lápte", total="20", merchant="Cheap"
     )
@@ -267,7 +269,8 @@ def test_purchase_filters_totals_comparisons(client, accounts, categories, owner
     insight = next(
         card for card in client.get("/api/insights?month=2025-02").json() if card["kind"] == "price"
     )
-    assert "Cheap" in insight["text"] and "2 разных чеков" in insight["basis"]
+    assert "Cheap" in insight["text"]
+    assert ("2 receipts" if language == "en" else "2 разных чеков") in insight["basis"]
 
 
 def test_receipt_delete_item_and_whole_recalculate(client, accounts, categories, owner):

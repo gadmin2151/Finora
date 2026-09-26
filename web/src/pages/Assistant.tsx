@@ -1,3 +1,4 @@
+import { t, getLocale } from "../i18n";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
@@ -90,6 +91,7 @@ export function Assistant() {
     const receipt = await api<Receipt>(`/receipts/${id}`);
     open({ type: "receipt", receipt });
   });
+  const latestMessageId = messages.data?.at(-1)?.id;
   useEffect(() => {
     const element = body.current;
     if (element && followLatest.current)
@@ -99,20 +101,22 @@ export function Assistant() {
           ? "instant"
           : "smooth",
       });
-  }, [messages.data?.at(-1)?.id, pending]);
+  }, [latestMessageId, pending]);
   return (
     <>
       <PageHeading
-        eyebrow="ЛИЧНЫЙ ПОМОЩНИК"
-        title="Поговорим о ваших деньгах"
-        text="Спросите о любом периоде, найдите покупку и сравните свои цены. Общий чат выбранной организации."
+        eyebrow={t("ЛИЧНЫЙ ПОМОЩНИК")}
+        title={t("Поговорим о ваших деньгах")}
+        text={t(
+          "Спросите о любом периоде, найдите покупку и сравните свои цены. Общий чат выбранной организации.",
+        )}
         actions={
           <Badge status={prefs?.provider === "disabled" ? "skipped" : "posted"}>
             {prefs?.provider === "ollama"
-              ? "Локальный AI · CPU"
+              ? t("Локальный AI · CPU")
               : prefs?.provider === "openai"
                 ? "OpenAI"
-                : "AI отключён"}
+                : t("AI отключён")}
           </Badge>
         }
       />
@@ -137,40 +141,43 @@ export function Assistant() {
               <div className="assistant-orb">
                 <Sparkles size={31} />
               </div>
-              <h2>Ваши финансы, понятным языком</h2>
+              <h2>{t("Ваши финансы, понятным языком")}</h2>
               <p>
-                Я помогу разобрать покупки и увидеть привычки.
+                {t("Я помогу разобрать покупки и увидеть привычки.")}
                 <br />
-                Спросите «Сколько ушло на продукты в августе?» или «Найди
-                LAPTE».
+                {t(
+                  "Спросите «Сколько ушло на продукты в августе?» или «Найди LAPTE».",
+                )}
               </p>
               <div className="prompt-grid">
                 <button onClick={() => open({ type: "upload" })}>
                   <Camera size={22} />
-                  <strong>Отправить чек</strong>
-                  <span>Распознать товары и категории</span>
+                  <strong>{t("Отправить чек")}</strong>
+                  <span>{t("Распознать товары и категории")}</span>
                   <ArrowRight size={17} />
                 </button>
                 <button
                   onClick={() =>
-                    setText("На чём я могу сэкономить в этом месяце?")
+                    setText(t("На чём я могу сэкономить в этом месяце?"))
                   }
                 >
                   <Sparkles size={22} />
-                  <strong>Найти экономию</strong>
-                  <span>На основе моей истории</span>
+                  <strong>{t("Найти экономию")}</strong>
+                  <span>{t("На основе моей истории")}</span>
                   <ArrowRight size={17} />
                 </button>
                 <button
                   onClick={() =>
                     setText(
-                      "Найди мои покупки LAPTE за последние 3 месяца и сравни цены",
+                      t(
+                        "Найди мои покупки LAPTE за последние 3 месяца и сравни цены",
+                      ),
                     )
                   }
                 >
                   <ScanLine size={22} />
-                  <strong>Найти покупку</strong>
-                  <span>Товары, суммы и исходные чеки</span>
+                  <strong>{t("Найти покупку")}</strong>
+                  <span>{t("Товары, суммы и исходные чеки")}</span>
                   <ArrowRight size={17} />
                 </button>
               </div>
@@ -184,7 +191,7 @@ export function Assistant() {
                     disabled={more.isPending}
                     onClick={() => more.mutate(undefined)}
                   >
-                    Загрузить более ранние сообщения
+                    {t("Загрузить более ранние сообщения")}
                   </button>
                 )}
               {[...older, ...messages.data]
@@ -233,19 +240,19 @@ export function Assistant() {
                             <ScanLine size={21} />
                           </span>
                           <span>
-                            <strong>Чек и товары</strong>
-                            <small>Открыть результат и проверить</small>
+                            <strong>{t("Чек и товары")}</strong>
+                            <small>{t("Открыть результат и проверить")}</small>
                           </span>
                           <ChevronRight size={20} />
                         </button>
                       )}
                       <small className="message-time">
-                        {new Intl.DateTimeFormat("ru-RU", {
+                        {new Intl.DateTimeFormat(getLocale(), {
                           hour: "2-digit",
                           minute: "2-digit",
                         }).format(new Date(message.created_at))}
                         {message.details.provider
-                          ? ` · ${message.details.provider === "reports" ? "Расчёт Finora" : message.details.provider === "ollama" ? "Локальная модель" : "OpenAI"}`
+                          ? ` · ${message.details.provider === "reports" ? t("Расчёт Finora") : message.details.provider === "ollama" ? t("Локальная модель") : "OpenAI"}`
                           : ""}
                       </small>
                     </div>
@@ -259,7 +266,7 @@ export function Assistant() {
               <span />
               <span />
               {jobs.data?.find((j) => ["queued", "running"].includes(j.status))
-                ?.progress || "Подготавливаю ответ…"}
+                ?.progress || t("Подготавливаю ответ…")}
             </div>
           )}
         </div>
@@ -267,31 +274,31 @@ export function Assistant() {
           <div
             className="chat-quick-reports"
             role="group"
-            aria-label="Быстрые отчёты"
+            aria-label={t("Быстрые отчёты")}
           >
-            <span>За выбранный месяц</span>
+            <span>{t("За выбранный месяц")}</span>
             <button
               type="button"
               disabled={action.isPending}
-              onClick={() => submit("Покажи финансовую сводку", "summary")}
+              onClick={() => submit(t("Покажи финансовую сводку"), "summary")}
             >
-              Сводка
+              {t("Сводка")}
             </button>
             <button
               type="button"
               disabled={action.isPending}
               onClick={() =>
-                submit("Покажи расходы по категориям", "categories")
+                submit(t("Покажи расходы по категориям"), "categories")
               }
             >
-              Категории
+              {t("Категории")}
             </button>
             <button
               type="button"
               disabled={action.isPending}
-              onClick={() => submit("Сравни цены в моих чеках", "prices")}
+              onClick={() => submit(t("Сравни цены в моих чеках"), "prices")}
             >
-              Мои цены
+              {t("Мои цены")}
             </button>
           </div>
           <ErrorBox
@@ -304,17 +311,17 @@ export function Assistant() {
           />
           {prefs?.provider === "disabled" && (
             <div className="chat-notice">
-              Быстрые отчёты работают без AI. Для свободных вопросов{" "}
+              {t("Быстрые отчёты работают без AI. Для свободных вопросов")}{" "}
               {isAdmin ? (
                 <button
                   className="text-button"
                   onClick={() => navigate("settings")}
                 >
-                  подключите AI
+                  {t("подключите AI")}
                   <ArrowRight size={14} />
                 </button>
               ) : (
-                "попросите администратора подключить AI."
+                t("попросите администратора подключить AI.")
               )}
             </div>
           )}
@@ -328,16 +335,16 @@ export function Assistant() {
             <button
               type="button"
               className="icon-button"
-              aria-label="Прикрепить фото чека"
+              aria-label={t("Прикрепить фото чека")}
               onClick={() => open({ type: "upload" })}
             >
               <Paperclip size={23} />
             </button>
             <textarea
-              aria-label="Сообщение помощнику"
+              aria-label={t("Сообщение помощнику")}
               rows={1}
               maxLength={3000}
-              placeholder="Спросите о расходах или прикрепите чек…"
+              placeholder={t("Спросите о расходах или прикрепите чек…")}
               value={text}
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => {
@@ -354,15 +361,16 @@ export function Assistant() {
             <button
               type="submit"
               className="send-button"
-              aria-label="Отправить сообщение"
+              aria-label={t("Отправить сообщение")}
               disabled={!text.trim() || action.isPending}
             >
               <Send size={19} />
             </button>
           </form>
           <p className="composer-note">
-            AI может ошибаться. Числа в отчётах рассчитываются по вашим
-            подтверждённым операциям.
+            {t(
+              "AI может ошибаться. Числа в отчётах рассчитываются по вашим подтверждённым операциям.",
+            )}
           </p>
         </div>
       </section>
@@ -385,16 +393,18 @@ export function Receipts() {
   return (
     <>
       <PageHeading
-        eyebrow="ПОКУПКИ ПО ТОВАРАМ"
-        title="Чеки, которые не теряются"
-        text="Оригинал, товары и категории каждой покупки. Фото и молдавские чеки MEV."
+        eyebrow={t("ПОКУПКИ ПО ТОВАРАМ")}
+        title={t("Чеки, которые не теряются")}
+        text={t(
+          "Оригинал, товары и категории каждой покупки. Фото и молдавские чеки MEV.",
+        )}
         actions={
           <button
             className="button primary"
             onClick={() => open({ type: "upload" })}
           >
             <ScanLine size={18} />
-            Добавить чек
+            {t("Добавить чек")}
           </button>
         }
       />
@@ -402,17 +412,17 @@ export function Receipts() {
         <div className="search-field">
           <Search size={18} />
           <input
-            aria-label="Поиск чеков"
+            aria-label={t("Поиск чеков")}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
               setOffset(0);
             }}
-            placeholder="Найти магазин"
+            placeholder={t("Найти магазин")}
           />
         </div>
         <span className="muted">
-          {counted(query.data?.total ?? 0, ["чек", "чека", "чеков"])}
+          {counted(query.data?.total ?? 0, [t("чек"), t("чека"), t("чеков")])}
         </span>
       </div>
       <ErrorBox error={query.error} />
@@ -433,12 +443,12 @@ export function Receipts() {
                   </span>
                   <Badge status={receipt.status} />
                 </div>
-                <h2>{receipt.merchant || "Новый чек"}</h2>
+                <h2>{receipt.merchant || t("Новый чек")}</h2>
                 <p>
                   {receipt.purchased_on
                     ? dateLabel(receipt.purchased_on)
-                    : "Дата ещё не распознана"}{" "}
-                  · {receipt.source === "mev" ? "MEV" : "Фото чека"}
+                    : t("Дата ещё не распознана")}{" "}
+                  · {receipt.source === "mev" ? "MEV" : t("Фото чека")}
                 </p>
                 <div className="receipt-card-lines">
                   {receipt.items.slice(0, 3).map((i) => (
@@ -449,11 +459,11 @@ export function Receipts() {
                   ))}
                   {receipt.items.length > 3 && (
                     <small>
-                      и ещё{" "}
+                      {t("и ещё")}{" "}
                       {counted(receipt.items.length - 3, [
-                        "товар",
-                        "товара",
-                        "товаров",
+                        t("товар"),
+                        t("товара"),
+                        t("товаров"),
                       ])}
                     </small>
                   )}
@@ -461,17 +471,17 @@ export function Receipts() {
                     <span className="muted">
                       {receipt.status === "queued" ||
                       receipt.status === "processing"
-                        ? "Распознаём товары…"
-                        : "Откройте чек, чтобы заполнить товары"}
+                        ? t("Распознаём товары…")
+                        : t("Откройте чек, чтобы заполнить товары")}
                     </span>
                   )}
                 </div>
                 <div className="receipt-card-total">
                   <span>
                     {counted(receipt.items.length, [
-                      "товар",
-                      "товара",
-                      "товаров",
+                      t("товар"),
+                      t("товара"),
+                      t("товаров"),
                     ])}
                   </span>
                   <strong>
@@ -486,8 +496,8 @@ export function Receipts() {
           </div>
           <div className="pagination">
             <span>
-              Показано {offset + 1}–{offset + query.data.items.length} из{" "}
-              {query.data.total}
+              {t("Показано")} {offset + 1}–{offset + query.data.items.length}{" "}
+              {t("из")} {query.data.total}
             </span>
             <div>
               <button
@@ -495,14 +505,14 @@ export function Receipts() {
                 disabled={offset === 0}
                 onClick={() => setOffset(offset - 30)}
               >
-                Назад
+                {t("Назад")}
               </button>
               <button
                 className="button secondary"
                 disabled={offset + 30 >= query.data.total}
                 onClick={() => setOffset(offset + 30)}
               >
-                Далее
+                {t("Далее")}
               </button>
             </div>
           </div>
@@ -511,15 +521,17 @@ export function Receipts() {
         <section className="panel">
           <Empty
             icon={<ScanLine size={30} />}
-            title="Ваша коллекция чеков начинается здесь"
-            text="Отправьте фото чека. Finora сохранит оригинал, выделит товары и поможет разобраться в расходах."
+            title={t("Ваша коллекция чеков начинается здесь")}
+            text={t(
+              "Отправьте фото чека. Finora сохранит оригинал, выделит товары и поможет разобраться в расходах.",
+            )}
             action={
               <button
                 className="button primary"
                 onClick={() => open({ type: "upload" })}
               >
                 <Camera size={18} />
-                Загрузить первый чек
+                {t("Загрузить первый чек")}
               </button>
             }
           />
@@ -539,7 +551,9 @@ export function Insights() {
     () =>
       send("/chat", {
         month,
-        text: "Проанализируй мои расходы за выбранный месяц. Предложи конкретные способы сократить лишние траты и более дешёвые замены привычных покупок. Раздели факты и предположения.",
+        text: t(
+          "Проанализируй мои расходы за выбранный месяц. Предложи конкретные способы сократить лишние траты и более дешёвые замены привычных покупок. Раздели факты и предположения.",
+        ),
       }),
     () => navigate("assistant"),
   );
@@ -547,9 +561,9 @@ export function Insights() {
   return (
     <>
       <PageHeading
-        eyebrow="ОСМЫСЛЕННЫЕ РАСХОДЫ"
-        title="Маленькие изменения, больше свободы"
-        text="Наблюдения из вашей истории и идеи, которые стоит проверить."
+        eyebrow={t("ОСМЫСЛЕННЫЕ РАСХОДЫ")}
+        title={t("Маленькие изменения, больше свободы")}
+        text={t("Наблюдения из вашей истории и идеи, которые стоит проверить.")}
         actions={
           isAdmin && (
             <button
@@ -563,8 +577,8 @@ export function Insights() {
             >
               <Sparkles size={18} />
               {prefs?.provider === "disabled"
-                ? "Подключить AI-анализ"
-                : "Разобрать с AI"}
+                ? t("Подключить AI-анализ")
+                : t("Разобрать с AI")}
             </button>
           )
         }
@@ -576,13 +590,17 @@ export function Insights() {
         <div>
           <h2>
             {potential > 0
-              ? `Сценарии экономии: ${amount(potential)}`
-              : "Сначала факты. Затем полезные решения."}
+              ? t("Сценарии экономии: {0}", amount(potential))
+              : t("Сначала факты. Затем полезные решения.")}
           </h2>
           <p>
             {potential > 0
-              ? "Расчёт при сокращении отдельных категорий на 20%. Реальная экономия зависит от ваших решений."
-              : "Сравнение с прошлым месяцем, контроль лимитов и цены из ваших чеков работают даже без AI."}
+              ? t(
+                  "Расчёт при сокращении отдельных категорий на 20%. Реальная экономия зависит от ваших решений.",
+                )
+              : t(
+                  "Сравнение с прошлым месяцем, контроль лимитов и цены из ваших чеков работают даже без AI.",
+                )}
           </p>
         </div>
       </div>
@@ -607,11 +625,11 @@ export function Insights() {
                   {
                     (
                       {
-                        budget: "Лимит",
-                        trend: "Изменение",
-                        scenario: "Сценарий",
-                        price: "Ваши цены",
-                        info: "Начало",
+                        budget: t("Лимит"),
+                        trend: t("Изменение"),
+                        scenario: t("Сценарий"),
+                        price: t("Ваши цены"),
+                        info: t("Начало"),
                       } as Record<string, string>
                     )[card.kind]
                   }
@@ -622,7 +640,7 @@ export function Insights() {
               {card.saving_minor > 0 && (
                 <strong className="saving">
                   {amount(card.saving_minor)}
-                  <span>в этом сценарии</span>
+                  <span>{t("в этом сценарии")}</span>
                 </strong>
               )}
               <footer>{card.basis}</footer>
@@ -631,9 +649,9 @@ export function Insights() {
         </div>
       )}
       <div className="notice">
-        Актуальные цены других магазинов сервис не получает автоматически. AI
-        может предложить замену, но её цену и сопоставимость нужно проверить.
-        Советы не меняют ваши записи.
+        {t(
+          "Актуальные цены других магазинов сервис не получает автоматически. AI может предложить замену, но её цену и сопоставимость нужно проверить. Советы не меняют ваши записи.",
+        )}
       </div>
     </>
   );

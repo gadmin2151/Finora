@@ -22,12 +22,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import work.gadmin.finora.FinoraViewModel
 import work.gadmin.finora.data.Receipt
+import work.gadmin.finora.localization.Message
+import work.gadmin.finora.localization.tr
 
 @Composable
 fun ReceiptPhotos(receipt: Receipt, organization: String, vm: FinoraViewModel) {
     var selected by remember(receipt.id, organization) { mutableStateOf<Int?>(null) }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        SectionTitle("Фото чека · ${receipt.files.size}")
+        SectionTitle(tr(Message.RECEIPT_PHOTO_1_S, receipt.files.size))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             items(receipt.files.indices.toList()) { index ->
                 OutlinedCard(
@@ -42,7 +44,7 @@ fun ReceiptPhotos(receipt: Receipt, organization: String, vm: FinoraViewModel) {
                         Modifier.weight(1f).fillMaxWidth(),
                     )
                     Text(
-                        "Часть ${index + 1}",
+                        tr(Message.PART_1_S, index + 1),
                         Modifier.padding(8.dp),
                         style = MaterialTheme.typography.labelSmall,
                     )
@@ -67,7 +69,7 @@ fun ReceiptPhotos(receipt: Receipt, organization: String, vm: FinoraViewModel) {
                         .padding(12.dp)
                         .background(Forest, RoundedCornerShape(50)),
                 ) {
-                    LineIcon(Glyph.CLOSE, "Закрыть фото", tint = Color.White)
+                    LineIcon(Glyph.CLOSE, tr(Message.CLOSE_PHOTO), tint = Color.White)
                 }
             }
         }
@@ -121,12 +123,12 @@ private fun RemotePhoto(
                 else
                     Image(
                         image,
-                        "Часть ${index + 1} чека",
+                        tr(Message.RECEIPT_PART_1_S, index + 1),
                         Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
                     )
             }
-            else -> TextButton({ retry++ }) { Text("Повторить") }
+            else -> TextButton({ retry++ }) { Text(tr(Message.RETRY)) }
         }
     }
 }

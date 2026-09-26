@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import {
   useEffect,
   useId,
@@ -28,7 +29,7 @@ import {
 } from "./navigation";
 
 function roleLabel(organization: Organization) {
-  return organization.role === "admin" ? "Администратор" : "Пользователь";
+  return organization.role === "admin" ? t("Администратор") : t("Пользователь");
 }
 
 function OrganizationSwitcher({
@@ -114,12 +115,17 @@ function OrganizationSwitcher({
       <button
         ref={trigger}
         className={`organization-trigger ${open ? "expanded" : ""}`}
-        aria-label={`Организация: ${organization.name}. Сменить организацию`}
+        aria-label={t(
+          "Организация: {0}. Сменить организацию",
+          organization.name,
+        )}
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls={open ? panelId : undefined}
         disabled={busy}
-        title={busy ? "Дождитесь завершения сохранения" : "Сменить организацию"}
+        title={
+          busy ? t("Дождитесь завершения сохранения") : t("Сменить организацию")
+        }
         onClick={() => {
           setSearch("");
           setOpen(!open);
@@ -129,7 +135,7 @@ function OrganizationSwitcher({
           <Building2 size={19} aria-hidden="true" />
         </span>
         <span className="organization-trigger-text">
-          <small>Организация</small>
+          <small>{t("Организация")}</small>
           <strong title={organization.name}>{organization.name}</strong>
         </span>
         <ChevronsUpDown size={16} aria-hidden="true" />
@@ -137,7 +143,8 @@ function OrganizationSwitcher({
       <div className="organization-context">
         <span className={`role-dot ${organization.role}`} />
         {roleLabel(organization)}
-        <span className="organization-context-divider">·</span>Общий учёт
+        <span className="organization-context-divider">·</span>
+        {t("Общий учёт")}
       </div>
       {open && (
         <div
@@ -148,15 +155,15 @@ function OrganizationSwitcher({
           aria-labelledby={`${panelId}-title`}
         >
           <div className="organization-popover-heading">
-            <strong id={`${panelId}-title`}>Ваши организации</strong>
+            <strong id={`${panelId}-title`}>{t("Ваши организации")}</strong>
             <span>{user.organizations.length}</span>
           </div>
           {user.organizations.length > 5 && (
             <div className="organization-search">
               <Search size={16} aria-hidden="true" />
               <input
-                aria-label="Найти организацию"
-                placeholder="Найти организацию…"
+                aria-label={t("Найти организацию")}
+                placeholder={t("Найти организацию…")}
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
               />
@@ -190,12 +197,16 @@ function OrganizationSwitcher({
             ))}
             {!organizations.length && (
               <p className="organization-search-empty">
-                Организация не найдена
+                {t("Организация не найдена")}
               </p>
             )}
           </div>
           <div className="organization-popover-footer">
-            <p>Чеки, деньги и статистика относятся к выбранной организации.</p>
+            <p>
+              {t(
+                "Чеки, деньги и статистика относятся к выбранной организации.",
+              )}
+            </p>
             <a
               href="#organizations"
               onClick={() => {
@@ -204,7 +215,8 @@ function OrganizationSwitcher({
               }}
             >
               <Building2 size={16} aria-hidden="true" />
-              Организации и участники<span aria-hidden="true">↗</span>
+              {t("Организации и участники")}
+              <span aria-hidden="true">↗</span>
             </a>
           </div>
         </div>
@@ -320,7 +332,7 @@ export default function Sidebar({
       {open && (
         <button
           className="sidebar-overlay"
-          aria-label="Закрыть меню"
+          aria-label={t("Закрыть меню")}
           tabIndex={-1}
           onClick={onClose}
         />
@@ -329,14 +341,14 @@ export default function Sidebar({
         ref={sidebar}
         id="app-navigation"
         className={`sidebar ${open ? "open" : ""}`}
-        aria-label="Навигация Finora"
+        aria-label={t("Навигация Finora")}
         onKeyDown={onKeyDown}
       >
         <div className="sidebar-brand">
           <a
             className="sidebar-home"
             href="#overview"
-            aria-label="Finora — обзор финансов"
+            aria-label={t("Finora — обзор финансов")}
             onClick={onClose}
           >
             {brand}
@@ -344,7 +356,7 @@ export default function Sidebar({
           <button
             ref={closeButton}
             className="icon-button mobile-only sidebar-close"
-            aria-label="Закрыть меню"
+            aria-label={t("Закрыть меню")}
             onClick={onClose}
           >
             <X size={20} />
@@ -357,13 +369,18 @@ export default function Sidebar({
           onSwitch={onSwitch}
           onNavigate={onClose}
         />
-        <nav className="sidebar-navigation" aria-label="Основная навигация">
+        <nav
+          className="sidebar-navigation"
+          aria-label={t("Основная навигация")}
+        >
           <NavigationLink
             item={overviewLink}
             route={route}
             onNavigate={onClose}
           />
-          <div className="navigation-section-label">Рабочее пространство</div>
+          <div className="navigation-section-label">
+            {t("Рабочее пространство")}
+          </div>
           {navigationGroups.map((group) => {
             const items = group.items.filter((item) =>
               canAccessRoute(item.id, isAdmin, user.is_server_admin),
@@ -429,7 +446,7 @@ export default function Sidebar({
         </nav>
         <div className="sidebar-bottom">
           <div className="sidebar-profile">
-            <a href="#settings" aria-label="Мой профиль" onClick={onClose}>
+            <a href="#settings" aria-label={t("Мой профиль")} onClick={onClose}>
               <Avatar user={user} />
             </a>
             <span className="sidebar-user-info">
@@ -438,8 +455,8 @@ export default function Sidebar({
             </span>
             <button
               className="icon-button"
-              aria-label="Выйти из аккаунта"
-              title="Выйти из аккаунта"
+              aria-label={t("Выйти из аккаунта")}
+              title={t("Выйти из аккаунта")}
               disabled={logoutPending}
               onClick={onLogout}
             >
@@ -448,7 +465,7 @@ export default function Sidebar({
           </div>
           <div className="sidebar-server">
             <ShieldCheck size={12} aria-hidden="true" />
-            <span>Данные на вашем сервере</span>
+            <span>{t("Данные на вашем сервере")}</span>
             <i />
           </div>
         </div>

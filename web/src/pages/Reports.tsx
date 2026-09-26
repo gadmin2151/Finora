@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Download, SlidersHorizontal } from "lucide-react";
@@ -7,16 +8,15 @@ import { ReportCard } from "../ReportCard";
 import type { AnalyticsReport, ReportKind } from "../types";
 import { ErrorBox, Field, Loading, PageHeading, today } from "../ui";
 
-const kinds: [ReportKind, string][] = [
-  ["summary", "Сводка"],
-  ["categories", "Категории"],
-  ["merchants", "Магазины"],
-  ["trend", "По месяцам"],
-  ["purchases", "Товары"],
-  ["prices", "Сравнение цен"],
-];
-
 export default function Reports() {
+  const kinds: [ReportKind, string][] = [
+    ["summary", t("Сводка")],
+    ["categories", t("Категории")],
+    ["merchants", t("Магазины")],
+    ["trend", t("По месяцам")],
+    ["purchases", t("Товары")],
+    ["prices", t("Сравнение цен")],
+  ];
   const { month, categories } = useApp();
   const [year, number] = month.split("-").map(Number);
   const [filters, setFilters] = useState({
@@ -65,9 +65,11 @@ export default function Reports() {
   return (
     <>
       <PageHeading
-        eyebrow="ВАШИ ДАННЫЕ · ВАШИ ВЫВОДЫ"
-        title="Финансы в деталях"
-        text="Любой период, категории, магазины и товары. Суммы из учёта, понятные основания."
+        eyebrow={t("ВАШИ ДАННЫЕ · ВАШИ ВЫВОДЫ")}
+        title={t("Финансы в деталях")}
+        text={t(
+          "Любой период, категории, магазины и товары. Суммы из учёта, понятные основания.",
+        )}
         actions={
           <button
             className="button secondary"
@@ -75,7 +77,7 @@ export default function Reports() {
             onClick={download}
           >
             <Download size={18} />
-            Сохранить отчёт
+            {t("Сохранить отчёт")}
           </button>
         }
       />
@@ -86,7 +88,7 @@ export default function Reports() {
           setApplied({ ...filters, search: products ? filters.search : "" });
         }}
       >
-        <div className="report-tabs" role="group" aria-label="Вид отчёта">
+        <div className="report-tabs" role="group" aria-label={t("Вид отчёта")}>
           {kinds.map(([kind, label]) => (
             <button
               type="button"
@@ -110,7 +112,7 @@ export default function Reports() {
           ))}
         </div>
         <div className="report-filter-grid">
-          <Field label="С даты">
+          <Field label={t("С даты")}>
             <input
               required
               type="date"
@@ -122,7 +124,7 @@ export default function Reports() {
               }
             />
           </Field>
-          <Field label="По дату">
+          <Field label={t("По дату")}>
             <input
               required
               type="date"
@@ -134,15 +136,15 @@ export default function Reports() {
               }
             />
           </Field>
-          <Field label="Категория">
+          <Field label={t("Категория")}>
             <select
               value={filters.category_id}
               onChange={(e) =>
                 setFilters({ ...filters, category_id: e.target.value })
               }
             >
-              <option value="">Все категории</option>
-              <option value="uncategorized">Без категории</option>
+              <option value="">{t("Все категории")}</option>
+              <option value="uncategorized">{t("Без категории")}</option>
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -150,34 +152,34 @@ export default function Reports() {
               ))}
             </select>
           </Field>
-          <Field label="Магазин">
+          <Field label={t("Магазин")}>
             <input
               maxLength={100}
-              placeholder="Любой магазин"
+              placeholder={t("Любой магазин")}
               value={filters.merchant}
               onChange={(e) =>
                 setFilters({ ...filters, merchant: e.target.value })
               }
             />
           </Field>
-          <Field label="Валюта операций">
+          <Field label={t("Валюта операций")}>
             <select
               value={filters.currency}
               onChange={(e) =>
                 setFilters({ ...filters, currency: e.target.value })
               }
             >
-              <option value="">Все валюты</option>
+              <option value="">{t("Все валюты")}</option>
               {["MDL", "EUR", "USD", "RON"].map((c) => (
                 <option key={c}>{c}</option>
               ))}
             </select>
           </Field>
           {products && (
-            <Field label="Название в чеке">
+            <Field label={t("Название в чеке")}>
               <input
                 maxLength={100}
-                placeholder="Например, LAPTE"
+                placeholder={t("Например, LAPTE")}
                 value={filters.search}
                 onChange={(e) =>
                   setFilters({ ...filters, search: e.target.value })
@@ -187,7 +189,7 @@ export default function Reports() {
           )}
           <button className="button primary" disabled={query.isFetching}>
             <SlidersHorizontal size={17} />
-            {query.isFetching ? "Считаем…" : "Применить"}
+            {query.isFetching ? t("Считаем…") : t("Применить")}
           </button>
         </div>
       </form>

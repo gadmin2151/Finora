@@ -1,3 +1,5 @@
+import { defaultReceiptUnit, unitLabel, canonicalUnit } from "./units";
+import { t, getLocale } from "./i18n";
 import { ReceiptOriginals } from "./ReceiptOriginals";
 import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -56,7 +58,7 @@ export function UploadReceipt({ onClose }: { onClose: () => void }) {
         duplicate.current = result.duplicate;
         return result;
       }
-      if (!files.length) throw new Error("Выберите фотографию чека");
+      if (!files.length) throw new Error(t("Выберите фотографию чека"));
       const body = new FormData();
       files.forEach((f) => body.append("files", f));
       body.append("account_id", account);
@@ -71,8 +73,8 @@ export function UploadReceipt({ onClose }: { onClose: () => void }) {
     () => {
       toast(
         duplicate.current
-          ? "Этот чек уже загружен. Повторного расхода не будет"
-          : "Чек отправлен. Результат появится в чате",
+          ? t("Этот чек уже загружен. Повторного расхода не будет")
+          : t("Чек отправлен. Результат появится в чате"),
       );
       navigate(duplicate.current || !isAdmin ? "receipts" : "assistant");
       onClose();
@@ -83,7 +85,7 @@ export function UploadReceipt({ onClose }: { onClose: () => void }) {
       selected.length > 4 ||
       selected.some((f) => f.size > 15 * 1024 * 1024)
     ) {
-      setFileError("До 4 фотографий одного чека, не более 15 МБ каждая");
+      setFileError(t("До 4 фотографий одного чека, не более 15 МБ каждая"));
       return;
     }
     setFiles(selected);
@@ -91,15 +93,20 @@ export function UploadReceipt({ onClose }: { onClose: () => void }) {
   }
   return (
     <Modal
-      title="Добавить чек"
-      description="Фото или QR молдавского чека. Товары и категории — в одном месте."
+      title={t("Добавить чек")}
+      description={t(
+        "Фото или QR молдавского чека. Товары и категории — в одном месте.",
+      )}
       onClose={onClose}
     >
       <div className="notice">
-        <strong>Организация: {organization.name}</strong>
+        <strong>
+          {t("Организация:")} {organization.name}
+        </strong>
         <p>
-          Чек будет доступен её участникам. Для другой организации закройте окно
-          и используйте переключатель в меню.
+          {t(
+            "Чек будет доступен её участникам. Для другой организации закройте окно и используйте переключатель в меню.",
+          )}
         </p>
       </div>
       <Form onSubmit={() => action.mutate(undefined)}>
@@ -110,7 +117,7 @@ export function UploadReceipt({ onClose }: { onClose: () => void }) {
             onClick={() => setMode("photo")}
           >
             <Camera size={17} />
-            Фото чека
+            {t("Фото чека")}
           </button>
           <button
             type="button"
@@ -118,7 +125,7 @@ export function UploadReceipt({ onClose }: { onClose: () => void }) {
             onClick={() => setMode("link")}
           >
             <Link2 size={17} />
-            Ссылка из QR-кода
+            {t("Ссылка из QR-кода")}
           </button>
         </div>
         {mode === "photo" ? (
@@ -126,7 +133,7 @@ export function UploadReceipt({ onClose }: { onClose: () => void }) {
             <div
               role="button"
               tabIndex={0}
-              aria-label="Выбрать фотографии чека"
+              aria-label={t("Выбрать фотографии чека")}
               className={`dropzone ${drag ? "dragging" : ""}`}
               onClick={() => input.current?.click()}
               onKeyDown={(e) => {
@@ -149,12 +156,12 @@ export function UploadReceipt({ onClose }: { onClose: () => void }) {
               <UploadCloud size={34} />
               <strong>
                 {files.length
-                  ? `Выбрано фото: ${files.length}`
-                  : "Перетащите чек сюда"}
+                  ? t("Выбрано фото: {0}", files.length)
+                  : t("Перетащите чек сюда")}
               </strong>
-              <span>или нажмите, чтобы выбрать фотографии</span>
+              <span>{t("или нажмите, чтобы выбрать фотографии")}</span>
               <small>
-                JPEG, PNG, WebP, HEIC · до 15 МБ · до 4 фото одного чека
+                {t("JPEG, PNG, WebP, HEIC · до 15 МБ · до 4 фото одного чека")}
               </small>
             </div>
             <input
@@ -179,7 +186,7 @@ export function UploadReceipt({ onClose }: { onClose: () => void }) {
               onClick={() => camera.current?.click()}
             >
               <Camera size={18} />
-              Снять чек или его QR камерой
+              {t("Снять чек или его QR камерой")}
             </button>
             {files.map((f, i) => (
               <div className="file-chip" key={i}>
@@ -188,7 +195,7 @@ export function UploadReceipt({ onClose }: { onClose: () => void }) {
                 <button
                   type="button"
                   className="icon-button"
-                  aria-label={`Убрать ${f.name}`}
+                  aria-label={t("Убрать {0}", f.name)}
                   onClick={() => setFiles(files.filter((_, n) => n !== i))}
                 >
                   <Trash2 size={16} />
@@ -198,21 +205,21 @@ export function UploadReceipt({ onClose }: { onClose: () => void }) {
           </>
         ) : (
           <Field
-            label="Ссылка из QR-кода"
-            hint="HTTPS-ссылка на электронный чек любого магазина"
+            label={t("Ссылка из QR-кода")}
+            hint={t("HTTPS-ссылка на электронный чек любого магазина")}
           >
             <input
               type="url"
               required
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="Вставьте ссылку из QR-кода"
+              placeholder={t("Вставьте ссылку из QR-кода")}
               maxLength={1000}
             />
           </Field>
         )}
         <div className="form-grid">
-          <Field label="Оплачено со счёта">
+          <Field label={t("Оплачено со счёта")}>
             <AccountSelect
               accounts={accounts}
               value={account}
@@ -221,7 +228,7 @@ export function UploadReceipt({ onClose }: { onClose: () => void }) {
             />
           </Field>
           {currency !== "MDL" && (
-            <Field label={`Курс 1 ${currency} в MDL`}>
+            <Field label={t("Курс 1 {0} в MDL", currency)}>
               <input
                 type="number"
                 required
@@ -235,26 +242,33 @@ export function UploadReceipt({ onClose }: { onClose: () => void }) {
         </div>
         <div className="notice">
           {prefs?.auto_post
-            ? "Проверенный чек запишется автоматически на выбранный счёт. Спорные суммы и возможные дубликаты останутся на проверке."
-            : "Распознанный чек останется черновиком до вашего подтверждения."}
+            ? t(
+                "Проверенный чек запишется автоматически на выбранный счёт. Спорные суммы и возможные дубликаты останутся на проверке.",
+              )
+            : t(
+                "Распознанный чек останется черновиком до вашего подтверждения.",
+              )}
           {prefs?.provider === "disabled" && (
             <p>
-              Доступны MEV и локальный OCR. Для сложных фотографий подключите
-              модель с поддержкой изображений в настройках.
+              {t(
+                "Доступны MEV и локальный OCR. Для сложных фотографий подключите модель с поддержкой изображений в настройках.",
+              )}
             </p>
           )}
           {prefs?.provider === "openai" && (
             <p>
-              Если локальный OCR не справится, фото будет отправлено в OpenAI.
+              {t(
+                "Если локальный OCR не справится, фото будет отправлено в OpenAI.",
+              )}
             </p>
           )}
         </div>
         <ErrorBox error={fileError || action.error} />
         <footer className="modal-footer">
           <button type="button" className="button secondary" onClick={onClose}>
-            Отмена
+            {t("Отмена")}
           </button>
-          <Submit pending={action.isPending}>Распознать чек</Submit>
+          <Submit pending={action.isPending}>{t("Распознать чек")}</Submit>
         </footer>
       </Form>
     </Modal>
@@ -308,25 +322,25 @@ function ReceiptModeration({
       if (!item) onClose();
     },
     () => {
-      toast("Учёт и статистика обновлены");
+      toast(t("Учёт и статистика обновлены"));
       setRemoving(null);
     },
   );
   return (
     <section className="receipt-moderation">
       <div className="between">
-        <h3>Управление чеком</h3>
+        <h3>{t("Управление чеком")}</h3>
         <button
           className="text-button negative"
-          onClick={() => setRemoving({ id: "", name: "весь чек" })}
+          onClick={() => setRemoving({ id: "", name: t("весь чек") })}
         >
           <Trash2 size={16} />
-          Удалить чек
+          {t("Удалить чек")}
         </button>
       </div>
       {receipt.status === "posted" && (
         <details>
-          <summary>Удалить отдельный товар</summary>
+          <summary>{t("Удалить отдельный товар")}</summary>
           <div className="bill-list">
             {receipt.items.map((item) => (
               <div className="bill-row" key={item.id}>
@@ -334,7 +348,7 @@ function ReceiptModeration({
                 <span>{amount(item.total_minor, receipt.currency)}</span>
                 <button
                   className="icon-button danger-hover"
-                  aria-label={`Удалить из учёта: ${item.name}`}
+                  aria-label={t("Удалить из учёта: {0}", item.name)}
                   onClick={() => setRemoving({ id: item.id, name: item.name })}
                 >
                   <Trash2 size={16} />
@@ -346,12 +360,16 @@ function ReceiptModeration({
       )}
       {removing && (
         <div className="notice warning" role="alert">
-          <strong>Удалить {removing.name}?</strong>
+          <strong>
+            {t("Удалить")} {removing.name}?
+          </strong>
           <p>
             {removing.id
-              ? "Сумма чека, расход и остаток на счёте будут пересчитаны."
-              : "Чек исчезнет из списка, связанный расход будет отменён."}{" "}
-            Оригинал и запись об удалении сохранятся в истории сервера.
+              ? t("Сумма чека, расход и остаток на счёте будут пересчитаны.")
+              : t(
+                  "Чек исчезнет из списка, связанный расход будет отменён.",
+                )}{" "}
+            {t("Оригинал и запись об удалении сохранятся в истории сервера.")}
           </p>
           <div className="button-row">
             <button
@@ -359,14 +377,14 @@ function ReceiptModeration({
               disabled={remove.isPending}
               onClick={() => setRemoving(null)}
             >
-              Отмена
+              {t("Отмена")}
             </button>
             <button
               className="button danger"
               disabled={remove.isPending}
               onClick={() => remove.mutate(undefined)}
             >
-              Подтвердить удаление
+              {t("Подтвердить удаление")}
             </button>
           </div>
         </div>
@@ -395,18 +413,20 @@ function ReceiptComments({ receiptId }: { receiptId: string }) {
   );
   return (
     <section className="receipt-comments">
-      <h3>Комментарии к чеку</h3>
+      <h3>{t("Комментарии к чеку")}</h3>
       <Form onSubmit={() => action.mutate(undefined)}>
-        <Field label="Ваш комментарий">
+        <Field label={t("Ваш комментарий")}>
           <textarea
             required
             maxLength={3000}
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Например, покупка для офиса или пояснение к товару"
+            placeholder={t(
+              "Например, покупка для офиса или пояснение к товару",
+            )}
           />
         </Field>
-        <Submit pending={action.isPending}>Добавить комментарий</Submit>
+        <Submit pending={action.isPending}>{t("Добавить комментарий")}</Submit>
       </Form>
       <ErrorBox error={query.error ?? action.error} />
       <div className="comment-list">
@@ -414,7 +434,7 @@ function ReceiptComments({ receiptId }: { receiptId: string }) {
           <article key={comment.id}>
             <strong>{comment.author}</strong>
             <small>
-              {new Date(comment.created_at).toLocaleString("ru-RU")}
+              {new Date(comment.created_at).toLocaleString(getLocale())}
             </small>
             <p>{comment.text}</p>
           </article>
@@ -426,13 +446,13 @@ function ReceiptComments({ receiptId }: { receiptId: string }) {
             disabled={!offset}
             onClick={() => setOffset(Math.max(0, offset - 50))}
           >
-            Новые
+            {t("Новые")}
           </button>
           <button
             disabled={query.data?.length !== 50}
             onClick={() => setOffset(offset + 50)}
           >
-            Ранее
+            {t("Ранее")}
           </button>
         </div>
       )}
@@ -461,7 +481,7 @@ function ReceiptForm({
   const blank = () => ({
     name: "",
     quantity: "1",
-    unit: "шт",
+    unit: defaultReceiptUnit,
     unit_price: "",
     total: "",
     category_id: "",
@@ -503,14 +523,14 @@ function ReceiptForm({
         transaction_id: transaction || null,
       }),
     () => {
-      toast("Чек и товары сохранены в учёте");
+      toast(t("Чек и товары сохранены в учёте"));
       onClose();
     },
   );
   const retry = useAction(
     () => send(`/receipts/${receipt.id}/retry`),
     () => {
-      toast("Повторное распознавание запущено");
+      toast(t("Повторное распознавание запущено"));
       onClose();
     },
   );
@@ -530,16 +550,20 @@ function ReceiptForm({
     <Modal
       wide
       title={
-        receipt.status === "posted" ? "Чек в вашем учёте" : "Проверить чек"
+        receipt.status === "posted"
+          ? t("Чек в вашем учёте")
+          : t("Проверить чек")
       }
-      description="Проверьте магазин, дату и итог каждой строки. Скидки должны входить в суммы товаров."
+      description={t(
+        "Проверьте магазин, дату и итог каждой строки. Скидки должны входить в суммы товаров.",
+      )}
       onClose={onClose}
     >
       <div className="receipt-status">
         <Badge status={receipt.status} />
         {receipt.source_url && (
           <a href={receipt.source_url} target="_blank" rel="noreferrer">
-            Открыть сайт чека ↗
+            {t("Открыть сайт чека ↗")}
           </a>
         )}
       </div>
@@ -555,7 +579,7 @@ function ReceiptForm({
           <div>
             <fieldset disabled={readonly}>
               <div className="form-grid">
-                <Field label="Магазин">
+                <Field label={t("Магазин")}>
                   <input
                     required
                     maxLength={200}
@@ -563,15 +587,15 @@ function ReceiptForm({
                     onChange={(e) => setMerchant(e.target.value)}
                   />
                 </Field>
-                <Field label="Адрес магазина" wide>
+                <Field label={t("Адрес магазина")} wide>
                   <input
                     maxLength={500}
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
-                    placeholder="Адрес, напечатанный на чеке"
+                    placeholder={t("Адрес, напечатанный на чеке")}
                   />
                 </Field>
-                <Field label="Дата покупки">
+                <Field label={t("Дата покупки")}>
                   <input
                     type="date"
                     required
@@ -581,10 +605,10 @@ function ReceiptForm({
                     onChange={(e) => setDate(e.target.value)}
                   />
                 </Field>
-                <Field label="Валюта">
+                <Field label={t("Валюта")}>
                   <CurrencySelect value={currency} onChange={setCurrency} />
                 </Field>
-                <Field label="Счёт оплаты">
+                <Field label={t("Счёт оплаты")}>
                   <AccountSelect
                     accounts={accounts}
                     value={account}
@@ -593,7 +617,7 @@ function ReceiptForm({
                   />
                 </Field>
                 {currency !== "MDL" && (
-                  <Field label="Курс к MDL">
+                  <Field label={t("Курс к MDL")}>
                     <input
                       type="number"
                       min="0.00000001"
@@ -612,16 +636,16 @@ function ReceiptForm({
                       {String(n + 1).padStart(2, "0")}
                     </div>
                     <div className="item-fields">
-                      <Field label="Товар">
+                      <Field label={t("Товар")}>
                         <input
                           required
                           value={i.name}
                           maxLength={300}
                           onChange={(e) => change(n, "name", e.target.value)}
-                          placeholder="Название товара"
+                          placeholder={t("Название товара")}
                         />
                       </Field>
-                      <Field label="Категория">
+                      <Field label={t("Категория")}>
                         <CategorySelect
                           categories={categories}
                           value={i.category_id}
@@ -629,7 +653,7 @@ function ReceiptForm({
                         />
                       </Field>
                       <div className="item-numbers">
-                        <Field label="Кол-во">
+                        <Field label={t("Кол-во")}>
                           <input
                             type="number"
                             min="0.000001"
@@ -641,22 +665,24 @@ function ReceiptForm({
                             }
                           />
                         </Field>
-                        <Field label="Ед.">
+                        <Field label={t("Ед.")}>
                           <input
                             required
                             maxLength={12}
-                            value={i.unit}
-                            onChange={(e) => change(n, "unit", e.target.value)}
+                            value={unitLabel(i.unit)}
+                            onChange={(e) =>
+                              change(n, "unit", canonicalUnit(e.target.value))
+                            }
                           />
                         </Field>
-                        <Field label="Цена">
+                        <Field label={t("Цена")}>
                           <MoneyInput
                             value={i.unit_price}
                             min="0"
                             onChange={(v) => change(n, "unit_price", v)}
                           />
                         </Field>
-                        <Field label="Итог строки">
+                        <Field label={t("Итог строки")}>
                           <MoneyInput
                             value={i.total}
                             min="0"
@@ -669,7 +695,7 @@ function ReceiptForm({
                       <button
                         className="icon-button danger-hover"
                         type="button"
-                        aria-label={`Удалить товар ${n + 1}`}
+                        aria-label={t("Удалить товар {0}", n + 1)}
                         onClick={() =>
                           setItems(items.filter((_, index) => index !== n))
                         }
@@ -687,34 +713,36 @@ function ReceiptForm({
                   onClick={() => setItems([...items, blank()])}
                 >
                   <Plus size={17} />
-                  Добавить товар
+                  {t("Добавить товар")}
                 </button>
               )}
               <div className="receipt-total">
-                <Field label={`Итого по чеку · ${currency}`}>
+                <Field label={t("Итого по чеку · {0}", currency)}>
                   <MoneyInput value={total} onChange={setTotal} />
                 </Field>
                 <div className={difference ? "negative" : "positive"}>
                   {difference ? (
-                    `Разница со строками: ${amount(difference, currency)}`
+                    t("Разница со строками: {0}", amount(difference, currency))
                   ) : (
                     <>
                       <Check size={17} />
-                      Сумма товаров совпадает
+                      {t("Сумма товаров совпадает")}
                     </>
                   )}
                 </div>
               </div>
               {!readonly && (
                 <Field
-                  label="Привязать к существующему расходу (необязательно)"
-                  hint="Показаны покупки с той же датой, суммой и счётом. Привязка не списывает деньги повторно."
+                  label={t("Привязать к существующему расходу (необязательно)")}
+                  hint={t(
+                    "Показаны покупки с той же датой, суммой и счётом. Привязка не списывает деньги повторно.",
+                  )}
                 >
                   <select
                     value={transaction}
                     onChange={(e) => setTransaction(e.target.value)}
                   >
-                    <option value="">Создать новый расход</option>
+                    <option value="">{t("Создать новый расход")}</option>
                     {matches.data?.items
                       .filter(
                         (tx) =>
@@ -725,7 +753,7 @@ function ReceiptForm({
                       )
                       .map((tx) => (
                         <option key={tx.id} value={tx.id}>
-                          {tx.merchant || "Покупка"} ·{" "}
+                          {tx.merchant || t("Покупка")} ·{" "}
                           {amount(tx.amount_minor, tx.currency)} ·{" "}
                           {tx.occurred_on}
                         </option>
@@ -746,14 +774,14 @@ function ReceiptForm({
               onClick={() => retry.mutate(undefined)}
             >
               <RefreshCw size={16} />
-              Распознать снова
+              {t("Распознать снова")}
             </button>
           )}
           <button type="button" className="button secondary" onClick={onClose}>
-            Закрыть
+            {t("Закрыть")}
           </button>
           {!readonly && (
-            <Submit pending={action.isPending}>Сохранить расход</Submit>
+            <Submit pending={action.isPending}>{t("Сохранить расход")}</Submit>
           )}
         </footer>
       </Form>

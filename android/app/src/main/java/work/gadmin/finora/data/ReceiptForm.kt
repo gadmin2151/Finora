@@ -5,17 +5,19 @@ import java.time.LocalDate
 import java.util.UUID
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.*
+import work.gadmin.finora.localization.Message
+import work.gadmin.finora.localization.tr
 
 private val decimal = Regex("^[0-9]{1,10}(?:[.,][0-9]{1,6})?$")
 
 fun receiptNumber(value: String, money: Boolean = false): BigDecimal {
     val text = value.trim()
-    require(decimal.matches(text)) { "Введите число без пробелов, например 12,50" }
+    require(decimal.matches(text)) { tr(Message.ENTER_A_NUMBER_WITHOUT_SPACES_FOR_EXAMPLE_12_50) }
     val number = text.replace(',', '.').toBigDecimal()
-    require(number <= BigDecimal("1000000000")) { "Слишком большая сумма" }
+    require(number <= BigDecimal("1000000000")) { tr(Message.THE_AMOUNT_IS_TOO_LARGE) }
     if (money)
         require(number.stripTrailingZeros().scale() <= 2) {
-            "У суммы может быть не больше двух знаков после запятой"
+            tr(Message.AN_AMOUNT_CAN_HAVE_NO_MORE_THAN_TWO_DECIMAL_PLACES)
         }
     return number
 }
@@ -51,23 +53,23 @@ data class ReceiptForm(
         .getOrNull()
 
     fun payload(): JsonObject {
-        require(merchant.trim().length in 1..200) { "Укажите магазин" }
-        require(merchantAddress.length <= 500) { "Адрес слишком длинный" }
+        require(merchant.trim().length in 1..200) { tr(Message.ENTER_A_STORE) }
+        require(merchantAddress.length <= 500) { tr(Message.THE_ADDRESS_IS_TOO_LONG) }
         val purchased = runCatching { LocalDate.parse(date.trim()) }.getOrNull()
         require(purchased != null && purchased.year >= 1990 && purchased <= LocalDate.now()) {
-            "Проверьте дату: ГГГГ-ММ-ДД, не позднее сегодняшнего дня"
+            tr(Message.CHECK_THE_DATE_YYYY_MM_DD_NO_LATER_THAN_TODAY)
         }
-        require(currency in setOf("MDL", "EUR", "USD", "RON")) { "Выберите валюту" }
-        require(!accountId.isNullOrBlank()) { "Выберите счёт" }
-        require(items.size in 1..200) { "В чеке должно быть от 1 до 200 позиций" }
+        require(currency in setOf("MDL", "EUR", "USD", "RON")) { tr(Message.CHOOSE_A_CURRENCY) }
+        require(!accountId.isNullOrBlank()) { tr(Message.CHOOSE_AN_ACCOUNT) }
+        require(items.size in 1..200) { tr(Message.A_RECEIPT_MUST_HAVE_1_200_ITEMS) }
         val amount = receiptNumber(total, true)
-        require(amount > BigDecimal.ZERO) { "Итог должен быть больше нуля" }
+        require(amount > BigDecimal.ZERO) { tr(Message.THE_TOTAL_MUST_BE_GREATER_THAN_ZERO) }
         require(lineSum()?.compareTo(amount) == 0) {
-            "Сумма позиций не совпадает с итогом. Проверьте строки и скидки."
+            tr(Message.THE_ITEM_SUM_DOES_NOT_MATCH_THE_TOTAL_CHECK_THE_ITEMS_AND)
         }
         val rate = if (currency == "MDL") BigDecimal.ONE else receiptNumber(fxRate)
         require(rate > BigDecimal.ZERO && rate <= BigDecimal("100000")) {
-            "Укажите курс: сколько MDL за единицу валюты"
+            tr(Message.ENTER_THE_RATE_MDL_PER_CURRENCY_UNIT)
         }
         return buildJsonObject {
             put("merchant", merchant.trim())
@@ -81,11 +83,11 @@ data class ReceiptForm(
             putJsonArray("items") {
                 items.forEachIndexed { index, item ->
                     require(item.name.trim().length in 1..300) {
-                        "Укажите название позиции ${index + 1}"
+                        tr(Message.ENTER_A_NAME_FOR_ITEM_1_S, index + 1)
                     }
                     val quantity = receiptNumber(item.quantity)
                     require(quantity > BigDecimal.ZERO && quantity <= BigDecimal("100000")) {
-                        "Проверьте количество в позиции ${index + 1}"
+                        tr(Message.CHECK_THE_QUANTITY_FOR_ITEM_1_S, index + 1)
                     }
                     require(item.unit.length <= 12)
                     add(

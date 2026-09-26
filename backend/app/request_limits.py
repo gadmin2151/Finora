@@ -4,6 +4,8 @@ from starlette.exceptions import HTTPException
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from .i18n import t
+
 MAX_REQUEST_BYTES = 62 * 1024 * 1024
 MAX_AVATAR_REQUEST_BYTES = 5 * 1024 * 1024 + 65536
 UPLOAD_PATHS = {"/api/receipts/upload", "/api/auth/avatar"}
@@ -25,11 +27,13 @@ class RequestBodyLimit:
         lengths = [value for name, value in scope["headers"] if name.lower() == b"content-length"]
         error = None
         if len(lengths) > 1 or (lengths and (not lengths[0].isdigit() or len(lengths[0]) > 20)):
-            error = JSONResponse({"detail": "Некорректный размер запроса"}, status_code=400)
+            error = JSONResponse({"detail": t("Некорректный размер запроса")}, status_code=400)
         elif lengths and int(lengths[0]) > limit:
-            error = JSONResponse({"detail": detail}, status_code=413)
+            error = JSONResponse({"detail": t(detail)}, status_code=413)
         elif not lengths and scope["method"] == "POST" and (path in UPLOAD_PATHS or originals):
-            error = JSONResponse({"detail": "Для загрузки требуется размер файла"}, status_code=411)
+            error = JSONResponse(
+                {"detail": t("Для загрузки требуется размер файла")}, status_code=411
+            )
         if error is not None:
             await error(scope, receive, send)
             return

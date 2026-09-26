@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/showcase/cover.jpg" alt="Finora Personal Finance — Your money. A clearer picture. Self-hosted web and native Android apps." width="100%" />
+  <img src="docs/assets/showcase/en/web-light.jpg" alt="Finora Personal Finance — English web overview with fictional demonstration data" width="100%" />
 </p>
 
 <h1 align="center">Finora · Personal Finance</h1>
@@ -17,7 +17,7 @@
 <p align="center">
   <a href="#get-started"><strong>Get started</strong></a> &nbsp;·&nbsp;
   <a href="android/README.md"><strong>Download Android</strong></a> &nbsp;·&nbsp;
-  <a href="docs/SHOWCASE.md">Screenshot gallery</a> &nbsp;·&nbsp;
+  <a href="docs/SHOWCASE.md#en">Screenshot gallery</a> &nbsp;·&nbsp;
   <a href="README.ru.md">Русский</a>
 </p>
 
@@ -45,9 +45,9 @@ A bank balance tells you how much is left. Finora helps you understand **what yo
     <td align="center" width="33%"><strong>3. Understand</strong><br /><sub>See the month in one place</sub></td>
   </tr>
   <tr>
-    <td><a href="docs/assets/showcase/android-capture.png"><img src="docs/assets/showcase/android-capture.png" alt="Native Android receipt capture with QR, camera and gallery options, dark theme" width="100%" /></a></td>
-    <td><a href="docs/assets/showcase/android-receipt.png"><img src="docs/assets/showcase/android-receipt.png" alt="Native Android review of a fictional receipt with merchant, total and product categories" width="100%" /></a></td>
-    <td><a href="docs/assets/showcase/android-overview.png"><img src="docs/assets/showcase/android-overview.png" alt="Native Android monthly overview with fictional income, expenses and categories, light theme" width="100%" /></a></td>
+    <td><a href="docs/assets/showcase/en/android-capture.png"><img src="docs/assets/showcase/en/android-capture.png" alt="Native Android receipt capture with QR, camera and gallery options, dark theme" width="100%" /></a></td>
+    <td><a href="docs/assets/showcase/en/android-receipt.png"><img src="docs/assets/showcase/en/android-receipt.png" alt="Native Android review of a fictional receipt with merchant, total and product categories" width="100%" /></a></td>
+    <td><a href="docs/assets/showcase/en/android-overview.png"><img src="docs/assets/showcase/en/android-overview.png" alt="Native Android monthly overview with fictional income, expenses and categories, light theme" width="100%" /></a></td>
   </tr>
 </table>
 
@@ -65,12 +65,28 @@ Mint, warm gold and a little more breathing room. Follow your system theme or ch
     <td align="center" width="50%"><strong>Dark, focused and comfortable</strong></td>
   </tr>
   <tr>
-    <td><a href="docs/assets/showcase/web-light.jpg"><img src="docs/assets/showcase/web-light.jpg" alt="Finora web dashboard in light theme with fictional demonstration data" width="100%" /></a></td>
-    <td><a href="docs/assets/showcase/web-dark.jpg"><img src="docs/assets/showcase/web-dark.jpg" alt="The same Finora web dashboard in dark theme with fictional demonstration data" width="100%" /></a></td>
+    <td><a href="docs/assets/showcase/en/web-light.jpg"><img src="docs/assets/showcase/en/web-light.jpg" alt="Finora web dashboard in light theme with fictional demonstration data" width="100%" /></a></td>
+    <td><a href="docs/assets/showcase/en/web-dark.jpg"><img src="docs/assets/showcase/en/web-dark.jpg" alt="The same Finora web dashboard in dark theme with fictional demonstration data" width="100%" /></a></td>
   </tr>
 </table>
 
-<p align="center"><a href="docs/SHOWCASE.md"><strong>Explore purchases, reports, the assistant and mobile finances →</strong></a><br /><sub>Actual application screens. All people, organizations and financial records shown are fictional.</sub></p>
+<p align="center"><a href="docs/SHOWCASE.md#en"><strong>Explore purchases, reports, the assistant and mobile finances →</strong></a><br /><sub>Actual application screens. All people, organizations and financial records shown are fictional.</sub></p>
+
+## Your language, from the first sign-in
+
+**English and Russian are available in both the web and native Android apps.** Choose a language on the sign-in screen, or change it later under **My profile → Interface language** on the web and **avatar → Language** on Android.
+
+The default **Device language** option uses Russian when the device's primary language is Russian, and English otherwise. An explicit choice is remembered on that browser or phone, including after signing out. Names, receipt contents and other information you enter stay exactly as you entered them.
+
+<table>
+<tr><th width="50%">Choose before signing in</th><th width="50%">Change it in your profile</th></tr>
+<tr>
+<td><a href="docs/assets/showcase/en/web-login.jpg"><img src="docs/assets/showcase/en/web-login.jpg" alt="Finora English sign-in screen with the language selector" width="100%" /></a></td>
+<td><a href="docs/assets/showcase/en/web-settings.jpg"><img src="docs/assets/showcase/en/web-settings.jpg" alt="Finora English profile settings with language and appearance choices" width="100%" /></a></td>
+</tr>
+</table>
+
+[English screen gallery](docs/SHOWCASE.md#en) · [Русские экраны](docs/SHOWCASE.md#ru) · [Language guide](docs/LANGUAGES.md#en)
 
 ## Ask your records, get the numbers
 
@@ -100,7 +116,7 @@ python3 scripts/init.py
 python3 scripts/deploy.py
 ```
 
-Open **[localhost:8088](http://localhost:8088)**. Sign in as `admin` using the random initial password in `.secrets/admin_password`, then change it in **Настройки → Безопасность**. There is no shared default password or public registration.
+Open **[localhost:8088](http://localhost:8088)**. Sign in as `admin` using the random initial password in `.secrets/admin_password`, then change it in **Settings → Security**. There is no shared default password or public registration.
 
 ### Put it on your server
 
@@ -129,7 +145,7 @@ Enter your server's **HTTPS URL**, username and password, then choose an organiz
 | Area           | Current support                                                                                                                                                           |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Clients**    | Responsive web interface and native Android 8+. No native iOS app yet.                                                                                                    |
-| **Language**   | Russian interface; Romanian and Russian receipt recognition.                                                                                                              |
+| **Language**   | English and Russian web/Android interfaces; device-language default and a saved manual choice. Receipt recognition is independent of the interface language.                                                                                                              |
 | **Money**      | MDL reports; MDL, EUR, USD and RON accounts, with the exchange rate saved on each transaction.                                                                            |
 | **Receipts**   | Photos, electronic receipt pages including Moldova's MEV/SFS, multiple photos and bank payment confirmations. Provider availability and image quality affect recognition. |
 | **Categories** | 34 everyday presets, including groceries, sweets, coffee, energy drinks, tobacco and household supplies. Custom rules and reclassification of existing receipts.          |
@@ -162,6 +178,7 @@ Server CI checks tests, migrations, formatting, dependencies and both container 
 | Install, update or restore     | [Deployment](docs/DEPLOYMENT.md) · [Русская инструкция](README.ru.md)                                                |
 | Set up your phone              | [Android](android/README.md) · [Long receipts](docs/LONG-RECEIPTS.md)                                                |
 | Manage shared finances         | [Organizations and users](docs/MANAGEMENT.md) · [Mobile income and debts](docs/MOBILE-FINANCE.md)                    |
+| Choose your interface language | [English and Russian](docs/LANGUAGES.md#en) · [Bilingual screenshots](docs/SHOWCASE.md) |
 | Understand the calculations    | [AI and reports](docs/ASSISTANT.md)                                                                                  |
 | Contribute or report a problem | [Developer guide](CONTRIBUTING.md) · [Issues](https://github.com/gadmin2151/Finora/issues) · [Security](SECURITY.md) |
 

@@ -1,6 +1,8 @@
 package work.gadmin.finora.data
 
 import kotlinx.serialization.Serializable
+import work.gadmin.finora.localization.Message
+import work.gadmin.finora.localization.tr
 
 @Serializable
 data class Organization(val id: String, val name: String, val role: String) {
@@ -75,7 +77,9 @@ data class Receipt(
         get() = status == "queued" || status == "processing"
 
     val title: String
-        get() = merchant.ifBlank { if (isProcessing) "Распознаём чек…" else "Чек без названия" }
+        get() = merchant.ifBlank {
+            if (isProcessing) tr(Message.READING_RECEIPT) else tr(Message.UNTITLED_RECEIPT)
+        }
 }
 
 @Serializable data class ReceiptPage(val items: List<Receipt>, val total: Int)

@@ -10,6 +10,8 @@ import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.roundToInt
+import work.gadmin.finora.localization.Message
+import work.gadmin.finora.localization.tr
 
 const val SCAN_WINDOW_WIDTH = .86f
 const val SCAN_WINDOW_HEIGHT = .46f
@@ -61,7 +63,9 @@ class LongReceiptController(
             bitmap = cropFrame(frame)
         } catch (_: Exception) {
             pause()
-            dispatch { onError("Не удалось прочитать кадр. Попробуйте начать съёмку заново.") }
+            dispatch {
+                onError(tr(Message.COULD_NOT_READ_THE_FRAME_TRY_STARTING_THE_CAPTURE_AGAIN))
+            }
         } finally {
             frame.close()
         }
@@ -95,9 +99,7 @@ class LongReceiptController(
                 if (!image.isRecycled) image.recycle()
                 pause()
                 dispatch {
-                    onError(
-                        "Не удалось сохранить фрагмент. Проверьте свободное место и переснимите чек."
-                    )
+                    onError(tr(Message.COULD_NOT_SAVE_THIS_PART_CHECK_FREE_STORAGE_AND_CAPTURE_TH))
                 }
             } finally {
                 pendingFrames.decrementAndGet()
@@ -114,7 +116,10 @@ class LongReceiptController(
                     dispatch { onResult(file) }
                 } catch (error: Exception) {
                     dispatch {
-                        onError(error.message ?: "Не удалось собрать чек. Попробуйте ещё раз.")
+                        onError(
+                            error.message
+                                ?: tr(Message.COULD_NOT_ASSEMBLE_THE_RECEIPT_PLEASE_TRY_AGAIN)
+                        )
                     }
                 }
             }
@@ -147,7 +152,9 @@ class LongReceiptController(
                 }
             } catch (_: Exception) {
                 output?.delete()
-                dispatch { onError("Не удалось сохранить снимок в черновик. Попробуйте ещё раз.") }
+                dispatch {
+                    onError(tr(Message.COULD_NOT_SAVE_THE_IMAGE_TO_YOUR_DRAFT_PLEASE_TRY_AGAIN))
+                }
             }
         }
     }

@@ -13,6 +13,8 @@ import androidx.compose.ui.unit.dp
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import work.gadmin.finora.localization.Message
+import work.gadmin.finora.localization.tr
 
 @Composable
 fun LongReceiptReview(
@@ -38,9 +40,9 @@ fun LongReceiptReview(
         Modifier.fillMaxSize().background(Paper).safeDrawingPadding().padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("Ваш чек", style = MaterialTheme.typography.headlineSmall)
+        Text(tr(Message.YOUR_RECEIPT), style = MaterialTheme.typography.headlineSmall)
         Text(
-            "Прокрутите до конца: все строки, итог и QR должны быть на месте. Снимок пока только на телефоне.",
+            tr(Message.SCROLL_TO_THE_BOTTOM_ALL_ITEMS_THE_TOTAL_AND_QR_CODE_SHOUL),
             color = Muted,
             style = MaterialTheme.typography.bodySmall,
         )
@@ -58,9 +60,11 @@ fun LongReceiptReview(
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            OutlinedButton(onRetake, Modifier.weight(1f), enabled = !busy) { Text("Переснять") }
+            OutlinedButton(onRetake, Modifier.weight(1f), enabled = !busy) {
+                Text(tr(Message.RETAKE))
+            }
             PrimaryButton(
-                if (busy) "Сохраняем…" else "Использовать",
+                if (busy) tr(Message.SAVING) else tr(Message.USE_IMAGE),
                 onUse,
                 Modifier.weight(1f),
                 enabled = !busy && bitmap != null,

@@ -18,6 +18,8 @@ import androidx.compose.ui.window.DialogProperties
 import java.time.LocalDate
 import java.time.ZoneId
 import work.gadmin.finora.data.*
+import work.gadmin.finora.localization.Message
+import work.gadmin.finora.localization.tr
 
 @Composable
 fun FinanceEditor(
@@ -51,7 +53,7 @@ fun FinanceEditor(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     IconButton({ discard = true }, enabled = enabled) {
-                        LineIcon(Glyph.BACK, "Закрыть форму")
+                        LineIcon(Glyph.BACK, tr(Message.CLOSE_FORM))
                     }
                     Column {
                         Text(form.title, style = MaterialTheme.typography.titleLarge)
@@ -77,17 +79,17 @@ fun FinanceEditor(
                             )
                         }
                         PrimaryButton(
-                            if (busy) "Сохраняем…"
+                            if (busy) tr(Message.SAVING)
                             else
                                 when (form.kind) {
-                                    FinanceEditKind.PLAN -> "Сохранить источник"
-                                    FinanceEditKind.DEBT -> "Сохранить долг"
+                                    FinanceEditKind.PLAN -> tr(Message.SAVE_SOURCE)
+                                    FinanceEditKind.DEBT -> tr(Message.SAVE_DEBT)
                                     FinanceEditKind.REPAY ->
-                                        if (form.fullRepayment) "Погасить весь остаток"
-                                        else "Записать погашение"
-                                    FinanceEditKind.INCREASE_DEBT -> "Увеличить долг"
-                                    FinanceEditKind.RECEIVE -> "Подтвердить поступление"
-                                    FinanceEditKind.INCOME -> "Сохранить доход"
+                                        if (form.fullRepayment) tr(Message.REPAY_THE_FULL_BALANCE)
+                                        else tr(Message.RECORD_REPAYMENT)
+                                    FinanceEditKind.INCREASE_DEBT -> tr(Message.INCREASE_DEBT)
+                                    FinanceEditKind.RECEIVE -> tr(Message.CONFIRM_RECEIPT_OF_INCOME)
+                                    FinanceEditKind.INCOME -> tr(Message.SAVE_INCOME)
                                 },
                             save,
                             Modifier.fillMaxWidth(),
@@ -107,31 +109,49 @@ fun FinanceEditor(
                 when (form.kind) {
                     FinanceEditKind.PLAN ->
                         InfoCard(
-                            "План не меняет баланс. Отметьте поступление как полученное, когда деньги придут.",
+                            tr(Message.A_PLAN_DOES_NOT_CHANGE_YOUR_BALANCE_MARK_INCOME_AS_RECEIVE),
                             Glyph.WALLET,
                         )
                     FinanceEditKind.REPAY ->
                         InfoCard(
-                            "${form.name}\nОстаток ${money(form.remainingMinor ?: 0, form.currency)}. ${if (form.fullRepayment) "Долг будет закрыт после подтверждения." else "Укажите сумму фактического возврата."}",
+                            tr(
+                                Message.TEXT_1_S_OUTSTANDING_2_S_3_S,
+                                form.name,
+                                money(form.remainingMinor ?: 0, form.currency),
+                                if (form.fullRepayment)
+                                    tr(Message.THE_DEBT_WILL_BE_CLOSED_AFTER_CONFIRMATION)
+                                else tr(Message.ENTER_THE_AMOUNT_ACTUALLY_REPAID),
+                            ),
                             Glyph.USER,
                         )
                     FinanceEditKind.INCREASE_DEBT ->
                         InfoCard(
-                            "${form.name}\nОстаток ${money(form.remainingMinor ?: 0, form.currency)}. Укажите дополнительную сумму: она увеличит долг и изменит баланс выбранного счёта.",
+                            tr(
+                                Message
+                                    .TEXT_1_S_OUTSTANDING_2_S_ENTER_THE_ADDITIONAL_AMOUNT_TO_INCREAS,
+                                form.name,
+                                money(form.remainingMinor ?: 0, form.currency),
+                            ),
                             Glyph.USER,
                         )
                     FinanceEditKind.RECEIVE ->
                         InfoCard(
-                            "${form.name}\nУкажите фактические сумму и дату поступления.",
+                            tr(
+                                Message.TEXT_1_S_ENTER_THE_ACTUAL_AMOUNT_AND_DATE_RECEIVED,
+                                form.name,
+                            ),
                             Glyph.WALLET,
                         )
                     else -> Unit
                 }
                 if (form.kind == FinanceEditKind.DEBT) {
                     FinanceChoice(
-                        "Направление",
+                        tr(Message.DIRECTION),
                         form.direction,
-                        listOf("lent" to "Я дал в долг", "borrowed" to "Я взял в долг"),
+                        listOf(
+                            "lent" to tr(Message.I_LENT_MONEY),
+                            "borrowed" to tr(Message.I_BORROWED_MONEY),
+                        ),
                         enabled,
                     ) {
                         change(form.copy(direction = it))
@@ -143,9 +163,9 @@ fun FinanceEditor(
                 ) {
                     FinanceText(
                         when (form.kind) {
-                            FinanceEditKind.DEBT -> "Имя человека"
-                            FinanceEditKind.PLAN -> "Название источника"
-                            else -> "Откуда поступили деньги"
+                            FinanceEditKind.DEBT -> tr(Message.PERSON_S_NAME)
+                            FinanceEditKind.PLAN -> tr(Message.SOURCE_NAME)
+                            else -> tr(Message.WHERE_THE_MONEY_CAME_FROM)
                         },
                         form.name,
                         enabled,
@@ -155,7 +175,7 @@ fun FinanceEditor(
                     }
                 }
                 FinanceText(
-                    "Сумма · ${form.currency}",
+                    tr(Message.AMOUNT_1_S, form.currency),
                     form.amount,
                     enabled && !form.fullRepayment,
                     number = true,
@@ -165,7 +185,7 @@ fun FinanceEditor(
                 }
                 if (!fixedCurrency)
                     FinanceChoice(
-                        "Валюта",
+                        tr(Message.CURRENCY),
                         form.currency,
                         listOf("MDL", "EUR", "USD", "RON").map { it to it },
                         enabled,
@@ -180,20 +200,22 @@ fun FinanceEditor(
                     }
                 if (form.kind == FinanceEditKind.DEBT) {
                     FinanceChoice(
-                        "Как учитывать",
+                        tr(Message.RECORD_AS),
                         form.mode,
                         listOf(
-                            "new" to "Деньги передаются сейчас",
-                            "existing" to "Ранее существовавший долг",
+                            "new" to tr(Message.MONEY_IS_BEING_TRANSFERRED_NOW),
+                            "existing" to tr(Message.AN_EXISTING_DEBT),
                         ),
                         enabled,
                     ) {
                         change(form.copy(mode = it))
                     }
                     Text(
-                        if (existing) "Баланс счёта не изменится: деньги уже были переданы раньше."
-                        else if (form.direction == "lent") "Сумма будет списана с выбранного счёта."
-                        else "Сумма поступит на выбранный счёт.",
+                        if (existing)
+                            tr(Message.THE_ACCOUNT_BALANCE_WILL_NOT_CHANGE_THE_MONEY_WAS_TRANSFER)
+                        else if (form.direction == "lent")
+                            tr(Message.THE_AMOUNT_WILL_BE_DEDUCTED_FROM_THE_SELECTED_ACCOUNT)
+                        else tr(Message.THE_AMOUNT_WILL_BE_ADDED_TO_THE_SELECTED_ACCOUNT),
                         color = Muted,
                         style = MaterialTheme.typography.bodySmall,
                     )
@@ -202,12 +224,12 @@ fun FinanceEditor(
                     FinanceChoice(
                         when {
                             form.kind == FinanceEditKind.REPAY ->
-                                if (form.direction == "borrowed") "Списать со счёта"
-                                else "Получено на счёт"
+                                if (form.direction == "borrowed") tr(Message.DEBIT_ACCOUNT)
+                                else tr(Message.RECEIVED_IN_ACCOUNT)
                             form.kind == FinanceEditKind.INCREASE_DEBT ->
-                                if (form.direction == "lent") "Списать со счёта"
-                                else "Получено на счёт"
-                            else -> "Счёт"
+                                if (form.direction == "lent") tr(Message.DEBIT_ACCOUNT)
+                                else tr(Message.RECEIVED_IN_ACCOUNT)
+                            else -> tr(Message.ACCOUNT)
                         },
                         form.accountId,
                         accounts.map { it.id to "${it.name} · ${it.currency}" },
@@ -217,12 +239,15 @@ fun FinanceEditor(
                     }
                     if (accounts.isEmpty())
                         InfoCard(
-                            "Нет действующего счёта в ${form.currency}. Создайте его в веб-версии или выберите другую валюту.",
+                            tr(
+                                Message.NO_ACTIVE_1_S_ACCOUNT_CREATE_ONE_ON_THE_WEBSITE_OR_CHOOSE,
+                                form.currency,
+                            ),
                             Glyph.WALLET,
                         )
                     if (form.currency != "MDL")
                         FinanceText(
-                            "Курс: 1 ${form.currency} в MDL",
+                            tr(Message.EXCHANGE_RATE_1_1_S_IN_MDL, form.currency),
                             form.fxRate,
                             enabled,
                             number = true,
@@ -232,8 +257,8 @@ fun FinanceEditor(
                         }
                 }
                 FinanceDate(
-                    if (form.kind == FinanceEditKind.PLAN) "Первое поступление"
-                    else "Дата операции",
+                    if (form.kind == FinanceEditKind.PLAN) tr(Message.FIRST_PAYMENT)
+                    else tr(Message.TRANSACTION_DATE),
                     form.date,
                     enabled,
                     future = form.kind == FinanceEditKind.PLAN,
@@ -242,7 +267,7 @@ fun FinanceEditor(
                 }
                 if (form.kind == FinanceEditKind.PLAN) {
                     FinanceChoice(
-                        "Повторять",
+                        tr(Message.REPEAT),
                         form.recurrence,
                         incomeRecurrences.toList(),
                         enabled,
@@ -250,14 +275,14 @@ fun FinanceEditor(
                         change(form.copy(recurrence = it))
                     }
                     Text(
-                        "Для 29–31 числа в коротком месяце используется последний день. Полученные суммы сохраняются при изменении плана.",
+                        tr(Message.FOR_THE_29TH_31ST_IN_SHORTER_MONTHS_THE_LAST_DAY_IS_USED_A),
                         color = Muted,
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
                 if (form.kind == FinanceEditKind.DEBT)
                     FinanceDate(
-                        "Вернуть до · необязательно",
+                        tr(Message.DUE_DATE_OPTIONAL),
                         form.dueDate,
                         enabled,
                         future = true,
@@ -279,7 +304,7 @@ fun FinanceEditor(
                         { change(form.copy(note = it.take(3000))) },
                         Modifier.fillMaxWidth(),
                         enabled = enabled,
-                        label = { Text("Примечание") },
+                        label = { Text(tr(Message.NOTE)) },
                         minLines = 2,
                         maxLines = 5,
                         shape = RoundedCornerShape(16.dp),
@@ -287,9 +312,12 @@ fun FinanceEditor(
                 }
                 if (form.kind == FinanceEditKind.RECEIVE) {
                     HorizontalDivider(color = Border)
-                    Text("Доход уже внесён?", style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "Можно связать поступление с записью на тот же счёт, с той же суммой и датой. Баланс повторно не увеличится.",
+                        tr(Message.ALREADY_RECORDED_THIS_INCOME),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        tr(Message.LINK_IT_TO_AN_ENTRY_WITH_THE_SAME_ACCOUNT_AMOUNT_AND_DATE),
                         color = Muted,
                         style = MaterialTheme.typography.bodySmall,
                     )
@@ -299,24 +327,27 @@ fun FinanceEditor(
                         enabled = enabled && !data.matchesLoading,
                     ) {
                         Text(
-                            if (data.matchesLoading) "Ищем зачисления…"
-                            else "Найти уже внесённый доход"
+                            if (data.matchesLoading) tr(Message.LOOKING_FOR_INCOME_ENTRIES)
+                            else tr(Message.FIND_EXISTING_INCOME)
                         )
                     }
                     if (data.matchesLoaded) {
                         if (data.matches.isEmpty())
                             Text(
-                                "Совпадений за выбранный месяц не найдено среди последних 200 поступлений.",
+                                tr(
+                                    Message
+                                        .NO_MATCHES_FOR_THIS_MONTH_AMONG_THE_LAST_200_INCOME_ENTRIE
+                                ),
                                 color = Muted,
                             )
                         else
                             FinanceChoice(
-                                "Зачисление",
+                                tr(Message.INCOME_ENTRY),
                                 form.transactionId.orEmpty(),
-                                listOf("" to "Создать новое поступление") +
+                                listOf("" to tr(Message.CREATE_A_NEW_INCOME_ENTRY)) +
                                     data.matches.map {
                                         it.id to
-                                            "${it.merchant.ifBlank { "Доход" }} · ${money(it.amount_minor, it.currency)}"
+                                            "${it.merchant.ifBlank { tr(Message.INCOME) }} · ${money(it.amount_minor, it.currency)}"
                                     },
                                 enabled,
                             ) {
@@ -330,8 +361,8 @@ fun FinanceEditor(
         if (discard)
             AlertDialog(
                 onDismissRequest = { discard = false },
-                title = { Text("Закрыть без сохранения?") },
-                text = { Text("Несохранённые изменения в этой форме будут потеряны.") },
+                title = { Text(tr(Message.CLOSE_WITHOUT_SAVING)) },
+                text = { Text(tr(Message.UNSAVED_CHANGES_IN_THIS_FORM_WILL_BE_LOST)) },
                 confirmButton = {
                     TextButton(
                         {
@@ -340,10 +371,10 @@ fun FinanceEditor(
                         },
                         enabled = enabled,
                     ) {
-                        Text("Закрыть")
+                        Text(tr(Message.CLOSE))
                     }
                 },
-                dismissButton = { TextButton({ discard = false }) { Text("Продолжить") } },
+                dismissButton = { TextButton({ discard = false }) { Text(tr(Message.CONTINUE)) } },
             )
     }
 }
@@ -389,7 +420,7 @@ private fun FinanceChoice(
                 shape = RoundedCornerShape(16.dp),
             ) {
                 Text(
-                    choices.firstOrNull { it.first == value }?.second ?: "Выберите",
+                    choices.firstOrNull { it.first == value }?.second ?: tr(Message.CHOOSE),
                     Modifier.weight(1f),
                 )
                 LineIcon(Glyph.DOWN, size = 18.dp)
@@ -459,11 +490,11 @@ private fun FinanceDate(
                 enabled = enabled,
                 shape = RoundedCornerShape(16.dp),
             ) {
-                Text(if (value.isBlank()) "Не указан" else financeDateLabel(value))
+                Text(if (value.isBlank()) tr(Message.NOT_SPECIFIED) else financeDateLabel(value))
             }
             if (optional && value.isNotBlank())
                 IconButton({ change("") }, enabled = enabled) {
-                    LineIcon(Glyph.CLOSE, "Убрать срок возврата")
+                    LineIcon(Glyph.CLOSE, tr(Message.REMOVE_DUE_DATE))
                 }
         }
     }

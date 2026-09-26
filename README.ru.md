@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/assets/showcase/cover.jpg" alt="Finora Personal Finance — личные финансы на своём сервере, веб и Android" width="100%" /></p>
+<p align="center"><img src="docs/assets/showcase/ru/web-light.jpg" alt="Finora Personal Finance — русский веб-интерфейс с вымышленными демонстрационными данными" width="100%" /></p>
 
 <h1 align="center">Finora · Personal Finance</h1>
 <p align="center"><strong>Больше ясности в деньгах. Меньше рутины с чеками.</strong><br />Ваши покупки, доходы, планы и долги — на вашем сервере.</p>
@@ -9,7 +9,7 @@
 <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-82ddb5?labelColor=183b30" alt="Лицензия MIT" /></a>
 </p>
 
-<p align="center"><a href="#установка-на-debian"><strong>Установить на сервер</strong></a> · <a href="android/README.md"><strong>Скачать Android</strong></a> · <a href="docs/SHOWCASE.md">Галерея экранов</a> · <a href="README.md">English</a></p>
+<p align="center"><a href="#установка-на-debian"><strong>Установить на сервер</strong></a> · <a href="android/README.md"><strong>Скачать Android</strong></a> · <a href="docs/SHOWCASE.md#ru">Галерея экранов</a> · <a href="README.md">English</a></p>
 
 ## Финансы, которые можно понять
 
@@ -27,18 +27,34 @@ Finora помогает увидеть, что стоит за общей сум
 <table>
 <tr><th width="33%">Снять</th><th width="33%">Проверить</th><th width="33%">Разобраться</th></tr>
 <tr>
-<td><img src="docs/assets/showcase/android-capture.png" alt="Добавление чека в Android, тёмная тема" width="100%" /></td>
-<td><img src="docs/assets/showcase/android-receipt.png" alt="Проверка демонстрационного чека и его товаров" width="100%" /></td>
-<td><img src="docs/assets/showcase/android-overview.png" alt="Обзор вымышленных финансов в Android, светлая тема" width="100%" /></td>
+<td><img src="docs/assets/showcase/ru/android-capture.png" alt="Добавление чека в Android, тёмная тема" width="100%" /></td>
+<td><img src="docs/assets/showcase/ru/android-receipt.png" alt="Проверка демонстрационного чека и его товаров" width="100%" /></td>
+<td><img src="docs/assets/showcase/ru/android-overview.png" alt="Обзор вымышленных финансов в Android, светлая тема" width="100%" /></td>
 </tr>
 </table>
 
-Все изображения — реальные экраны приложения с вымышленными данными. [Посмотреть светлый и тёмный веб, отчёты, товары и долги →](docs/SHOWCASE.md)
+Все изображения — реальные экраны приложения с вымышленными данными. [Посмотреть светлый и тёмный веб, отчёты, товары и долги →](docs/SHOWCASE.md#ru)
+
+## На русском и английском — с первого входа
+
+**Сайт и нативное Android-приложение доступны на русском и английском.** Переключатель есть на экране входа. Позже язык можно изменить на сайте в **Мой профиль → Язык интерфейса**, а на Android — через **аватар → Язык**.
+
+По умолчанию выбран **Язык устройства**: русский, если основной язык браузера или телефона русский; для остальных языков — английский. Ручной выбор сохраняется отдельно в этом браузере или на этом телефоне, в том числе после выхода из аккаунта. Названия организаций, счетов, товаров, содержимое чеков и другие ваши данные не переводятся.
+
+<table>
+<tr><th width="50%">Выбор языка до входа</th><th width="50%">Язык и оформление в профиле</th></tr>
+<tr>
+<td><a href="docs/assets/showcase/ru/web-login.jpg"><img src="docs/assets/showcase/ru/web-login.jpg" alt="Экран входа Finora на русском с переключателем языка" width="100%" /></a></td>
+<td><a href="docs/assets/showcase/ru/web-settings.jpg"><img src="docs/assets/showcase/ru/web-settings.jpg" alt="Настройки профиля Finora: русский, английский и оформление" width="100%" /></a></td>
+</tr>
+</table>
+
+[Галерея на русском](docs/SHOWCASE.md#ru) · [English screenshots](docs/SHOWCASE.md#en) · [Как работает выбор языка](docs/LANGUAGES.md#ru)
 
 ## Навигация по инструкции
 
 - [Установка на Debian](#установка-на-debian) · [Локальный запуск](#локальный-запуск-из-исходников) · [Cloudflare Tunnel](#cloudflare-tunnel)
-- [Организации и права](#организации-и-права-доступа) · [Приложение Android](android/README.md)
+- [Организации и права](#организации-и-права-доступа) · [Приложение Android](android/README.md) · [Русский и английский](docs/LANGUAGES.md#ru)
 - [Обновление](#обновление) · [Резервное копирование](#резервное-копирование-и-восстановление)
 - [CI/CD и образы](#cicd-и-образы) · [Разработка](#разработка-и-проверки) · [Ограничения](#ограничения)
 

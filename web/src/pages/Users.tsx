@@ -1,3 +1,4 @@
+import { t, getLocale } from "../i18n";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -55,14 +56,30 @@ type AuditEntry = {
   created_at: string;
 };
 const auditLabels: Record<string, string> = {
-  "user.deleted": "Аккаунт перемещён в корзину",
-  "user.restored": "Аккаунт восстановлен без включения входа",
-  "user.created": "Аккаунт создан",
-  "user.updated": "Доступ и профиль обновлены",
-  "user.password_reset": "Пароль сброшен, сеансы отозваны",
-  "profile.updated": "Имя обновлено",
-  "profile.photo_updated": "Фото обновлено",
-  "profile.photo_removed": "Фото удалено",
+  get "user.deleted"() {
+    return t("Аккаунт перемещён в корзину");
+  },
+  get "user.restored"() {
+    return t("Аккаунт восстановлен без включения входа");
+  },
+  get "user.created"() {
+    return t("Аккаунт создан");
+  },
+  get "user.updated"() {
+    return t("Доступ и профиль обновлены");
+  },
+  get "user.password_reset"() {
+    return t("Пароль сброшен, сеансы отозваны");
+  },
+  get "profile.updated"() {
+    return t("Имя обновлено");
+  },
+  get "profile.photo_updated"() {
+    return t("Фото обновлено");
+  },
+  get "profile.photo_removed"() {
+    return t("Фото удалено");
+  },
 };
 
 export default function Users() {
@@ -98,9 +115,11 @@ export default function Users() {
   return (
     <>
       <PageHeading
-        eyebrow="ЛЮДИ И ДОСТУП"
-        title="Пользователи"
-        text="Все аккаунты сервера. Организации и права каждого человека — в одном месте."
+        eyebrow={t("ЛЮДИ И ДОСТУП")}
+        title={t("Пользователи")}
+        text={t(
+          "Все аккаунты сервера. Организации и права каждого человека — в одном месте.",
+        )}
         actions={
           <button
             className="button primary"
@@ -109,7 +128,7 @@ export default function Users() {
               setEditing("new");
             }}
           >
-            <Plus size={18} /> Новый пользователь
+            <Plus size={18} /> {t("Новый пользователь")}
           </button>
         }
       />
@@ -117,8 +136,9 @@ export default function Users() {
       <div className="notice">
         <ShieldCheck size={20} />
         <span>
-          Вы — владелец сервера. Сброс пароля и блокировка завершают сеансы
-          пользователя на всех устройствах.
+          {t(
+            "Вы — владелец сервера. Сброс пароля и блокировка завершают сеансы пользователя на всех устройствах.",
+          )}
         </span>
       </div>
       <section className="panel user-directory">
@@ -126,30 +146,30 @@ export default function Users() {
           <label className="user-search">
             <Search size={19} />
             <input
-              aria-label="Найти пользователя"
-              placeholder="Имя или логин"
+              aria-label={t("Найти пользователя")}
+              placeholder={t("Имя или логин")}
               value={search}
               maxLength={80}
               onChange={(event) => setSearch(event.target.value)}
             />
           </label>
           <select
-            aria-label="Статус аккаунта"
+            aria-label={t("Статус аккаунта")}
             value={status}
             onChange={(event) => {
               setStatus(event.target.value);
               setOffset(0);
             }}
           >
-            <option value="all">Все пользователи</option>
-            <option value="active">Активные</option>
-            <option value="blocked">Заблокированные</option>
-            <option value="deleted">Корзина</option>
+            <option value="all">{t("Все пользователи")}</option>
+            <option value="active">{t("Активные")}</option>
+            <option value="blocked">{t("Заблокированные")}</option>
+            <option value="deleted">{t("Корзина")}</option>
           </select>
         </div>
         <ErrorBox error={list.error} />
         {list.isPending ? (
-          <Loading text="Загружаем пользователей…" />
+          <Loading text={t("Загружаем пользователей…")} />
         ) : list.data?.items.length ? (
           <>
             <div className="user-grid">
@@ -163,21 +183,21 @@ export default function Users() {
                     <div className="grow">
                       <strong>
                         {member.name}
-                        {member.id === user.id ? " · вы" : ""}
+                        {member.id === user.id ? t(" · вы") : ""}
                       </strong>
                       <small>@{member.username}</small>
                     </div>
                     <Badge>
                       {member.deleted_at
-                        ? "В корзине"
+                        ? t("В корзине")
                         : member.is_active
-                          ? "Активен"
-                          : "Заблокирован"}
+                          ? t("Активен")
+                          : t("Заблокирован")}
                     </Badge>
                   </div>
                   {member.is_server_admin && (
                     <span className="owner-label">
-                      <ShieldCheck size={14} /> Владелец сервера
+                      <ShieldCheck size={14} /> {t("Владелец сервера")}
                     </span>
                   )}
                   <div className="user-memberships">
@@ -186,22 +206,27 @@ export default function Users() {
                         <div key={org.organization_id}>
                           <span>
                             {org.name}
-                            {org.deleted_at ? " · в корзине" : ""}
+                            {org.deleted_at ? t(" · в корзине") : ""}
                           </span>
                           <small>
                             {org.role === "admin"
-                              ? "Администратор"
-                              : "Участник"}
+                              ? t("Администратор")
+                              : t("Участник")}
                           </small>
                         </div>
                       ))
                     ) : (
-                      <small>Организации пока не назначены</small>
+                      <small>{t("Организации пока не назначены")}</small>
                     )}
                   </div>
                   <small>
-                    {member.sessions} активных сеансов · с{" "}
-                    {new Date(member.created_at).toLocaleDateString("ru")}
+                    {t(
+                      "Активных сеансов: {0} · с {1}",
+                      member.sessions,
+                      new Date(member.created_at).toLocaleDateString(
+                        getLocale(),
+                      ),
+                    )}
                   </small>
                   <div className="user-card-actions management-user-actions">
                     {member.deleted_at ? (
@@ -211,7 +236,7 @@ export default function Users() {
                           setLifecycle({ member, action: "restore" })
                         }
                       >
-                        <RotateCcw size={16} /> Восстановить
+                        <RotateCcw size={16} /> {t("Восстановить")}
                       </button>
                     ) : (
                       <>
@@ -222,7 +247,7 @@ export default function Users() {
                             setEditing(member);
                           }}
                         >
-                          <Pencil size={16} /> Профиль
+                          <Pencil size={16} /> {t("Профиль")}
                         </button>
                         <button
                           className="button secondary"
@@ -231,19 +256,19 @@ export default function Users() {
                             setEditing(member);
                           }}
                         >
-                          <Building2 size={16} /> Организации
+                          <Building2 size={16} /> {t("Организации")}
                         </button>
                         <button
                           className="button secondary"
                           disabled={member.id === user.id}
                           title={
                             member.id === user.id
-                              ? "Свой пароль меняется в настройках профиля"
-                              : "Сбросить пароль"
+                              ? t("Свой пароль меняется в настройках профиля")
+                              : t("Сбросить пароль")
                           }
                           onClick={() => setReset(member)}
                         >
-                          <KeyRound size={16} /> Пароль
+                          <KeyRound size={16} /> {t("Пароль")}
                         </button>
                         {!member.is_server_admin && (
                           <>
@@ -264,8 +289,8 @@ export default function Users() {
                                 <CheckCircle2 size={16} />
                               )}
                               {member.is_active
-                                ? "Заблокировать"
-                                : "Включить вход"}
+                                ? t("Заблокировать")
+                                : t("Включить вход")}
                             </button>
                             <button
                               className="text-button negative"
@@ -273,7 +298,7 @@ export default function Users() {
                                 setLifecycle({ member, action: "delete" })
                               }
                             >
-                              <Trash2 size={16} /> Удалить
+                              <Trash2 size={16} /> {t("Удалить")}
                             </button>
                           </>
                         )}
@@ -284,20 +309,22 @@ export default function Users() {
               ))}
             </div>
             <div className="user-pagination">
-              <small>Всего: {list.data.total}</small>
+              <small>
+                {t("Всего:")} {list.data.total}
+              </small>
               <button
                 className="button secondary"
                 disabled={!offset}
                 onClick={() => setOffset(Math.max(0, offset - 25))}
               >
-                Назад
+                {t("Назад")}
               </button>
               <button
                 className="button secondary"
                 disabled={offset + 25 >= list.data.total}
                 onClick={() => setOffset(offset + 25)}
               >
-                Далее
+                {t("Далее")}
               </button>
             </div>
           </>
@@ -305,15 +332,15 @@ export default function Users() {
           !list.error && (
             <Empty
               icon={<UsersIcon />}
-              title="Пользователи не найдены"
-              text="Попробуйте другое имя или измените фильтр."
+              title={t("Пользователи не найдены")}
+              text={t("Попробуйте другое имя или измените фильтр.")}
             />
           )
         )}
       </section>
       {offset > 0 && list.data?.items.length === 0 && (
         <button className="button secondary" onClick={() => setOffset(0)}>
-          К началу списка
+          {t("К началу списка")}
         </button>
       )}
       {editing && (
@@ -375,7 +402,7 @@ function UserEditor({
   const save = useAction(
     async () => {
       if (!member && password !== repeat)
-        throw new Error("Пароли не совпадают");
+        throw new Error(t("Пароли не совпадают"));
       const body = {
         name,
         is_active: active,
@@ -389,14 +416,20 @@ function UserEditor({
         : send("/admin/users", { ...body, username, password });
     },
     () => {
-      toast(member ? "Доступ пользователя обновлён" : "Пользователь создан");
+      toast(
+        member ? t("Доступ пользователя обновлён") : t("Пользователь создан"),
+      );
       onClose();
     },
   );
   return (
     <Modal
-      title={member ? `Управление · ${member.username}` : "Новый пользователь"}
-      description="Права действуют отдельно в каждой организации."
+      title={
+        member
+          ? t("Управление · {0}", member.username)
+          : t("Новый пользователь")
+      }
+      description={t("Права действуют отдельно в каждой организации.")}
       onClose={() => {
         if (!save.isPending) onClose();
       }}
@@ -408,13 +441,13 @@ function UserEditor({
             className={tab === "profile" ? "selected" : ""}
             onClick={() => setTab("profile")}
           >
-            Профиль
+            {t("Профиль")}
           </button>
           <button
             className={tab === "access" ? "selected" : ""}
             onClick={() => setTab("access")}
           >
-            Организации и доступ
+            {t("Организации и доступ")}
           </button>
         </div>
       )}
@@ -422,7 +455,7 @@ function UserEditor({
         <fieldset disabled={save.isPending}>
           <section hidden={Boolean(member) && tab !== "profile"}>
             <div className="form-grid">
-              <Field label="Имя">
+              <Field label={t("Имя")}>
                 <input
                   value={name}
                   required
@@ -431,7 +464,7 @@ function UserEditor({
                   autoComplete="off"
                 />
               </Field>
-              <Field label="Логин">
+              <Field label={t("Логин")}>
                 <input
                   value={username}
                   required
@@ -446,7 +479,7 @@ function UserEditor({
             </div>
             {!member && (
               <div className="form-grid">
-                <Field label="Пароль · от 12 символов">
+                <Field label={t("Пароль · от 12 символов")}>
                   <input
                     type="password"
                     autoComplete="new-password"
@@ -457,7 +490,7 @@ function UserEditor({
                     onChange={(event) => setPassword(event.target.value)}
                   />
                 </Field>
-                <Field label="Повторите пароль">
+                <Field label={t("Повторите пароль")}>
                   <input
                     type="password"
                     autoComplete="new-password"
@@ -477,27 +510,29 @@ function UserEditor({
                 disabled={member?.is_server_admin}
                 onChange={(event) => setActive(event.target.checked)}
               />
-              <span>Доступ к аккаунту включён</span>
+              <span>{t("Доступ к аккаунту включён")}</span>
             </label>
             {!active && (
               <div className="notice">
-                Пользователь не сможет входить. При сохранении все его сеансы
-                будут завершены. Чеки и история сохранятся.
+                {t(
+                  "Пользователь не сможет входить. При сохранении все его сеансы будут завершены. Чеки и история сохранятся.",
+                )}
               </div>
             )}
             <h3>
-              Организации ·{" "}
+              {t("Организации ·")}{" "}
               {assignments.filter((org) => !org.deleted_at).length}
             </h3>
             {assignments.some((org) => org.deleted_at) && (
               <p className="management-hint">
-                Доступ к организациям в корзине сохранён и вернётся после их
-                восстановления.
+                {t(
+                  "Доступ к организациям в корзине сохранён и вернётся после их восстановления.",
+                )}
               </p>
             )}
             <input
-              aria-label="Найти организацию для пользователя"
-              placeholder="Найти организацию"
+              aria-label={t("Найти организацию для пользователя")}
+              placeholder={t("Найти организацию")}
               value={filter}
               onChange={(event) => setFilter(event.target.value)}
             />
@@ -542,7 +577,7 @@ function UserEditor({
                         </label>
                         {selected && (
                           <select
-                            aria-label={`Роль: ${org.name}`}
+                            aria-label={t("Роль: {0}", org.name)}
                             value={selected.role}
                             onChange={(event) =>
                               setAssignments(
@@ -558,8 +593,8 @@ function UserEditor({
                               )
                             }
                           >
-                            <option value="user">Участник</option>
-                            <option value="admin">Администратор</option>
+                            <option value="user">{t("Участник")}</option>
+                            <option value="admin">{t("Администратор")}</option>
                           </select>
                         )}
                       </div>
@@ -568,12 +603,13 @@ function UserEditor({
               </div>
             )}
             <small>
-              Участник добавляет чеки, комментирует и смотрит статистику.
-              Администратор управляет финансами и участниками организации.
+              {t(
+                "Участник добавляет чеки, комментирует и смотрит статистику. Администратор управляет финансами и участниками организации.",
+              )}
             </small>
             {!assignments.length && (
               <div className="notice">
-                Без организации пользователь не увидит финансовые данные.
+                {t("Без организации пользователь не увидит финансовые данные.")}
               </div>
             )}
           </section>
@@ -586,19 +622,19 @@ function UserEditor({
             disabled={save.isPending}
             onClick={onClose}
           >
-            Отмена
+            {t("Отмена")}
           </button>
           <Submit
             pending={save.isPending}
             disabled={options.isPending || Boolean(options.error)}
           >
-            {member ? "Сохранить изменения" : "Создать пользователя"}
+            {member ? t("Сохранить изменения") : t("Создать пользователя")}
           </Submit>
         </footer>
       </Form>
       {member && (
         <details className="account-history">
-          <summary>История изменений</summary>
+          <summary>{t("История изменений")}</summary>
           <ErrorBox error={audit.error} />
           {audit.isPending ? (
             <Loading />
@@ -606,16 +642,16 @@ function UserEditor({
             audit.data.map((entry) => (
               <p key={entry.id}>
                 <strong>
-                  {auditLabels[entry.action] ?? "Аккаунт обновлён"}
+                  {auditLabels[entry.action] ?? t("Аккаунт обновлён")}
                 </strong>
                 <small>
                   {entry.actor} ·{" "}
-                  {new Date(entry.created_at).toLocaleString("ru")}
+                  {new Date(entry.created_at).toLocaleString(getLocale())}
                 </small>
               </p>
             ))
           ) : (
-            <small>Пока нет изменений</small>
+            <small>{t("Пока нет изменений")}</small>
           )}
         </details>
       )}
@@ -635,24 +671,26 @@ function ResetPassword({
   const [repeat, setRepeat] = useState("");
   const action = useAction(
     async () => {
-      if (password !== repeat) throw new Error("Пароли не совпадают");
+      if (password !== repeat) throw new Error(t("Пароли не совпадают"));
       return send(`/admin/users/${member.id}/password`, { password });
     },
     () => {
-      toast("Пароль обновлён. Все сеансы пользователя завершены.");
+      toast(t("Пароль обновлён. Все сеансы пользователя завершены."));
       onClose();
     },
   );
   return (
     <Modal
-      title={`Сбросить пароль · ${member.username}`}
-      description="Пользователь выйдет из приложения на всех устройствах и сможет войти с новым паролем."
+      title={t("Сбросить пароль · {0}", member.username)}
+      description={t(
+        "Пользователь выйдет из приложения на всех устройствах и сможет войти с новым паролем.",
+      )}
       onClose={() => {
         if (!action.isPending) onClose();
       }}
     >
       <Form onSubmit={() => action.mutate(undefined)}>
-        <Field label="Новый пароль · от 12 символов">
+        <Field label={t("Новый пароль · от 12 символов")}>
           <input
             type="password"
             autoComplete="new-password"
@@ -664,7 +702,7 @@ function ResetPassword({
             disabled={action.isPending}
           />
         </Field>
-        <Field label="Повторите пароль">
+        <Field label={t("Повторите пароль")}>
           <input
             type="password"
             autoComplete="new-password"
@@ -676,7 +714,7 @@ function ResetPassword({
         </Field>
         <ErrorBox error={action.error} />
         <Submit pending={action.isPending}>
-          Сбросить пароль и завершить сеансы
+          {t("Сбросить пароль и завершить сеансы")}
         </Submit>
       </Form>
     </Modal>
@@ -697,28 +735,36 @@ function UserLifecycle({
   const { toast } = useApp();
   const labels = {
     delete: [
-      "Удалить пользователя?",
-      "Аккаунт попадёт в корзину, вход будет закрыт, а все сеансы завершатся. Чеки, комментарии и история сохранят авторство. Восстановление доступно в корзине.",
-      "Переместить в корзину",
-      "Пользователь перемещён в корзину",
+      t("Удалить пользователя?"),
+      t(
+        "Аккаунт попадёт в корзину, вход будет закрыт, а все сеансы завершатся. Чеки, комментарии и история сохранят авторство. Восстановление доступно в корзине.",
+      ),
+      t("Переместить в корзину"),
+      t("Пользователь перемещён в корзину"),
     ],
     restore: [
-      "Восстановить пользователя?",
-      "Аккаунт и назначения организаций восстановятся. Вход останется заблокированным: проверьте доступ и нажмите «Включить вход».",
-      "Восстановить",
-      "Аккаунт восстановлен. Проверьте организации и включите вход.",
+      t("Восстановить пользователя?"),
+      t(
+        "Аккаунт и назначения организаций восстановятся. Вход останется заблокированным: проверьте доступ и нажмите «Включить вход».",
+      ),
+      t("Восстановить"),
+      t("Аккаунт восстановлен. Проверьте организации и включите вход."),
     ],
     block: [
-      "Заблокировать вход?",
-      "Пользователь выйдет на всех устройствах и не сможет войти до разблокировки. Его данные и права в организациях сохранятся.",
-      "Заблокировать",
-      "Вход заблокирован, сеансы завершены",
+      t("Заблокировать вход?"),
+      t(
+        "Пользователь выйдет на всех устройствах и не сможет войти до разблокировки. Его данные и права в организациях сохранятся.",
+      ),
+      t("Заблокировать"),
+      t("Вход заблокирован, сеансы завершены"),
     ],
     activate: [
-      "Включить вход?",
-      "Пользователь сможет войти с текущим паролем и получит доступ к назначенным организациям.",
-      "Включить вход",
-      "Вход в аккаунт разрешён",
+      t("Включить вход?"),
+      t(
+        "Пользователь сможет войти с текущим паролем и получит доступ к назначенным организациям.",
+      ),
+      t("Включить вход"),
+      t("Вход в аккаунт разрешён"),
     ],
   }[action];
   const mutation = useAction(
@@ -752,14 +798,14 @@ function UserLifecycle({
           disabled={mutation.isPending}
           onClick={onClose}
         >
-          Отмена
+          {t("Отмена")}
         </button>
         <button
           className={`button ${action === "delete" || action === "block" ? "danger" : "primary"}`}
           disabled={mutation.isPending}
           onClick={() => mutation.mutate(undefined)}
         >
-          {mutation.isPending ? "Сохраняю…" : labels[2]}
+          {mutation.isPending ? t("Сохраняю…") : labels[2]}
         </button>
       </footer>
     </Modal>

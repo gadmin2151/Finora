@@ -1,0 +1,42 @@
+.language-select {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.language-select label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.language-select select {
+  width: auto;
+  min-width: 160px;
+  max-width: 100%;
+}
+.language-select.compact {
+  justify-content: flex-end;
+  margin-bottom: 24px;
+}
+.language-settings {
+  padding: 24px;
+  margin-bottom: 20px;
+  display: grid;
+  gap: 14px;
+}
+.language-settings h2,
+.language-settings p {
+  margin: 0;
+}
+.language-settings small {
+  color: var(--muted);
+  line-height: 1.6;
+  max-width: 70ch;
+}
+@media (max-width: 480px) {
+  .language-select.compact {
+    justify-content: space-between;
+  }
+}

@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from . import models as m
 from .category_catalog import DEFAULT_CATEGORIES
+from .i18n import t, unit_label
 from .schemas import SplitInput, TransactionInput
 
 
@@ -587,7 +588,7 @@ def dashboard(db: Session, organization_id: str, month: str):
         categories.append(
             {
                 "id": "uncategorized",
-                "name": "Без категории",
+                "name": t("Без категории"),
                 "color": "#a0a8b5",
                 "icon": "tag",
                 "spent_minor": int(spent[None]),
@@ -643,9 +644,9 @@ def dashboard(db: Session, organization_id: str, month: str):
         "available_mdl_minor": balances.get("MDL", 0)
         - sum(b["amount_minor"] for b in pending if b["currency"] == "MDL")
         - due_debt,
-        "comparison_label": "За одинаковое число дней"
+        "comparison_label": t("За одинаковое число дней")
         if month == today().strftime("%Y-%m")
-        else "К предыдущему месяцу",
+        else t("К предыдущему месяцу"),
         "as_of": today().isoformat(),
     }
 
@@ -660,11 +661,15 @@ def recommendations(db: Session, organization_id: str, month: str):
                 {
                     "id": "budget-" + c["id"],
                     "kind": "budget",
-                    "title": f"Лимит: {c['name']}",
-                    "text": f"Потрачено {money(spent)} MDL при лимите {money(c['budget_minor'])} MDL. Пересмотрите оставшиеся покупки этой категории.",
+                    "title": t("Лимит: {p0}", p0=c["name"]),
+                    "text": t(
+                        "Потрачено {p0} MDL при лимите {p1} MDL. Пересмотрите оставшиеся покупки этой категории.",
+                        p0=money(spent),
+                        p1=money(c["budget_minor"]),
+                    ),
                     "saving_minor": 0,
                     "category_id": c["id"],
-                    "basis": "Ваш бюджет и подтверждённые операции",
+                    "basis": t("Ваш бюджет и подтверждённые операции"),
                 }
             )
         elif c["previous_minor"] > 0 and spent > c["previous_minor"] * Decimal("1.25"):
@@ -672,8 +677,12 @@ def recommendations(db: Session, organization_id: str, month: str):
                 {
                     "id": "growth-" + c["id"],
                     "kind": "trend",
-                    "title": f"Выросли расходы: {c['name']}",
-                    "text": f"Сейчас {money(spent)} MDL, в периоде сравнения — {money(c['previous_minor'])} MDL. Проверьте, были ли крупные разовые покупки.",
+                    "title": t("Выросли расходы: {p0}", p0=c["name"]),
+                    "text": t(
+                        "Сейчас {p0} MDL, в периоде сравнения — {p1} MDL. Проверьте, были ли крупные разовые покупки.",
+                        p0=money(spent),
+                        p1=money(c["previous_minor"]),
+                    ),
                     "saving_minor": 0,
                     "category_id": c["id"],
                     "basis": report["comparison_label"],
@@ -684,11 +693,13 @@ def recommendations(db: Session, organization_id: str, month: str):
                 {
                     "id": "scenario-" + c["id"],
                     "kind": "scenario",
-                    "title": f"Сценарий −20%: {c['name']}",
-                    "text": "Если сократить частоту или стоимость таких покупок на 20%, разница составит указанную сумму. Это расчёт сценария, а не обещанная экономия.",
+                    "title": t("Сценарий −20%: {p0}", p0=c["name"]),
+                    "text": t(
+                        "Если сократить частоту или стоимость таких покупок на 20%, разница составит указанную сумму. Это расчёт сценария, а не обещанная экономия."
+                    ),
                     "saving_minor": base_value(spent, Decimal("0.2")),
                     "category_id": c["id"],
-                    "basis": f"20% от фактических {money(spent)} MDL",
+                    "basis": t("20% от фактических {p0} MDL", p0=money(spent)),
                 }
             )
     start, end = month_range(month)
@@ -706,10 +717,20 @@ def recommendations(db: Session, organization_id: str, month: str):
                 {
                     "id": f"price-{price['best_receipt_id']}-{index}",
                     "kind": "price",
-                    "title": f"Сравните цену: {price['name']}",
-                    "text": f"В ваших чеках цена менялась от {money(int(low.quantize(Decimal(1), rounding=ROUND_HALF_UP)))} до {money(int(high.quantize(Decimal(1), rounding=ROUND_HALF_UP)))} MDL/{price['unit']}. Минимум: «{price['best_merchant']}» ({price['best_on']}). Проверьте совпадение товара и актуальную цену перед покупкой.",
+                    "title": t("Сравните цену: {p0}", p0=price["name"]),
+                    "text": t(
+                        "В ваших чеках цена менялась от {p0} до {p1} MDL/{p2}. Минимум: «{p3}» ({p4}). Проверьте совпадение товара и актуальную цену перед покупкой.",
+                        p0=money(int(low.quantize(Decimal(1), rounding=ROUND_HALF_UP))),
+                        p1=money(int(high.quantize(Decimal(1), rounding=ROUND_HALF_UP))),
+                        p2=unit_label(price["unit"]),
+                        p3=price["best_merchant"],
+                        p4=price["best_on"],
+                    ),
                     "saving_minor": 0,
-                    "basis": f"Одинаковое название и единица, {price['receipt_count']} разных чеков. Прошлая цена не гарантирует сегодняшнюю.",
+                    "basis": t(
+                        "Одинаковое название и единица, {p0} разных чеков. Прошлая цена не гарантирует сегодняшнюю.",
+                        p0=price["receipt_count"],
+                    ),
                 }
             )
     if not cards:
@@ -717,10 +738,12 @@ def recommendations(db: Session, organization_id: str, month: str):
             {
                 "id": "start",
                 "kind": "info",
-                "title": "Начнём с ваших данных",
-                "text": "Добавьте несколько покупок и лимиты категорий. Здесь появятся изменения расходов, сценарии экономии и сравнение цен из ваших чеков.",
+                "title": t("Начнём с ваших данных"),
+                "text": t(
+                    "Добавьте несколько покупок и лимиты категорий. Здесь появятся изменения расходов, сценарии экономии и сравнение цен из ваших чеков."
+                ),
                 "saving_minor": 0,
-                "basis": "Без вымышленных цен и оценок",
+                "basis": t("Без вымышленных цен и оценок"),
             }
         )
     return {"cards": cards[:16], "report": report}

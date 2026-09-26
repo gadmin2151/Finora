@@ -63,7 +63,7 @@ jobs:
         with:
           node-version: '24'
       - run: corepack enable && corepack prepare pnpm@11.25.0 --activate
-      - run: pnpm install --frozen-lockfile && pnpm lint && pnpm typecheck && pnpm build
+      - run: pnpm install --frozen-lockfile && pnpm lint && pnpm typecheck && pnpm test:i18n && pnpm build
         working-directory: web
       - name: Audit web dependencies
         run: pnpm audit --audit-level=moderate

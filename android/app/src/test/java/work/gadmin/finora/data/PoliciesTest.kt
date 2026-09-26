@@ -3,6 +3,10 @@ package work.gadmin.finora.data
 import kotlinx.serialization.json.Json
 import org.junit.Assert.*
 import org.junit.Test
+import work.gadmin.finora.localization.AppLanguage
+import work.gadmin.finora.localization.LanguageRuntime
+import work.gadmin.finora.localization.Message
+import work.gadmin.finora.localization.tr
 
 class PoliciesTest {
     @Test
@@ -139,9 +143,19 @@ class PoliciesTest {
 
     @Test
     fun decimalAmountsDoNotLosePrecision() {
-        assertTrue(money(23508).contains("235,08"))
-        assertTrue(money(-1, "EUR").contains("-0,01"))
-        assertTrue(money(10_000_000_000_001L).endsWith(",01 MDL"))
+        val previous = LanguageRuntime.language
+        try {
+            LanguageRuntime.language = AppLanguage.RUSSIAN
+            assertTrue(money(23508).contains("235,08"))
+            assertTrue(money(-1, "EUR").contains("-0,01"))
+            assertTrue(money(10_000_000_000_001L).endsWith(",01 MDL"))
+            LanguageRuntime.language = AppLanguage.ENGLISH
+            assertTrue(money(23508).contains("235.08"))
+            assertTrue(money(-1, "EUR").contains("-0.01"))
+            assertTrue(money(10_000_000_000_001L).endsWith(".01 MDL"))
+        } finally {
+            LanguageRuntime.language = previous
+        }
     }
 
     @Test
@@ -152,6 +166,6 @@ class PoliciesTest {
         assertEquals(23508L, receipt.total_minor)
         assertEquals("1.312", receipt.items.single().quantity)
         assertFalse(receipt.isProcessing)
-        assertEquals("Чек без названия", receipt.title)
+        assertEquals(tr(Message.UNTITLED_RECEIPT), receipt.title)
     }
 }

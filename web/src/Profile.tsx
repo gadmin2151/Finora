@@ -1,4 +1,6 @@
+import { t } from "./i18n";
 import { useRef, useState } from "react";
+import { LanguageSettings } from "./Language";
 import { AppearanceSettings } from "./Appearance";
 import { Camera, Trash2 } from "lucide-react";
 import { queryClient, send, useAction } from "./api";
@@ -25,7 +27,7 @@ export function Avatar({
       {source && failed !== source ? (
         <img
           src={source}
-          alt={`Фото профиля: ${user.name}`}
+          alt={t("Фото профиля: {0}", user.name)}
           onError={() => setFailed(source)}
         />
       ) : (
@@ -46,12 +48,12 @@ export function ProfileSettings() {
       const result = await send<User>("/auth/profile", { name }, "PUT");
       queryClient.setQueryData(["me"], result);
     },
-    () => toast("Профиль сохранён"),
+    () => toast(t("Профиль сохранён")),
   );
   const photo = useAction(
     async (file: File | null) => {
       if (file && file.size > 5 * 1024 * 1024)
-        throw new Error("Выберите фотографию размером до 5 МБ");
+        throw new Error(t("Выберите фотографию размером до 5 МБ"));
       const body = new FormData();
       if (file) body.append("file", file);
       const result = await send<User>(
@@ -61,19 +63,22 @@ export function ProfileSettings() {
       );
       queryClient.setQueryData(["me"], result);
     },
-    () => toast("Фото профиля обновлено"),
+    () => toast(t("Фото профиля обновлено")),
   );
   return (
     <>
+      <LanguageSettings />
       <AppearanceSettings />
       <section className="panel profile-settings">
         <div className="profile-photo-row">
           <Avatar user={user} large />
           <div className="grow">
-            <h2>Ваше фото</h2>
-            <p>Так вас проще узнать в организации.</p>
+            <h2>{t("Ваше фото")}</h2>
+            <p>{t("Так вас проще узнать в организации.")}</p>
             <small>
-              JPEG, PNG, WebP или HEIC · до 5 МБ. Фото обрезается по центру.
+              {t(
+                "JPEG, PNG, WebP или HEIC · до 5 МБ. Фото обрезается по центру.",
+              )}
             </small>
             <div className="profile-photo-actions">
               <button
@@ -82,7 +87,7 @@ export function ProfileSettings() {
                 onClick={() => picker.current?.click()}
               >
                 <Camera size={17} />
-                {user.avatar_url ? "Изменить фото" : "Добавить фото"}
+                {user.avatar_url ? t("Изменить фото") : t("Добавить фото")}
               </button>
               {user.avatar_url && (
                 <button
@@ -90,7 +95,7 @@ export function ProfileSettings() {
                   disabled={photo.isPending}
                   onClick={() => photo.mutate(null)}
                 >
-                  <Trash2 size={16} /> Удалить фото
+                  <Trash2 size={16} /> {t("Удалить фото")}
                 </button>
               )}
             </div>
@@ -99,7 +104,7 @@ export function ProfileSettings() {
               type="file"
               accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
               hidden
-              aria-label="Фотография профиля"
+              aria-label={t("Фотография профиля")}
               disabled={photo.isPending}
               onChange={(event) => {
                 const file = event.target.files?.[0];
@@ -109,10 +114,10 @@ export function ProfileSettings() {
             />
           </div>
         </div>
-        {photo.isPending && <Loading text="Обновляем фото профиля…" />}
+        {photo.isPending && <Loading text={t("Обновляем фото профиля…")} />}
         <ErrorBox error={photo.error ?? save.error} />
         <Form onSubmit={() => save.mutate(undefined)}>
-          <Field label="Как к вам обращаться">
+          <Field label={t("Как к вам обращаться")}>
             <input
               value={name}
               onChange={(event) => setName(event.target.value)}
@@ -121,7 +126,7 @@ export function ProfileSettings() {
               autoComplete="name"
             />
           </Field>
-          <Submit pending={save.isPending}>Сохранить имя</Submit>
+          <Submit pending={save.isPending}>{t("Сохранить имя")}</Submit>
         </Form>
       </section>
     </>

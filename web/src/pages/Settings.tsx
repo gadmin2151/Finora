@@ -1,3 +1,4 @@
+import { t, getLocale } from "../i18n";
 import { CategoryRefresh } from "../CategoryRefresh";
 import { ProfileSettings } from "../Profile";
 import { useState } from "react";
@@ -43,7 +44,7 @@ export function Accounts() {
   const [editing, setEditing] = useState<Account | "new" | null>(null);
   const archive = useAction(
     (id: string) => send(`/accounts/${id}/archive`),
-    () => toast("Статус счёта обновлён"),
+    () => toast(t("Статус счёта обновлён")),
   );
   const totals: Record<string, number> = {};
   for (const a of accounts)
@@ -51,20 +52,24 @@ export function Accounts() {
   return (
     <>
       <PageHeading
-        eyebrow="ВСЕ ДЕНЬГИ В ОДНОМ МЕСТЕ"
-        title="Ваши счета"
-        text="Наличные, карты и накопления. Переводы между своими счетами не считаются расходами."
+        eyebrow={t("ВСЕ ДЕНЬГИ В ОДНОМ МЕСТЕ")}
+        title={t("Ваши счета")}
+        text={t(
+          "Наличные, карты и накопления. Переводы между своими счетами не считаются расходами.",
+        )}
         actions={
           <button className="button primary" onClick={() => setEditing("new")}>
             <Plus size={18} />
-            Новый счёт
+            {t("Новый счёт")}
           </button>
         }
       />
       <div className="account-totals">
         {Object.entries(totals).map(([c, total]) => (
           <div key={c}>
-            <span>Общий остаток · {c}</span>
+            <span>
+              {t("Общий остаток ·")} {c}
+            </span>
             <strong>{amount(total, c)}</strong>
           </div>
         ))}
@@ -86,12 +91,12 @@ export function Accounts() {
               </span>
               <Badge>
                 {a.archived
-                  ? "Архив"
+                  ? t("Архив")
                   : (
                       {
-                        cash: "Наличные",
-                        card: "Карта",
-                        savings: "Накопления",
+                        cash: t("Наличные"),
+                        card: t("Карта"),
+                        savings: t("Накопления"),
                       } as Record<string, string>
                     )[a.kind]}
               </Badge>
@@ -100,11 +105,13 @@ export function Accounts() {
             <strong className="account-amount">
               {amount(a.balance_minor, a.currency)}
             </strong>
-            <p>Начальный остаток: {amount(a.opening_minor, a.currency)}</p>
+            <p>
+              {t("Начальный остаток:")} {amount(a.opening_minor, a.currency)}
+            </p>
             <div className="account-footer">
               <button className="text-button" onClick={() => setEditing(a)}>
                 <Pencil size={15} />
-                Изменить
+                {t("Изменить")}
               </button>
               <button
                 className="text-button muted"
@@ -112,16 +119,16 @@ export function Accounts() {
                 onClick={() => archive.mutate(a.id)}
               >
                 <Archive size={15} />
-                {a.archived ? "Восстановить" : "В архив"}
+                {a.archived ? t("Восстановить") : t("В архив")}
               </button>
             </div>
           </article>
         ))}
       </div>
       <div className="notice">
-        Остатки разных валют не складываются без курса. Доходы и расходы в
-        отчётах пересчитываются в MDL по курсу, указанному при создании
-        операции.
+        {t(
+          "Остатки разных валют не складываются без курса. Доходы и расходы в отчётах пересчитываются в MDL по курсу, указанному при создании операции.",
+        )}
       </div>
       {editing && (
         <AccountForm
@@ -129,7 +136,7 @@ export function Accounts() {
           onClose={() => setEditing(null)}
           onDone={() => {
             setEditing(null);
-            toast("Счёт сохранён");
+            toast(t("Счёт сохранён"));
           }}
         />
       )}
@@ -162,33 +169,35 @@ function AccountForm({
   );
   return (
     <Modal
-      title={account ? "Изменить счёт" : "Новый счёт"}
-      description="Начальный остаток — деньги, которые уже есть на счёте до начала учёта."
+      title={account ? t("Изменить счёт") : t("Новый счёт")}
+      description={t(
+        "Начальный остаток — деньги, которые уже есть на счёте до начала учёта.",
+      )}
       onClose={onClose}
     >
       <Form onSubmit={() => action.mutate(undefined)}>
         <div className="form-grid">
-          <Field label="Название" wide>
+          <Field label={t("Название")} wide>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
               autoFocus
               maxLength={100}
-              placeholder="Например, maib · основная карта"
+              placeholder={t("Например, maib · основная карта")}
             />
           </Field>
-          <Field label="Тип">
+          <Field label={t("Тип")}>
             <select value={kind} onChange={(e) => setKind(e.target.value)}>
-              <option value="card">Карта</option>
-              <option value="cash">Наличные</option>
-              <option value="savings">Накопления</option>
+              <option value="card">{t("Карта")}</option>
+              <option value="cash">{t("Наличные")}</option>
+              <option value="savings">{t("Накопления")}</option>
             </select>
           </Field>
-          <Field label="Валюта">
+          <Field label={t("Валюта")}>
             <CurrencySelect value={currency} onChange={setCurrency} />
           </Field>
-          <Field label="Начальный остаток">
+          <Field label={t("Начальный остаток")}>
             <MoneyInput
               value={balance}
               onChange={setBalance}
@@ -196,12 +205,13 @@ function AccountForm({
             />
             {account && (
               <small>
-                Исправление изменит текущий баланс, но не доходы и расходы.
-                Валюта счёта с операциями защищена.
+                {t(
+                  "Исправление изменит текущий баланс, но не доходы и расходы. Валюта счёта с операциями защищена.",
+                )}
               </small>
             )}
           </Field>
-          <Field label="Цвет">
+          <Field label={t("Цвет")}>
             <input
               type="color"
               value={color}
@@ -225,9 +235,9 @@ export default function Settings() {
     return (
       <>
         <PageHeading
-          eyebrow="ВАШ АККАУНТ"
-          title="Ваш профиль"
-          text="Фото, имя, пароль и активные сеансы."
+          eyebrow={t("ВАШ АККАУНТ")}
+          title={t("Ваш профиль")}
+          text={t("Фото, имя, пароль и активные сеансы.")}
         />
         <ProfileSettings />
         <SecuritySettings />
@@ -236,21 +246,23 @@ export default function Settings() {
   return (
     <>
       <PageHeading
-        eyebrow="ВАШ СЕРВИС — ВАШИ ПРАВИЛА"
-        title="Настроено под вас"
-        text="AI, категории и защита данных. Всё необходимое для комфортного учёта."
+        eyebrow={t("ВАШ СЕРВИС — ВАШИ ПРАВИЛА")}
+        title={t("Настроено под вас")}
+        text={t(
+          "AI, категории и защита данных. Всё необходимое для комфортного учёта.",
+        )}
       />
       <div
         className="settings-tabs"
         role="tablist"
-        aria-label="Разделы настроек"
+        aria-label={t("Разделы настроек")}
       >
         {[
-          ["profile", "Мой профиль", Pencil],
-          ["ai", "AI и распознавание", Sparkles],
-          ["categories", "Категории и правила", Wallet],
-          ["security", "Безопасность", ShieldCheck],
-          ["data", "Ваши данные", HardDrive],
+          ["profile", t("Мой профиль"), Pencil],
+          ["ai", t("AI и распознавание"), Sparkles],
+          ["categories", t("Категории и правила"), Wallet],
+          ["security", t("Безопасность"), ShieldCheck],
+          ["data", t("Ваши данные"), HardDrive],
         ].map(([id, text, Icon]) => {
           const Component = Icon as typeof Sparkles;
           return (
@@ -337,16 +349,16 @@ function AISettings({ initial }: { initial: Preferences }) {
     () => {
       setApiKey("");
       setClearKey(false);
-      toast("Настройки сохранены");
+      toast(t("Настройки сохранены"));
     },
   );
   const pull = useAction(
     (model: string) => send("/ai/models/pull", { model }),
-    () => toast("Загрузка поставлена в очередь"),
+    () => toast(t("Загрузка поставлена в очередь")),
   );
   const test = useAction(
     () => send("/ai/test"),
-    () => toast("Проверка запущена"),
+    () => toast(t("Проверка запущена")),
   );
   const changeProvider = (value: Preferences["provider"]) => {
     setProvider(value);
@@ -365,31 +377,32 @@ function AISettings({ initial }: { initial: Preferences }) {
   return (
     <div className="settings-grid">
       <section className="panel settings-panel">
-        <h2>Помощник и распознавание</h2>
+        <h2>{t("Помощник и распознавание")}</h2>
         <p>
-          Выберите, где обрабатывать данные. Смена провайдера происходит только
-          по вашему выбору.
+          {t(
+            "Выберите, где обрабатывать данные. Смена провайдера происходит только по вашему выбору.",
+          )}
         </p>
         <Form onSubmit={() => save.mutate(undefined)}>
           <div className="provider-grid">
             {[
               {
                 value: "disabled" as const,
-                label: "Без AI",
+                label: t("Без AI"),
                 icon: ShieldCheck,
-                text: "Учёт и базовая аналитика",
+                text: t("Учёт и базовая аналитика"),
               },
               {
                 value: "ollama" as const,
-                label: "Локальный AI",
+                label: t("Локальный AI"),
                 icon: Cpu,
-                text: "CPU и RAM вашего сервера",
+                text: t("CPU и RAM вашего сервера"),
               },
               {
                 value: "openai" as const,
                 label: "OpenAI",
                 icon: Cloud,
-                text: "Модели через API",
+                text: t("Модели через API"),
               },
             ].map((p) => (
               <button
@@ -410,7 +423,7 @@ function AISettings({ initial }: { initial: Preferences }) {
           {provider !== "disabled" && (
             <>
               <div className="form-grid">
-                <Field label="Модель для текста и анализа">
+                <Field label={t("Модель для текста и анализа")}>
                   <input
                     required
                     value={model}
@@ -422,8 +435,8 @@ function AISettings({ initial }: { initial: Preferences }) {
                   />
                 </Field>
                 <Field
-                  label="Модель для фотографий"
-                  hint="Нужна модель с поддержкой изображений"
+                  label={t("Модель для фотографий")}
+                  hint={t("Нужна модель с поддержкой изображений")}
                 >
                   <input
                     required
@@ -446,10 +459,12 @@ function AISettings({ initial }: { initial: Preferences }) {
                   <Field
                     label={
                       initial.has_openai_key
-                        ? "Новый API-ключ · текущий уже сохранён"
-                        : "API-ключ OpenAI"
+                        ? t("Новый API-ключ · текущий уже сохранён")
+                        : t("API-ключ OpenAI")
                     }
-                    hint="Ключ хранится зашифрованным на сервере и не возвращается в браузер."
+                    hint={t(
+                      "Ключ хранится зашифрованным на сервере и не возвращается в браузер.",
+                    )}
                   >
                     <input
                       type="password"
@@ -466,18 +481,20 @@ function AISettings({ initial }: { initial: Preferences }) {
                       checked={clearKey}
                       onChange={(e) => setClearKey(e.target.checked)}
                     />
-                    Удалить сохранённый ключ
+                    {t("Удалить сохранённый ключ")}
                   </label>
                   <div className="notice">
-                    Фото чеков и данные для анализа отправляются в OpenAI.
-                    Подписка ChatGPT не заменяет API-ключ; использование API
-                    оплачивается отдельно.
+                    {t(
+                      "Фото чеков и данные для анализа отправляются в OpenAI. Подписка ChatGPT не заменяет API-ключ; использование API оплачивается отдельно.",
+                    )}
                   </div>
                 </>
               )}
               <Field
-                label="Лимит AI-запросов в месяц"
-                hint="Включая неудачные попытки. Это ограничение количества, а не денежный лимит API."
+                label={t("Лимит AI-запросов в месяц")}
+                hint={t(
+                  "Включая неудачные попытки. Это ограничение количества, а не денежный лимит API.",
+                )}
               >
                 <input
                   type="number"
@@ -491,7 +508,7 @@ function AISettings({ initial }: { initial: Preferences }) {
             </>
           )}
           <div className="settings-divider" />
-          <Field label="Основной счёт для чеков">
+          <Field label={t("Основной счёт для чеков")}>
             <AccountSelect
               accounts={accounts}
               value={account}
@@ -501,10 +518,11 @@ function AISettings({ initial }: { initial: Preferences }) {
           </Field>
           <label className="switch-row">
             <span>
-              <strong>Добавлять проверенные чеки автоматически</strong>
+              <strong>{t("Добавлять проверенные чеки автоматически")}</strong>
               <small>
-                Только если суммы совпали, категории определены и нет похожего
-                расхода.
+                {t(
+                  "Только если суммы совпали, категории определены и нет похожего расхода.",
+                )}
               </small>
             </span>
             <input
@@ -523,7 +541,7 @@ function AISettings({ initial }: { initial: Preferences }) {
               disabled={test.isPending}
               onClick={() => test.mutate(undefined)}
             >
-              Проверить сохранённое подключение
+              {t("Проверить сохранённое подключение")}
             </button>
           </div>
         </Form>
@@ -531,12 +549,15 @@ function AISettings({ initial }: { initial: Preferences }) {
       <aside className="settings-side">
         <section className="panel settings-panel">
           <div className="between">
-            <h2>Использование AI</h2>
-            <Badge>Этот месяц</Badge>
+            <h2>{t("Использование AI")}</h2>
+            <Badge>{t("Этот месяц")}</Badge>
           </div>
           <strong className="usage-number">
             {initial.usage.requests}
-            <small> / {initial.monthly_request_limit} запросов</small>
+            <small>
+              {" "}
+              / {initial.monthly_request_limit} {t("запросов")}
+            </small>
           </strong>
           <div className="meter">
             <span
@@ -546,36 +567,38 @@ function AISettings({ initial }: { initial: Preferences }) {
             />
           </div>
           <p>
-            {initial.usage.input_tokens.toLocaleString("ru-RU")} входящих ·{" "}
-            {initial.usage.output_tokens.toLocaleString("ru-RU")} исходящих
-            токенов
+            {initial.usage.input_tokens.toLocaleString(getLocale())}{" "}
+            {t("входящих ·")}{" "}
+            {initial.usage.output_tokens.toLocaleString(getLocale())}{" "}
+            {t("исходящих токенов")}
           </p>
         </section>
         <section className="panel settings-panel">
           <span className="round-icon mint">
             <ShieldCheck size={24} />
           </span>
-          <h2>Личные данные остаются личными</h2>
+          <h2>{t("Личные данные остаются личными")}</h2>
           <p>
-            С локальной моделью обработка происходит на вашем сервере. Модель
-            сначала скачивается на диск, затем загружается в RAM. Видеокарта не
-            требуется.
+            {t(
+              "С локальной моделью обработка происходит на вашем сервере. Модель сначала скачивается на диск, затем загружается в RAM. Видеокарта не требуется.",
+            )}
           </p>
           <p>
-            Рекомендации AI не могут переводить деньги, удалять записи или
-            менять ваш учёт.
+            {t(
+              "Рекомендации AI не могут переводить деньги, удалять записи или менять ваш учёт.",
+            )}
           </p>
         </section>
         {relevantJobs?.length ? (
           <section className="panel settings-panel">
-            <h2>Задачи AI</h2>
+            <h2>{t("Задачи AI")}</h2>
             {relevantJobs.map((j) => (
               <div className="job-row" key={j.id}>
                 <div className="between">
                   <strong>
                     {j.kind === "model_pull"
                       ? j.payload.model
-                      : "Проверка подключения"}
+                      : t("Проверка подключения")}
                   </strong>
                   <Badge status={j.status} />
                 </div>
@@ -589,24 +612,26 @@ function AISettings({ initial }: { initial: Preferences }) {
       <section className="panel settings-panel model-section">
         <div className="panel-heading">
           <div>
-            <h2>Локальные модели</h2>
+            <h2>{t("Локальные модели")}</h2>
             <p>
-              Скачайте модель один раз. После загрузки интернет для её работы не
-              нужен.
+              {t(
+                "Скачайте модель один раз. После загрузки интернет для её работы не нужен.",
+              )}
             </p>
           </div>
           <Badge status={models.data?.online ? "posted" : "skipped"}>
             {models.isPending
-              ? "Проверяю подключение…"
+              ? t("Проверяю подключение…")
               : models.data?.online
-                ? "Ollama подключён"
-                : "Ollama недоступен"}
+                ? t("Ollama подключён")
+                : t("Ollama недоступен")}
           </Badge>
         </div>
         {!models.isPending && !models.data?.online && (
           <div className="notice">
-            Для локального AI включите профиль Docker <code>local-ai</code> по
-            инструкции в README. После запуска здесь появятся модели.
+            {t("Для локального AI включите профиль Docker")}{" "}
+            <code>local-ai</code>{" "}
+            {t("по инструкции в README. После запуска здесь появятся модели.")}
           </div>
         )}
         <ErrorBox error={pull.error ?? models.error} />
@@ -623,12 +648,14 @@ function AISettings({ initial }: { initial: Preferences }) {
               <article className="model-card" key={m.name}>
                 <div className="between">
                   <Cpu size={24} />
-                  {m.vision && <Badge>Фото + текст</Badge>}
+                  {m.vision && <Badge>{t("Фото + текст")}</Badge>}
                 </div>
                 <h3>{m.title}</h3>
                 <p>{m.description}</p>
                 <div className="model-specs">
-                  <span>Диск ≈ {m.size}</span>
+                  <span>
+                    {t("Диск ≈")} {m.size}
+                  </span>
                   <span>RAM {m.ram}*</span>
                 </div>
                 <button
@@ -644,14 +671,14 @@ function AISettings({ initial }: { initial: Preferences }) {
                   {installed ? (
                     <>
                       <Check size={16} />
-                      Установлена
+                      {t("Установлена")}
                     </>
                   ) : pending ? (
                     pending.progress
                   ) : (
                     <>
                       <Download size={16} />
-                      Загрузить
+                      {t("Загрузить")}
                     </>
                   )}
                 </button>
@@ -660,8 +687,9 @@ function AISettings({ initial }: { initial: Preferences }) {
           })}
         </div>
         <small className="muted">
-          * Ориентиры для модели. Серверу и базе нужна дополнительная память.
-          Длинные чеки увеличивают расход RAM; скорость зависит от CPU.
+          {t(
+            "* Ориентиры для модели. Серверу и базе нужна дополнительная память. Длинные чеки увеличивают расход RAM; скорость зависит от CPU.",
+          )}
         </small>
       </section>
     </div>
@@ -682,7 +710,7 @@ function CategorySettings() {
     () => send("/rules", { pattern, field, category_id: category }),
     () => {
       setPattern("");
-      toast("Правило добавлено");
+      toast(t("Правило добавлено"));
     },
   );
   const remove = useAction((id: string) =>
@@ -692,10 +720,10 @@ function CategorySettings() {
     <div className="two-columns">
       <section className="panel settings-panel">
         <div className="between">
-          <h2>Категории</h2>
+          <h2>{t("Категории")}</h2>
           <button className="text-button" onClick={() => setEditing("new")}>
             <Plus size={16} />
-            Добавить
+            {t("Добавить")}
           </button>
         </div>
         <CategoryRefresh />
@@ -710,31 +738,31 @@ function CategorySettings() {
         </div>
       </section>
       <section className="panel settings-panel">
-        <h2>Ваши правила распределения</h2>
+        <h2>{t("Ваши правила распределения")}</h2>
         <p>
-          Правила имеют приоритет перед AI. Самое новое подходящее правило
-          применяется первым. Чтобы применить правила к сохранённым чекам,
-          нажмите «Перераспределить чеки».
+          {t(
+            "Правила имеют приоритет перед AI. Самое новое подходящее правило применяется первым. Чтобы применить правила к сохранённым чекам, нажмите «Перераспределить чеки».",
+          )}
         </p>
         <Form onSubmit={() => save.mutate(undefined)}>
           <div className="form-grid">
-            <Field label="Искать в">
+            <Field label={t("Искать в")}>
               <select value={field} onChange={(e) => setField(e.target.value)}>
-                <option value="item">Названии товара</option>
-                <option value="merchant">Названии магазина</option>
+                <option value="item">{t("Названии товара")}</option>
+                <option value="merchant">{t("Названии магазина")}</option>
               </select>
             </Field>
-            <Field label="Содержит текст">
+            <Field label={t("Содержит текст")}>
               <input
                 required
                 minLength={2}
                 maxLength={150}
                 value={pattern}
                 onChange={(e) => setPattern(e.target.value)}
-                placeholder="Например, motorina"
+                placeholder={t("Например, motorina")}
               />
             </Field>
-            <Field label="Категория" wide>
+            <Field label={t("Категория")} wide>
               <CategorySelect
                 categories={categories}
                 value={category}
@@ -744,7 +772,7 @@ function CategorySettings() {
             </Field>
           </div>
           <ErrorBox error={save.error ?? remove.error ?? rules.error} />
-          <Submit pending={save.isPending}>Добавить правило</Submit>
+          <Submit pending={save.isPending}>{t("Добавить правило")}</Submit>
         </Form>
         <div className="rules-list">
           {rules.data?.map((r) => (
@@ -752,14 +780,14 @@ function CategorySettings() {
               <span>
                 <strong>{r.pattern}</strong>
                 <small>
-                  {r.field === "item" ? "Товар" : "Магазин"} →{" "}
+                  {r.field === "item" ? t("Товар") : t("Магазин")} →{" "}
                   {categories.find((c) => c.id === r.category_id)?.name}
                 </small>
               </span>
               <button
                 className="icon-button danger-hover"
                 disabled={remove.isPending}
-                aria-label={`Удалить правило ${r.pattern}`}
+                aria-label={t("Удалить правило {0}", r.pattern)}
                 onClick={() => remove.mutate(r.id)}
               >
                 <Trash2 size={17} />
@@ -774,7 +802,7 @@ function CategorySettings() {
           onClose={() => setEditing(null)}
           onDone={() => {
             setEditing(null);
-            toast("Категория сохранена");
+            toast(t("Категория сохранена"));
           }}
         />
       )}
@@ -805,12 +833,12 @@ function CategoryForm({
   );
   return (
     <Modal
-      title={category ? "Изменить категорию" : "Новая категория"}
+      title={category ? t("Изменить категорию") : t("Новая категория")}
       onClose={onClose}
     >
       <Form onSubmit={() => save.mutate(undefined)}>
         <div className="form-grid">
-          <Field label="Название" wide>
+          <Field label={t("Название")} wide>
             <input
               required
               autoFocus
@@ -819,49 +847,49 @@ function CategoryForm({
               onChange={(e) => setName(e.target.value)}
             />
           </Field>
-          <Field label="Цвет">
+          <Field label={t("Цвет")}>
             <input
               type="color"
               value={color}
               onChange={(e) => setColor(e.target.value)}
             />
           </Field>
-          <Field label="Значок">
+          <Field label={t("Значок")}>
             <select value={icon} onChange={(e) => setIcon(e.target.value)}>
               {Object.entries({
-                tag: "Метка",
-                "shopping-basket": "Продукты",
-                coffee: "Кафе",
-                house: "Дом",
-                car: "Автомобиль",
-                train: "Транспорт",
-                heart: "Здоровье",
-                "shopping-bag": "Покупки",
-                repeat: "Подписки",
-                book: "Образование",
-                plane: "Отдых",
-                gift: "Подарки",
-                apple: "Овощи и фрукты",
-                beef: "Мясо",
-                fish: "Рыба",
-                milk: "Молочные продукты",
-                croissant: "Выпечка",
-                wheat: "Бакалея",
-                candy: "Сладости",
-                popcorn: "Снеки",
-                "cup-soda": "Напитки",
-                zap: "Энергетики",
-                wine: "Алкоголь",
-                cigarette: "Табак",
-                utensils: "Готовая еда",
-                "spray-can": "Бытовая химия",
-                bath: "Гигиена",
-                lamp: "Товары для дома",
-                baby: "Для детей",
-                "paw-print": "Питомцы",
-                shirt: "Одежда",
-                sparkles: "Косметика",
-                pill: "Лекарства",
+                tag: t("Метка"),
+                "shopping-basket": t("Продукты"),
+                coffee: t("Кафе"),
+                house: t("Дом"),
+                car: t("Автомобиль"),
+                train: t("Транспорт"),
+                heart: t("Здоровье"),
+                "shopping-bag": t("Покупки"),
+                repeat: t("Подписки"),
+                book: t("Образование"),
+                plane: t("Отдых"),
+                gift: t("Подарки"),
+                apple: t("Овощи и фрукты"),
+                beef: t("Мясо"),
+                fish: t("Рыба"),
+                milk: t("Молочные продукты"),
+                croissant: t("Выпечка"),
+                wheat: t("Бакалея"),
+                candy: t("Сладости"),
+                popcorn: t("Снеки"),
+                "cup-soda": t("Напитки"),
+                zap: t("Энергетики"),
+                wine: t("Алкоголь"),
+                cigarette: t("Табак"),
+                utensils: t("Готовая еда"),
+                "spray-can": t("Бытовая химия"),
+                bath: t("Гигиена"),
+                lamp: t("Товары для дома"),
+                baby: t("Для детей"),
+                "paw-print": t("Питомцы"),
+                shirt: t("Одежда"),
+                sparkles: t("Косметика"),
+                pill: t("Лекарства"),
               }).map(([k, v]) => (
                 <option key={k} value={k}>
                   {v}
@@ -893,7 +921,7 @@ function SecuritySettings() {
   });
   const change = useAction(
     async () => {
-      if (password !== repeat) throw new Error("Новые пароли не совпадают");
+      if (password !== repeat) throw new Error(t("Новые пароли не совпадают"));
       return send("/auth/password", {
         current_password: current,
         new_password: password,
@@ -903,12 +931,12 @@ function SecuritySettings() {
       setCurrent("");
       setPassword("");
       setRepeat("");
-      toast("Пароль изменён. Другие сеансы завершены");
+      toast(t("Пароль изменён. Другие сеансы завершены"));
     },
   );
   const revoke = useAction(
     (id: string) => send(`/auth/sessions/${id}`, undefined, "DELETE"),
-    () => toast("Сеанс завершён"),
+    () => toast(t("Сеанс завершён")),
   );
   return (
     <div className="two-columns">
@@ -916,13 +944,13 @@ function SecuritySettings() {
         <span className="round-icon mint">
           <KeyRound size={23} />
         </span>
-        <h2>Вход в аккаунт</h2>
+        <h2>{t("Вход в аккаунт")}</h2>
         <p>
-          Логин: <strong>{user.username}</strong>. Регистрация закрыта. Пароль
-          можно изменить здесь.
+          {t("Логин:")} <strong>{user.username}</strong>
+          {t(". Регистрация закрыта. Пароль можно изменить здесь.")}
         </p>
         <Form onSubmit={() => change.mutate(undefined)}>
-          <Field label="Текущий пароль">
+          <Field label={t("Текущий пароль")}>
             <input
               type="password"
               autoComplete="current-password"
@@ -932,7 +960,7 @@ function SecuritySettings() {
               onChange={(e) => setCurrent(e.target.value)}
             />
           </Field>
-          <Field label="Новый пароль" hint="Не менее 12 символов">
+          <Field label={t("Новый пароль")} hint={t("Не менее 12 символов")}>
             <input
               type="password"
               autoComplete="new-password"
@@ -943,7 +971,7 @@ function SecuritySettings() {
               onChange={(e) => setPassword(e.target.value)}
             />
           </Field>
-          <Field label="Повторите новый пароль">
+          <Field label={t("Повторите новый пароль")}>
             <input
               type="password"
               autoComplete="new-password"
@@ -955,29 +983,35 @@ function SecuritySettings() {
             />
           </Field>
           <ErrorBox error={change.error} />
-          <Submit pending={change.isPending}>Изменить пароль</Submit>
+          <Submit pending={change.isPending}>{t("Изменить пароль")}</Submit>
         </Form>
       </section>
       <section className="panel settings-panel">
-        <h2>Активные сеансы</h2>
-        <p>После смены пароля остальные устройства выйдут из аккаунта.</p>
+        <h2>{t("Активные сеансы")}</h2>
+        <p>
+          {t("После смены пароля остальные устройства выйдут из аккаунта.")}
+        </p>
         <ErrorBox error={sessions.error ?? revoke.error} />
         {sessions.data?.map((s) => (
           <div className="session-row" key={s.id}>
             <div>
-              <strong>{s.current ? "Этот браузер" : "Другой сеанс"}</strong>
+              <strong>
+                {s.current ? t("Этот браузер") : t("Другой сеанс")}
+              </strong>
               <p>{s.device}</p>
-              <small>{new Date(s.created_at).toLocaleString("ru-RU")}</small>
+              <small>
+                {new Date(s.created_at).toLocaleString(getLocale())}
+              </small>
             </div>
             {s.current ? (
-              <Badge status="posted">Активен</Badge>
+              <Badge status="posted">{t("Активен")}</Badge>
             ) : (
               <button
                 className="text-button negative"
                 disabled={revoke.isPending}
                 onClick={() => revoke.mutate(s.id)}
               >
-                Завершить
+                {t("Завершить")}
               </button>
             )}
           </div>
@@ -996,14 +1030,14 @@ function DataSettings() {
       >("/audit"),
   });
   const names: Record<string, string> = {
-    "transaction.created": "Операция добавлена",
-    "transaction.edited": "Операция изменена",
-    "transaction.voided": "Операция отменена",
-    "debt.created": "Долг добавлен",
-    "receipt.confirmed": "Чек подтверждён",
-    "bill.paid": "Платёж оплачен",
-    "settings.updated": "Настройки обновлены",
-    "password.changed": "Пароль изменён",
+    "transaction.created": t("Операция добавлена"),
+    "transaction.edited": t("Операция изменена"),
+    "transaction.voided": t("Операция отменена"),
+    "debt.created": t("Долг добавлен"),
+    "receipt.confirmed": t("Чек подтверждён"),
+    "bill.paid": t("Платёж оплачен"),
+    "settings.updated": t("Настройки обновлены"),
+    "password.changed": t("Пароль изменён"),
   };
   return (
     <div className="two-columns">
@@ -1011,10 +1045,11 @@ function DataSettings() {
         <span className="round-icon mint">
           <HardDrive size={24} />
         </span>
-        <h2>Ваши данные принадлежат вам</h2>
+        <h2>{t("Ваши данные принадлежат вам")}</h2>
         <p>
-          Выгрузите операции для таблиц или все данные учёта в переносимом
-          формате JSON.
+          {t(
+            "Выгрузите операции для таблиц или все данные учёта в переносимом формате JSON.",
+          )}
         </p>
         <div className="export-buttons">
           <a
@@ -1023,7 +1058,7 @@ function DataSettings() {
             download
           >
             <Download size={18} />
-            Операции CSV
+            {t("Операции CSV")}
           </a>
           <a
             className="button secondary"
@@ -1031,25 +1066,25 @@ function DataSettings() {
             download
           >
             <Download size={18} />
-            Полный учёт JSON
+            {t("Полный учёт JSON")}
           </a>
         </div>
         <div className="settings-divider" />
-        <h3>Резервная копия сервера</h3>
+        <h3>{t("Резервная копия сервера")}</h3>
         <p>
-          Скрипт резервного копирования сохраняет базу, фотографии и настройки в
-          зашифрованном архиве. Команды создания и восстановления описаны в
-          README проекта.
+          {t(
+            "Скрипт резервного копирования сохраняет базу, фотографии и настройки в зашифрованном архиве. Команды создания и восстановления описаны в README проекта.",
+          )}
         </p>
         <div className="notice">
-          Экспорт JSON содержит данные учёта, но не файлы фото, пароли и
-          API-ключи. Для полного восстановления используйте резервную копию
-          сервера.
+          {t(
+            "Экспорт JSON содержит данные учёта, но не файлы фото, пароли и API-ключи. Для полного восстановления используйте резервную копию сервера.",
+          )}
         </div>
       </section>
       <section className="panel settings-panel">
-        <h2>Журнал изменений</h2>
-        <p>Последние 100 действий с учётом и настройками.</p>
+        <h2>{t("Журнал изменений")}</h2>
+        <p>{t("Последние 100 действий с учётом и настройками.")}</p>
         <ErrorBox error={audit.error} />
         <div className="audit-list">
           {audit.data?.length ? (
@@ -1059,13 +1094,13 @@ function DataSettings() {
                 <span>
                   {names[row.action] ?? row.action}
                   <small>
-                    {new Date(row.created_at).toLocaleString("ru-RU")}
+                    {new Date(row.created_at).toLocaleString(getLocale())}
                   </small>
                 </span>
               </div>
             ))
           ) : (
-            <p>Журнал пока пуст.</p>
+            <p>{t("Журнал пока пуст.")}</p>
           )}
         </div>
       </section>

@@ -26,7 +26,9 @@ import org.junit.runner.RunWith
  */
 @RunWith(AndroidJUnit4::class)
 class ScreenAcceptanceTest {
-    @get:Rule val rule = createAndroidComposeRule<MainActivity>()
+    @get:Rule(order = 0) val languageRule = RussianUiLanguageRule()
+
+    @get:Rule(order = 1) val rule = createAndroidComposeRule<MainActivity>()
 
     private fun screenshot(name: String) {
         val image = rule.onRoot().captureToImage().asAndroidBitmap()

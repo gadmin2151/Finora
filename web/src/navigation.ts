@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import {
   Banknote,
   Building2,
@@ -36,49 +37,107 @@ interface NavigationGroup {
 
 export const overviewLink: NavigationItem = {
   id: "overview",
-  label: "Обзор",
+  get label() {
+    return t("Обзор");
+  },
   icon: LayoutDashboard,
 };
 
 export const navigationGroups: NavigationGroup[] = [
   {
     id: "money",
-    label: "Деньги",
-    description: "Счета, доходы, операции",
-    memberDescription: "Доходы и операции",
+    get label() {
+      return t("Деньги");
+    },
+    get description() {
+      return t("Счета, доходы, операции");
+    },
+    get memberDescription() {
+      return t("Доходы и операции");
+    },
     icon: Wallet,
     items: [
       {
         id: "accounts",
-        label: "Счета и остатки",
+        get label() {
+          return t("Счета и остатки");
+        },
         icon: Wallet,
         adminOnly: true,
       },
-      { id: "income", label: "Доходы", icon: Banknote },
-      { id: "transactions", label: "Все операции", icon: ListFilter },
-      { id: "debts", label: "Долги", icon: Users, adminOnly: true },
+      {
+        id: "income",
+        get label() {
+          return t("Доходы");
+        },
+        icon: Banknote,
+      },
+      {
+        id: "transactions",
+        get label() {
+          return t("Все операции");
+        },
+        icon: ListFilter,
+      },
+      {
+        id: "debts",
+        get label() {
+          return t("Долги");
+        },
+        icon: Users,
+        adminOnly: true,
+      },
     ],
   },
   {
     id: "shopping",
-    label: "Чеки и покупки",
-    description: "Чеки, товары, цены",
+    get label() {
+      return t("Чеки и покупки");
+    },
+    get description() {
+      return t("Чеки, товары, цены");
+    },
     icon: ShoppingBasket,
     items: [
-      { id: "receipts", label: "Чеки", icon: ScanLine },
-      { id: "purchases", label: "Товары и цены", icon: ShoppingBasket },
+      {
+        id: "receipts",
+        get label() {
+          return t("Чеки");
+        },
+        icon: ScanLine,
+      },
+      {
+        id: "purchases",
+        get label() {
+          return t("Товары и цены");
+        },
+        icon: ShoppingBasket,
+      },
     ],
   },
   {
     id: "planning",
-    label: "Планирование",
-    description: "Бюджеты и платежи",
+    get label() {
+      return t("Планирование");
+    },
+    get description() {
+      return t("Бюджеты и платежи");
+    },
     icon: CalendarClock,
     items: [
-      { id: "budgets", label: "Бюджеты", icon: Target, adminOnly: true },
+      {
+        id: "budgets",
+        get label() {
+          return t("Бюджеты");
+        },
+        icon: Target,
+        adminOnly: true,
+      },
       {
         id: "bills",
-        label: "Регулярные платежи",
+        get label() {
+          return t("Регулярные платежи");
+        },
         icon: CalendarClock,
         adminOnly: true,
       },
@@ -86,29 +145,72 @@ export const navigationGroups: NavigationGroup[] = [
   },
   {
     id: "analytics",
-    label: "Аналитика",
-    description: "Экономия и AI-помощник",
-    memberDescription: "Где можно сэкономить",
+    get label() {
+      return t("Аналитика");
+    },
+    get description() {
+      return t("Экономия и AI-помощник");
+    },
+    get memberDescription() {
+      return t("Где можно сэкономить");
+    },
     icon: ChartNoAxesCombined,
     items: [
-      { id: "reports", label: "Подробные отчёты", icon: ChartNoAxesCombined },
-      { id: "insights", label: "Анализ и экономия", icon: ChartNoAxesCombined },
+      {
+        id: "reports",
+        get label() {
+          return t("Подробные отчёты");
+        },
+        icon: ChartNoAxesCombined,
+      },
+      {
+        id: "insights",
+        get label() {
+          return t("Анализ и экономия");
+        },
+        icon: ChartNoAxesCombined,
+      },
       {
         id: "assistant",
-        label: "AI-помощник",
+        get label() {
+          return t("AI-помощник");
+        },
         icon: Sparkles,
       },
     ],
   },
   {
     id: "management",
-    label: "Управление",
-    description: "Команда и настройки",
+    get label() {
+      return t("Управление");
+    },
+    get description() {
+      return t("Команда и настройки");
+    },
     icon: FolderCog,
     items: [
-      { id: "organizations", label: "Организации и люди", icon: Building2 },
-      { id: "users", label: "Пользователи", icon: Users, serverOnly: true },
-      { id: "settings", label: "Настройки", icon: Settings },
+      {
+        id: "organizations",
+        get label() {
+          return t("Организации и люди");
+        },
+        icon: Building2,
+      },
+      {
+        id: "users",
+        get label() {
+          return t("Пользователи");
+        },
+        icon: Users,
+        serverOnly: true,
+      },
+      {
+        id: "settings",
+        get label() {
+          return t("Настройки");
+        },
+        icon: Settings,
+      },
     ],
   },
 ];

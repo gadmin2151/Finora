@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Plus, Pencil, CirclePause, Play, Check, Wallet } from "lucide-react";
@@ -84,9 +85,11 @@ export default function Income() {
   return (
     <>
       <PageHeading
-        eyebrow="ДЕНЬГИ, КОТОРЫЕ ПРИХОДЯТ"
-        title="Доходы"
-        text="Регулярные поступления и разовые заработки. План становится деньгами только после подтверждения."
+        eyebrow={t("ДЕНЬГИ, КОТОРЫЕ ПРИХОДЯТ")}
+        title={t("Доходы")}
+        text={t(
+          "Регулярные поступления и разовые заработки. План становится деньгами только после подтверждения.",
+        )}
         actions={
           isAdmin && (
             <div className="button-row">
@@ -95,14 +98,14 @@ export default function Income() {
                 onClick={() => setOccasional(true)}
               >
                 <Plus size={17} />
-                Разовый доход
+                {t("Разовый доход")}
               </button>
               <button
                 className="button primary"
                 onClick={() => setEditing("new")}
               >
                 <Plus size={17} />
-                Источник дохода
+                {t("Источник дохода")}
               </button>
             </div>
           )
@@ -119,23 +122,25 @@ export default function Income() {
       />
       <div className="stats-grid income-stats">
         {[
-          ["Получено за месяц", report.data?.received_minor],
-          ["Регулярные поступления", report.data?.regular_minor],
-          ["Разовые поступления", report.data?.occasional_minor],
-          ["Ожидается по плану", report.data?.expected_minor],
+          [t("Получено за месяц"), report.data?.received_minor],
+          [t("Регулярные поступления"), report.data?.regular_minor],
+          [t("Разовые поступления"), report.data?.occasional_minor],
+          [t("Ожидается по плану"), report.data?.expected_minor],
         ].map(([label, value]) => (
           <div className="stat-card" key={String(label)}>
             <span className="stat-label">{label}</span>
             <strong>{amount(typeof value === "number" ? value : 0)}</strong>
-            <small>В пересчёте на MDL</small>
+            <small>{t("В пересчёте на MDL")}</small>
           </div>
         ))}
       </div>
       <section className="panel">
         <div className="panel-heading">
           <div>
-            <h2>Календарь поступлений</h2>
-            <p>Для выбранного месяца · {month}</p>
+            <h2>{t("Календарь поступлений")}</h2>
+            <p>
+              {t("Для выбранного месяца ·")} {month}
+            </p>
           </div>
           <Wallet size={22} />
         </div>
@@ -156,7 +161,7 @@ export default function Income() {
                   <small>{recurrenceLabels[row.recurrence]}</small>
                   {row.received_on && (
                     <small>
-                      Получено {dateLabel(row.received_on)} · план{" "}
+                      {t("Получено")} {dateLabel(row.received_on)} {t("· план")}{" "}
                       {amount(row.amount_minor, row.currency)}
                     </small>
                   )}
@@ -173,7 +178,7 @@ export default function Income() {
                         onClick={() => setReceiving(row)}
                       >
                         <Check size={15} />
-                        Получено
+                        {t("Получено")}
                       </button>
                     )}
                     <button
@@ -182,8 +187,8 @@ export default function Income() {
                       onClick={() => skip.mutate(row)}
                     >
                       {row.status === "skipped"
-                        ? "Вернуть в план"
-                        : "Пропустить"}
+                        ? t("Вернуть в план")
+                        : t("Пропустить")}
                     </button>
                   </div>
                 )}
@@ -192,24 +197,28 @@ export default function Income() {
           </div>
         ) : (
           <Empty
-            title="Нет запланированных поступлений"
-            text="Добавьте зарплату, аренду или другой регулярный источник. Разовые доходы можно вносить сразу."
+            title={t("Нет запланированных поступлений")}
+            text={t(
+              "Добавьте зарплату, аренду или другой регулярный источник. Разовые доходы можно вносить сразу.",
+            )}
           />
         )}
       </section>
       <section className="panel">
         <div className="panel-heading">
           <div>
-            <h2>Источники дохода</h2>
-            <p>Сумма, периодичность и счёт зачисления</p>
+            <h2>{t("Источники дохода")}</h2>
+            <p>{t("Сумма, периодичность и счёт зачисления")}</p>
           </div>
         </div>
         {plans.isPending ? (
           <Loading />
         ) : !plans.data?.length ? (
           <Empty
-            title="Добавьте первый источник"
-            text="Например, зарплату с поступлением 10-го числа каждого месяца."
+            title={t("Добавьте первый источник")}
+            text={t(
+              "Например, зарплату с поступлением 10-го числа каждого месяца.",
+            )}
           />
         ) : (
           <div className="bill-list">
@@ -218,16 +227,17 @@ export default function Income() {
                 <div className="grow">
                   <strong>{plan.name}</strong>
                   <small>
-                    {recurrenceLabels[plan.recurrence]} · с {plan.start_date}
+                    {recurrenceLabels[plan.recurrence]} {t("· с")}{" "}
+                    {plan.start_date}
                   </small>
                 </div>
                 <strong>{amount(plan.amount_minor, plan.currency)}</strong>
-                <Badge>{plan.active ? "Активен" : "Пауза"}</Badge>
+                <Badge>{plan.active ? t("Активен") : t("Пауза")}</Badge>
                 {isAdmin && (
                   <>
                     <button
                       className="icon-button"
-                      aria-label={`Изменить ${plan.name}`}
+                      aria-label={t("Изменить {0}", plan.name)}
                       onClick={() => setEditing(plan)}
                     >
                       <Pencil size={17} />
@@ -235,7 +245,7 @@ export default function Income() {
                     <button
                       className="icon-button"
                       disabled={toggle.isPending}
-                      aria-label={`${plan.active ? "Приостановить" : "Возобновить"} ${plan.name}`}
+                      aria-label={`${plan.active ? t("Приостановить") : t("Возобновить")} ${plan.name}`}
                       onClick={() => toggle.mutate(plan)}
                     >
                       {plan.active ? (
@@ -254,8 +264,8 @@ export default function Income() {
       <section className="panel">
         <div className="panel-heading">
           <div>
-            <h2>Полученные доходы</h2>
-            <p>Только фактические зачисления</p>
+            <h2>{t("Полученные доходы")}</h2>
+            <p>{t("Только фактические зачисления")}</p>
           </div>
         </div>
         {history.isPending ? (
@@ -267,10 +277,12 @@ export default function Income() {
                 <div className="bill-row" key={tx.id}>
                   <span className="muted">{dateLabel(tx.occurred_on)}</span>
                   <div className="grow">
-                    <strong>{tx.merchant || "Доход"}</strong>
+                    <strong>{tx.merchant || t("Доход")}</strong>
                     <small>
                       {tx.note ||
-                        (tx.occurrence_id ? "По плану" : "Разовое поступление")}
+                        (tx.occurrence_id
+                          ? t("По плану")
+                          : t("Разовое поступление"))}
                     </small>
                   </div>
                   <strong className="positive">
@@ -284,24 +296,26 @@ export default function Income() {
                 disabled={!offset}
                 onClick={() => setOffset(Math.max(0, offset - 30))}
               >
-                Назад
+                {t("Назад")}
               </button>
               <span>
-                {offset + 1}–{offset + history.data.items.length} из{" "}
+                {offset + 1}–{offset + history.data.items.length} {t("из")}{" "}
                 {history.data.total}
               </span>
               <button
                 disabled={offset + 30 >= history.data.total}
                 onClick={() => setOffset(offset + 30)}
               >
-                Далее
+                {t("Далее")}
               </button>
             </div>
           </>
         ) : (
           <Empty
-            title="В этом месяце доходов пока нет"
-            text="Отметьте запланированное поступление как полученное или добавьте разовый доход."
+            title={t("В этом месяце доходов пока нет")}
+            text={t(
+              "Отметьте запланированное поступление как полученное или добавьте разовый доход.",
+            )}
           />
         )}
       </section>
@@ -355,39 +369,39 @@ function PlanForm({ plan, onClose }: { plan?: Plan; onClose: () => void }) {
         plan ? "PUT" : "POST",
       ),
     () => {
-      toast("Источник дохода сохранён");
+      toast(t("Источник дохода сохранён"));
       onClose();
     },
   );
   return (
     <Modal
-      title={plan ? "Изменить источник дохода" : "Новый источник дохода"}
-      description="Запланированные суммы не увеличивают остаток на счёте."
+      title={plan ? t("Изменить источник дохода") : t("Новый источник дохода")}
+      description={t("Запланированные суммы не увеличивают остаток на счёте.")}
       onClose={onClose}
     >
       <Form onSubmit={() => action.mutate(undefined)}>
-        <Field label="Название источника">
+        <Field label={t("Название источника")}>
           <input
             autoFocus
             required
             maxLength={100}
-            placeholder="Например, зарплата"
+            placeholder={t("Например, зарплата")}
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
         </Field>
         <div className="form-grid">
-          <Field label="Ожидаемая сумма">
+          <Field label={t("Ожидаемая сумма")}>
             <MoneyInput value={value} onChange={setValue} />
           </Field>
-          <Field label="Счёт зачисления">
+          <Field label={t("Счёт зачисления")}>
             <AccountSelect
               accounts={accounts}
               value={account}
               onChange={setAccount}
             />
           </Field>
-          <Field label="Первое поступление">
+          <Field label={t("Первое поступление")}>
             <input
               type="date"
               required
@@ -397,7 +411,7 @@ function PlanForm({ plan, onClose }: { plan?: Plan; onClose: () => void }) {
               onChange={(e) => setDate(e.target.value)}
             />
           </Field>
-          <Field label="Повторять">
+          <Field label={t("Повторять")}>
             <select
               value={recurrence}
               onChange={(e) => setRecurrence(e.target.value)}
@@ -410,7 +424,7 @@ function PlanForm({ plan, onClose }: { plan?: Plan; onClose: () => void }) {
             </select>
           </Field>
           {currency !== "MDL" && (
-            <Field label={`Курс 1 ${currency} в MDL`}>
+            <Field label={t("Курс 1 {0} в MDL", currency)}>
               <input
                 type="number"
                 min="0.00000001"
@@ -423,15 +437,16 @@ function PlanForm({ plan, onClose }: { plan?: Plan; onClose: () => void }) {
           )}
         </div>
         <div className="notice">
-          Для 29–31 числа в коротком месяце используется его последний день. Уже
-          полученные суммы сохраняются при изменении плана.
+          {t(
+            "Для 29–31 числа в коротком месяце используется его последний день. Уже полученные суммы сохраняются при изменении плана.",
+          )}
         </div>
         <ErrorBox error={action.error} />
         <footer className="modal-footer">
           <button type="button" className="button secondary" onClick={onClose}>
-            Отмена
+            {t("Отмена")}
           </button>
-          <Submit pending={action.isPending}>Сохранить источник</Submit>
+          <Submit pending={action.isPending}>{t("Сохранить источник")}</Submit>
         </footer>
       </Form>
     </Modal>
@@ -471,22 +486,22 @@ function ReceiveForm({
         idempotency_key: requestKey,
       }),
     () => {
-      toast("Доход зачислен");
+      toast(t("Доход зачислен"));
       onClose();
     },
   );
   return (
     <Modal
-      title={`Получено: ${row.name}`}
-      description="Укажите фактическую сумму и дату поступления."
+      title={t("Получено: {0}", row.name)}
+      description={t("Укажите фактическую сумму и дату поступления.")}
       onClose={onClose}
     >
       <Form onSubmit={() => action.mutate(undefined)}>
         <div className="form-grid">
-          <Field label="Полученная сумма">
+          <Field label={t("Полученная сумма")}>
             <MoneyInput value={value} onChange={setValue} />
           </Field>
-          <Field label="Дата поступления">
+          <Field label={t("Дата поступления")}>
             <input
               type="date"
               value={date}
@@ -495,7 +510,7 @@ function ReceiveForm({
               onChange={(e) => setDate(e.target.value)}
             />
           </Field>
-          <Field label="Счёт">
+          <Field label={t("Счёт")}>
             <AccountSelect
               accounts={accounts.filter((a) => a.currency === row.currency)}
               value={account}
@@ -503,7 +518,7 @@ function ReceiveForm({
             />
           </Field>
           {row.currency !== "MDL" && (
-            <Field label={`Курс 1 ${row.currency} в MDL`}>
+            <Field label={t("Курс 1 {0} в MDL", row.currency)}>
               <input
                 required
                 type="number"
@@ -516,11 +531,13 @@ function ReceiveForm({
           )}
         </div>
         <Field
-          label="Связать с уже внесённым доходом"
-          hint="Привязка существующего дохода не увеличивает баланс повторно."
+          label={t("Связать с уже внесённым доходом")}
+          hint={t(
+            "Привязка существующего дохода не увеличивает баланс повторно.",
+          )}
         >
           <select value={link} onChange={(e) => setLink(e.target.value)}>
-            <option value="">Создать новое зачисление</option>
+            <option value="">{t("Создать новое зачисление")}</option>
             {matches.data?.items
               .filter(
                 (tx) =>
@@ -530,7 +547,7 @@ function ReceiveForm({
               )
               .map((tx) => (
                 <option key={tx.id} value={tx.id}>
-                  {tx.merchant || "Доход"} ·{" "}
+                  {tx.merchant || t("Доход")} ·{" "}
                   {amount(tx.amount_minor, tx.currency)}
                 </option>
               ))}
@@ -539,9 +556,11 @@ function ReceiveForm({
         <ErrorBox error={action.error ?? matches.error} />
         <footer className="modal-footer">
           <button type="button" className="button secondary" onClick={onClose}>
-            Отмена
+            {t("Отмена")}
           </button>
-          <Submit pending={action.isPending}>Подтвердить поступление</Submit>
+          <Submit pending={action.isPending}>
+            {t("Подтвердить поступление")}
+          </Submit>
         </footer>
       </Form>
     </Modal>

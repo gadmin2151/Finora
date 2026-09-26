@@ -1,3 +1,4 @@
+import { t, getLocale } from "../i18n";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -73,29 +74,31 @@ export default function Organizations() {
     () => send(`/organizations/${removing!.id}`, undefined, "DELETE"),
     () => {
       setRemoving(null);
-      toast("Организация перемещена в корзину. История сохранена.");
+      toast(t("Организация перемещена в корзину. История сохранена."));
     },
   );
   const restore = useAction(
     (org: ManagedOrganization) => send(`/organizations/${org.id}/restore`),
     () => {
-      toast("Организация восстановлена вместе с историей и участниками");
+      toast(t("Организация восстановлена вместе с историей и участниками"));
       setStatus("active");
     },
   );
   return (
     <>
       <PageHeading
-        eyebrow="ПРОСТРАНСТВА И ДОСТУП"
-        title="Организации"
-        text="Выберите организацию, чтобы изменить название и настроить доступ. Финансы каждой организации хранятся отдельно."
+        eyebrow={t("ПРОСТРАНСТВА И ДОСТУП")}
+        title={t("Организации")}
+        text={t(
+          "Выберите организацию, чтобы изменить название и настроить доступ. Финансы каждой организации хранятся отдельно.",
+        )}
         actions={
           canCreate && (
             <button
               className="button primary"
               onClick={() => setEditing("new")}
             >
-              <Plus size={18} /> Создать организацию
+              <Plus size={18} /> {t("Создать организацию")}
             </button>
           )
         }
@@ -104,30 +107,30 @@ export default function Organizations() {
       <div className="management-layout">
         <section
           className="panel organization-directory"
-          aria-label="Список организаций"
+          aria-label={t("Список организаций")}
         >
           <div
             className="segmented management-status"
-            aria-label="Состояние организаций"
+            aria-label={t("Состояние организаций")}
           >
             <button
               className={status === "active" ? "selected" : ""}
               onClick={() => setStatus("active")}
             >
-              Действующие
+              {t("Действующие")}
             </button>
             <button
               className={status === "deleted" ? "selected" : ""}
               onClick={() => setStatus("deleted")}
             >
-              <Trash2 size={15} /> Корзина
+              <Trash2 size={15} /> {t("Корзина")}
             </button>
           </div>
           <label className="user-search">
             <Search size={18} />
             <input
-              aria-label="Найти организацию"
-              placeholder="Найти организацию"
+              aria-label={t("Найти организацию")}
+              placeholder={t("Найти организацию")}
               value={search}
               maxLength={100}
               onChange={(e) => setSearch(e.target.value)}
@@ -152,15 +155,20 @@ export default function Organizations() {
                     <strong>{org.name}</strong>
                     <small>
                       {counted(org.members_count, [
-                        "участник",
-                        "участника",
-                        "участников",
+                        t("участник"),
+                        t("участника"),
+                        t("участников"),
                       ])}{" "}
-                      · {counted(org.receipts_count, ["чек", "чека", "чеков"])}
+                      ·{" "}
+                      {counted(org.receipts_count, [
+                        t("чек"),
+                        t("чека"),
+                        t("чеков"),
+                      ])}
                     </small>
                   </span>
                   {org.id === organization.id && (
-                    <span className="current-dot" title="Сейчас в учёте" />
+                    <span className="current-dot" title={t("Сейчас в учёте")} />
                   )}
                 </button>
               ))}
@@ -171,17 +179,19 @@ export default function Organizations() {
                 icon={<Building2 />}
                 title={
                   search
-                    ? "Ничего не найдено"
+                    ? t("Ничего не найдено")
                     : status === "deleted"
-                      ? "Корзина пуста"
-                      : "Пока нет организаций"
+                      ? t("Корзина пуста")
+                      : t("Пока нет организаций")
                 }
                 text={
                   search
-                    ? "Попробуйте другое название."
+                    ? t("Попробуйте другое название.")
                     : status === "deleted"
-                      ? "Здесь можно восстановить удалённые организации."
-                      : "Создайте организацию или попросите администратора добавить вас."
+                      ? t("Здесь можно восстановить удалённые организации.")
+                      : t(
+                          "Создайте организацию или попросите администратора добавить вас.",
+                        )
                 }
               />
             )
@@ -196,17 +206,17 @@ export default function Organizations() {
               <div className="grow">
                 <span className="eyebrow">
                   {active.deleted_at
-                    ? "В КОРЗИНЕ"
+                    ? t("В КОРЗИНЕ")
                     : active.id === organization.id
-                      ? "СЕЙЧАС В УЧЁТЕ"
-                      : "ОРГАНИЗАЦИЯ"}
+                      ? t("СЕЙЧАС В УЧЁТЕ")
+                      : t("ОРГАНИЗАЦИЯ")}
                 </span>
                 <h2>{active.name}</h2>
                 <small>
                   {counted(active.receipts_count, [
-                    "сохранённый чек",
-                    "сохранённых чека",
-                    "сохранённых чеков",
+                    t("сохранённый чек"),
+                    t("сохранённых чека"),
+                    t("сохранённых чеков"),
                   ])}
                 </small>
               </div>
@@ -220,7 +230,7 @@ export default function Organizations() {
                     void switchOrganization(active.id);
                   }}
                 >
-                  <ArrowUpRight size={17} /> Открыть учёт
+                  <ArrowUpRight size={17} /> {t("Открыть учёт")}
                 </button>
               )}
               {!active.deleted_at && active.can_manage && (
@@ -228,17 +238,18 @@ export default function Organizations() {
                   className="button secondary"
                   onClick={() => setEditing(active)}
                 >
-                  <Pencil size={16} /> Переименовать
+                  <Pencil size={16} /> {t("Переименовать")}
                 </button>
               )}
             </div>
             {active.deleted_at ? (
               <>
                 <div className="notice">
-                  Удалена {new Date(active.deleted_at).toLocaleDateString("ru")}
-                  . Чеки, оригиналы, операции и права участников сохранены.
-                  После восстановления организация снова станет доступна
-                  участникам.
+                  {t("Удалена")}{" "}
+                  {new Date(active.deleted_at).toLocaleDateString(getLocale())}
+                  {t(
+                    ". Чеки, оригиналы, операции и права участников сохранены. После восстановления организация снова станет доступна участникам.",
+                  )}
                 </div>
                 <ErrorBox error={restore.error} />
                 <button
@@ -246,7 +257,7 @@ export default function Organizations() {
                   disabled={restore.isPending}
                   onClick={() => restore.mutate(active)}
                 >
-                  <RotateCcw size={18} /> Восстановить организацию
+                  <RotateCcw size={18} /> {t("Восстановить организацию")}
                 </button>
               </>
             ) : (
@@ -255,25 +266,27 @@ export default function Organizations() {
                   <Members organizationId={active.id} />
                 ) : (
                   <div className="notice">
-                    <ShieldCheck size={18} /> Вы можете добавлять чеки и
-                    смотреть статистику. Доступ участников настраивает
-                    администратор.
+                    <ShieldCheck size={18} />{" "}
+                    {t(
+                      "Вы можете добавлять чеки и смотреть статистику. Доступ участников настраивает администратор.",
+                    )}
                   </div>
                 )}
                 {active.can_manage && (
                   <div className="management-danger">
                     <div>
-                      <strong>Удалить организацию</strong>
+                      <strong>{t("Удалить организацию")}</strong>
                       <small>
-                        Скрыть у всех участников и переместить в корзину.
-                        История останется доступна после восстановления.
+                        {t(
+                          "Скрыть у всех участников и переместить в корзину. История останется доступна после восстановления.",
+                        )}
                       </small>
                     </div>
                     <button
                       className="button secondary negative"
                       onClick={() => setRemoving(active)}
                     >
-                      <Trash2 size={16} /> Удалить
+                      <Trash2 size={16} /> {t("Удалить")}
                     </button>
                   </div>
                 )}
@@ -295,8 +308,11 @@ export default function Organizations() {
       )}
       {removing && (
         <Modal
-          title="Переместить организацию в корзину?"
-          description={`«${removing.name}» исчезнет из учёта у всех участников. Финансовая история и оригиналы чеков сохранятся. Организацию можно восстановить в разделе «Корзина».`}
+          title={t("Переместить организацию в корзину?")}
+          description={t(
+            "«{0}» исчезнет из учёта у всех участников. Финансовая история и оригиналы чеков сохранятся. Организацию можно восстановить в разделе «Корзина».",
+            removing.name,
+          )}
           onClose={() => {
             if (!remove.isPending) setRemoving(null);
           }}
@@ -308,14 +324,14 @@ export default function Organizations() {
               disabled={remove.isPending}
               onClick={() => setRemoving(null)}
             >
-              Отмена
+              {t("Отмена")}
             </button>
             <button
               className="button danger"
               disabled={remove.isPending}
               onClick={() => remove.mutate(undefined)}
             >
-              {remove.isPending ? "Перемещаю…" : "Переместить в корзину"}
+              {remove.isPending ? t("Перемещаю…") : t("Переместить в корзину")}
             </button>
           </footer>
         </Modal>
@@ -347,33 +363,35 @@ function OrganizationName({
     () => {
       toast(
         organization
-          ? "Название обновлено"
-          : "Организация создана. Можно добавить участников.",
+          ? t("Название обновлено")
+          : t("Организация создана. Можно добавить участников."),
       );
       onClose();
     },
   );
   return (
     <Modal
-      title={organization ? "Название организации" : "Новая организация"}
+      title={organization ? t("Название организации") : t("Новая организация")}
       description={
         organization
-          ? "Участники сразу увидят новое название."
-          : "Отдельные счета, категории и история. Вы станете администратором."
+          ? t("Участники сразу увидят новое название.")
+          : t(
+              "Отдельные счета, категории и история. Вы станете администратором.",
+            )
       }
       onClose={() => {
         if (!action.isPending) onClose();
       }}
     >
       <Form onSubmit={() => action.mutate(undefined)}>
-        <Field label="Название">
+        <Field label={t("Название")}>
           <input
             autoFocus
             required
             maxLength={100}
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Например, Семья или Компания"
+            placeholder={t("Например, Семья или Компания")}
             disabled={action.isPending}
           />
         </Field>
@@ -385,10 +403,10 @@ function OrganizationName({
             disabled={action.isPending}
             onClick={onClose}
           >
-            Отмена
+            {t("Отмена")}
           </button>
           <Submit pending={action.isPending}>
-            {organization ? "Сохранить название" : "Создать организацию"}
+            {organization ? t("Сохранить название") : t("Создать организацию")}
           </Submit>
         </footer>
       </Form>
@@ -420,23 +438,24 @@ function Members({ organizationId }: { organizationId: string }) {
       ),
     () => {
       setRemove(null);
-      toast("Доступ к организации закрыт");
+      toast(t("Доступ к организации закрыт"));
     },
   );
   return (
     <section className="managed-members">
       <div className="panel-heading">
         <h3>
-          <Users size={18} /> Участники{" "}
+          <Users size={18} /> {t("Участники")}{" "}
           <small>{members.data?.length ?? ""}</small>
         </h3>
         <button className="button secondary" onClick={() => setAdding(true)}>
-          <Plus size={16} /> Добавить
+          <Plus size={16} /> {t("Добавить")}
         </button>
       </div>
       <p className="management-hint">
-        Участник добавляет чеки и смотрит статистику. Администратор также
-        управляет финансами и доступом.
+        {t(
+          "Участник добавляет чеки и смотрит статистику. Администратор также управляет финансами и доступом.",
+        )}
       </p>
       <ErrorBox error={members.error} />
       {members.isPending ? (
@@ -447,38 +466,38 @@ function Members({ organizationId }: { organizationId: string }) {
             <div className="grow">
               <strong>
                 {member.name}
-                {member.user_id === user.id ? " · вы" : ""}
+                {member.user_id === user.id ? t(" · вы") : ""}
               </strong>
               <small>
                 @{member.username}
-                {!member.is_active ? " · аккаунт заблокирован" : ""}
+                {!member.is_active ? t(" · аккаунт заблокирован") : ""}
               </small>
             </div>
             <button
               className="role-button"
               onClick={() => setChanging(member)}
-              aria-label={`Изменить роль: ${member.username}`}
+              aria-label={t("Изменить роль: {0}", member.username)}
               disabled={lastAdmin(member)}
               title={
                 lastAdmin(member)
-                  ? "Сначала назначьте ещё одного администратора"
-                  : "Изменить роль"
+                  ? t("Сначала назначьте ещё одного администратора")
+                  : t("Изменить роль")
               }
             >
               <Badge>
-                {member.role === "admin" ? "Администратор" : "Участник"}
+                {member.role === "admin" ? t("Администратор") : t("Участник")}
               </Badge>
               <Pencil size={13} />
             </button>
             <button
               className="icon-button danger-hover"
               onClick={() => setRemove(member)}
-              aria-label={`Убрать из организации: ${member.username}`}
+              aria-label={t("Убрать из организации: {0}", member.username)}
               disabled={lastAdmin(member)}
               title={
                 lastAdmin(member)
-                  ? "Последнего администратора нельзя убрать"
-                  : "Убрать из организации"
+                  ? t("Последнего администратора нельзя убрать")
+                  : t("Убрать из организации")
               }
             >
               <Trash2 size={17} />
@@ -501,8 +520,11 @@ function Members({ organizationId }: { organizationId: string }) {
       )}
       {remove && (
         <Modal
-          title="Убрать из организации?"
-          description={`${remove.name} потеряет доступ только к этой организации. Аккаунт, добавленные чеки и доступ к другим организациям сохранятся.`}
+          title={t("Убрать из организации?")}
+          description={t(
+            "{0} потеряет доступ только к этой организации. Аккаунт, добавленные чеки и доступ к другим организациям сохранятся.",
+            remove.name,
+          )}
           onClose={() => {
             if (!revoke.isPending) setRemove(null);
           }}
@@ -514,14 +536,14 @@ function Members({ organizationId }: { organizationId: string }) {
               disabled={revoke.isPending}
               onClick={() => setRemove(null)}
             >
-              Отмена
+              {t("Отмена")}
             </button>
             <button
               className="button danger"
               disabled={revoke.isPending}
               onClick={() => revoke.mutate(undefined)}
             >
-              Убрать участника
+              {t("Убрать участника")}
             </button>
           </footer>
         </Modal>
@@ -550,22 +572,24 @@ function MemberRole({
   );
   return (
     <Modal
-      title={`Доступ · ${member.name}`}
-      description="Роль действует только в выбранной организации."
+      title={t("Доступ · {0}", member.name)}
+      description={t("Роль действует только в выбранной организации.")}
       onClose={() => {
         if (!action.isPending) onClose();
       }}
     >
       <Form onSubmit={() => action.mutate(undefined)}>
-        <Field label="Роль">
+        <Field label={t("Роль")}>
           <select
             value={role}
             onChange={(e) => setRole(e.target.value as Member["role"])}
           >
             <option value="user">
-              Участник — чеки, комментарии, статистика
+              {t("Участник — чеки, комментарии, статистика")}
             </option>
-            <option value="admin">Администратор — финансы и участники</option>
+            <option value="admin">
+              {t("Администратор — финансы и участники")}
+            </option>
           </select>
         </Field>
         <ErrorBox error={action.error} />
@@ -576,9 +600,9 @@ function MemberRole({
             disabled={action.isPending}
             onClick={onClose}
           >
-            Отмена
+            {t("Отмена")}
           </button>
-          <Submit pending={action.isPending}>Сохранить доступ</Submit>
+          <Submit pending={action.isPending}>{t("Сохранить доступ")}</Submit>
         </footer>
       </Form>
     </Modal>
@@ -608,8 +632,10 @@ function MemberForm({
   );
   return (
     <Modal
-      title="Добавить участника"
-      description="Существующему пользователю достаточно одного логина для всех его организаций."
+      title={t("Добавить участника")}
+      description={t(
+        "Существующему пользователю достаточно одного логина для всех его организаций.",
+      )}
       onClose={() => {
         if (!action.isPending) onClose();
       }}
@@ -621,17 +647,17 @@ function MemberForm({
             className={mode === "existing" ? "selected" : ""}
             onClick={() => setMode("existing")}
           >
-            Уже есть аккаунт
+            {t("Уже есть аккаунт")}
           </button>
           <button
             type="button"
             className={mode === "new" ? "selected" : ""}
             onClick={() => setMode("new")}
           >
-            Новый пользователь
+            {t("Новый пользователь")}
           </button>
         </div>
-        <Field label="Логин">
+        <Field label={t("Логин")}>
           <input
             autoFocus
             required
@@ -645,7 +671,7 @@ function MemberForm({
         </Field>
         {mode === "new" && (
           <>
-            <Field label="Имя">
+            <Field label={t("Имя")}>
               <input
                 required
                 maxLength={100}
@@ -654,8 +680,10 @@ function MemberForm({
               />
             </Field>
             <Field
-              label="Пароль"
-              hint="Не менее 12 символов. Передайте пароль пользователю лично."
+              label={t("Пароль")}
+              hint={t(
+                "Не менее 12 символов. Передайте пароль пользователю лично.",
+              )}
             >
               <input
                 type="password"
@@ -669,20 +697,20 @@ function MemberForm({
             </Field>
           </>
         )}
-        <Field label="Роль в этой организации">
+        <Field label={t("Роль в этой организации")}>
           <select value={role} onChange={(e) => setRole(e.target.value)}>
             <option value="user">
-              Пользователь — чеки, комментарии, статистика
+              {t("Пользователь — чеки, комментарии, статистика")}
             </option>
-            <option value="admin">Администратор — полный доступ</option>
+            <option value="admin">{t("Администратор — полный доступ")}</option>
           </select>
         </Field>
         <ErrorBox error={action.error} />
         <footer className="modal-footer">
           <button type="button" className="button secondary" onClick={onClose}>
-            Отмена
+            {t("Отмена")}
           </button>
-          <Submit pending={action.isPending}>Добавить участника</Submit>
+          <Submit pending={action.isPending}>{t("Добавить участника")}</Submit>
         </footer>
       </Form>
     </Modal>

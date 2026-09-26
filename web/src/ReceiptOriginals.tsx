@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import { useRef, useState } from "react";
 import {
   ChevronLeft,
@@ -24,20 +25,20 @@ export function ReceiptOriginals({ receipt }: { receipt: Receipt }) {
   const upload = useAction(
     async (files: File[]) => {
       if (files.length > 4)
-        throw new Error("Выберите не более 4 изображений за раз");
+        throw new Error(t("Выберите не более 4 изображений за раз"));
       if (files.some((file) => file.size > 15 * 1024 * 1024))
-        throw new Error("Каждое изображение должно быть не больше 15 МБ");
+        throw new Error(t("Каждое изображение должно быть не больше 15 МБ"));
       const form = new FormData();
       files.forEach((file) => form.append("files", file));
       return send(`/receipts/${receipt.id}/originals`, form);
     },
-    () => toast("Оригиналы сохранены. Товары и суммы не изменены."),
+    () => toast(t("Оригиналы сохранены. Товары и суммы не изменены.")),
   );
   return (
-    <section className="receipt-originals" aria-label="Оригиналы чека">
+    <section className="receipt-originals" aria-label={t("Оригиналы чека")}>
       <div className="between">
         <h3>
-          <FileImage size={18} /> Оригиналы чека{" "}
+          <FileImage size={18} /> {t("Оригиналы чека")}{" "}
           <small>{receipt.files.length || ""}</small>
         </h3>
         {canAdd && (
@@ -48,12 +49,12 @@ export function ReceiptOriginals({ receipt }: { receipt: Receipt }) {
             onClick={() => input.current?.click()}
           >
             <Plus size={16} />
-            {upload.isPending ? "Загружаю…" : "Прикрепить"}
+            {upload.isPending ? t("Загружаю…") : t("Прикрепить")}
           </button>
         )}
       </div>
       <p className="management-hint">
-        Фото и снимки электронной страницы сохраняются вместе с чеком.
+        {t("Фото и снимки электронной страницы сохраняются вместе с чеком.")}
       </p>
       {receipt.files.length ? (
         <div className="original-thumbnails">
@@ -66,19 +67,25 @@ export function ReceiptOriginals({ receipt }: { receipt: Receipt }) {
                 setZoom(false);
                 setFailure(null);
               }}
-              aria-label={`Открыть оригинал ${index + 1}`}
+              aria-label={t("Открыть оригинал {0}", index + 1)}
             >
-              <img src={url} alt={`Оригинал ${index + 1}`} loading="lazy" />
+              <img
+                src={url}
+                alt={t("Оригинал {0}", index + 1)}
+                loading="lazy"
+              />
               <span>{index + 1}</span>
             </button>
           ))}
         </div>
       ) : (
         <div className="notice">
-          Оригинал не был сохранён.{" "}
+          {t("Оригинал не был сохранён.")}{" "}
           {canAdd
-            ? "Прикрепите фото или снимок страницы — он останется здесь вместе с историей."
-            : "Попросите автора чека или администратора прикрепить фото."}
+            ? t(
+                "Прикрепите фото или снимок страницы — он останется здесь вместе с историей.",
+              )
+            : t("Попросите автора чека или администратора прикрепить фото.")}
         </div>
       )}
       <input
@@ -98,10 +105,14 @@ export function ReceiptOriginals({ receipt }: { receipt: Receipt }) {
       {opened !== null && receipt.files[opened] && (
         <Modal
           wide
-          title={`Оригинал чека · ${opened + 1} из ${receipt.files.length}`}
+          title={t(
+            "Оригинал чека · {0} из {1}",
+            opened + 1,
+            receipt.files.length,
+          )}
           description={
             receipt.merchant ||
-            "Сохранённое фото или снимок электронной страницы"
+            t("Сохранённое фото или снимок электронной страницы")
           }
           onClose={() => setOpened(null)}
         >
@@ -110,7 +121,7 @@ export function ReceiptOriginals({ receipt }: { receipt: Receipt }) {
               <button
                 type="button"
                 className="icon-button"
-                aria-label="Предыдущий оригинал"
+                aria-label={t("Предыдущий оригинал")}
                 disabled={opened === 0}
                 onClick={() => {
                   setOpened(opened - 1);
@@ -122,7 +133,7 @@ export function ReceiptOriginals({ receipt }: { receipt: Receipt }) {
               <button
                 type="button"
                 className="icon-button"
-                aria-label="Следующий оригинал"
+                aria-label={t("Следующий оригинал")}
                 disabled={opened + 1 === receipt.files.length}
                 onClick={() => {
                   setOpened(opened + 1);
@@ -137,7 +148,7 @@ export function ReceiptOriginals({ receipt }: { receipt: Receipt }) {
                 onClick={() => setZoom(!zoom)}
               >
                 {zoom ? <ZoomOut size={17} /> : <ZoomIn size={17} />}
-                {zoom ? "Уменьшить" : "Увеличить"}
+                {zoom ? t("Уменьшить") : t("Увеличить")}
               </button>
             </div>
             <a
@@ -145,22 +156,24 @@ export function ReceiptOriginals({ receipt }: { receipt: Receipt }) {
               href={receipt.files[opened]}
               download={`finora-receipt-${receipt.id}-${opened + 1}.jpg`}
             >
-              <Download size={17} /> Скачать
+              <Download size={17} /> {t("Скачать")}
             </a>
           </div>
           <ErrorBox error={failure} />
           <div
             className={`original-viewer ${zoom ? "zoomed" : ""}`}
             tabIndex={0}
-            aria-label="Изображение чека, прокрутите для просмотра"
+            aria-label={t("Изображение чека, прокрутите для просмотра")}
           >
             <img
               src={receipt.files[opened]}
-              alt={`Оригинал чека ${opened + 1}`}
+              alt={t("Оригинал чека {0}", opened + 1)}
               onError={() =>
                 setFailure(
                   new Error(
-                    "Не удалось загрузить оригинал. Проверьте соединение и откройте его ещё раз.",
+                    t(
+                      "Не удалось загрузить оригинал. Проверьте соединение и откройте его ещё раз.",
+                    ),
                   ),
                 )
               }

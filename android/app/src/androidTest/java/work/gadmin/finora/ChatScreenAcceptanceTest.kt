@@ -22,7 +22,9 @@ import work.gadmin.finora.ui.FinoraTheme
 /** Offline UI acceptance on a disposable emulator. Never alters an existing login. */
 @RunWith(AndroidJUnit4::class)
 class ChatScreenAcceptanceTest {
-    @get:Rule val rule = createComposeRule()
+    @get:Rule(order = 0) val languageRule = RussianUiLanguageRule()
+
+    @get:Rule(order = 1) val rule = createComposeRule()
 
     @Test
     fun reportAndComposerRemainUsableWhileHistoryRefreshes() {

@@ -18,10 +18,12 @@ import androidx.compose.ui.unit.dp
 import androidx.core.graphics.toColorInt
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 import work.gadmin.finora.AppState
 import work.gadmin.finora.FinoraViewModel
 import work.gadmin.finora.data.money
+import work.gadmin.finora.localization.LanguageRuntime
+import work.gadmin.finora.localization.Message
+import work.gadmin.finora.localization.tr
 
 @Composable
 fun OverviewScreen(state: AppState, vm: FinoraViewModel) {
@@ -34,12 +36,12 @@ fun OverviewScreen(state: AppState, vm: FinoraViewModel) {
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "Ясность в цифрах",
+                    tr(Message.CLARITY_IN_NUMBERS),
                     style = MaterialTheme.typography.headlineMedium,
                     modifier = Modifier.weight(1f),
                 )
                 IconButton(vm::refreshCurrent, enabled = !state.refreshing && !state.busy) {
-                    LineIcon(Glyph.REFRESH, "Обновить статистику")
+                    LineIcon(Glyph.REFRESH, tr(Message.REFRESH_STATISTICS))
                 }
             }
             Row(
@@ -48,23 +50,26 @@ fun OverviewScreen(state: AppState, vm: FinoraViewModel) {
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 IconButton({ vm.month(-1) }) {
-                    LineIcon(Glyph.BACK, "Предыдущий месяц", size = 20.dp)
+                    LineIcon(Glyph.BACK, tr(Message.PREVIOUS_MONTH), size = 20.dp)
                 }
                 Text(
                     YearMonth.parse(state.month)
                         .format(
-                            DateTimeFormatter.ofPattern("LLLL yyyy", Locale.forLanguageTag("ru"))
+                            DateTimeFormatter.ofPattern(
+                                "LLLL yyyy",
+                                LanguageRuntime.language.locale,
+                            )
                         )
                         .replaceFirstChar(Char::titlecase),
                     fontWeight = FontWeight.Medium,
                 )
                 IconButton({ vm.month(1) }) {
-                    LineIcon(Glyph.CHEVRON, "Следующий месяц", size = 20.dp)
+                    LineIcon(Glyph.CHEVRON, tr(Message.NEXT_MONTH), size = 20.dp)
                 }
             }
         }
         if (state.dashboardLoading && !state.refreshing)
-            item { BrandLoading("Собираем картину месяца", compact = true) }
+            item { BrandLoading(tr(Message.PUTTING_YOUR_MONTH_TOGETHER), compact = true) }
         if (dashboard != null) {
             item {
                 Surface(color = HeroStart, shape = RoundedCornerShape(28.dp)) {
@@ -78,7 +83,7 @@ fun OverviewScreen(state: AppState, vm: FinoraViewModel) {
                             Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text("Расходы за месяц", Modifier.weight(1f), color = Mint)
+                            Text(tr(Message.SPENDING_THIS_MONTH), Modifier.weight(1f), color = Mint)
                             BrandMark(Modifier.size(52.dp))
                         }
                         Text(
@@ -93,7 +98,7 @@ fun OverviewScreen(state: AppState, vm: FinoraViewModel) {
                         Row(Modifier.fillMaxWidth()) {
                             Column(Modifier.weight(1f)) {
                                 Text(
-                                    "Доходы",
+                                    tr(Message.INCOME),
                                     color = Mint,
                                     style = MaterialTheme.typography.bodySmall,
                                 )
@@ -105,7 +110,7 @@ fun OverviewScreen(state: AppState, vm: FinoraViewModel) {
                             }
                             Column(Modifier.weight(1f)) {
                                 Text(
-                                    "Разница",
+                                    tr(Message.DIFFERENCE),
                                     color = Mint,
                                     style = MaterialTheme.typography.bodySmall,
                                 )
@@ -126,7 +131,7 @@ fun OverviewScreen(state: AppState, vm: FinoraViewModel) {
                             Modifier.padding(22.dp),
                             verticalArrangement = Arrangement.spacedBy(18.dp),
                         ) {
-                            SectionTitle("На что уходят деньги")
+                            SectionTitle(tr(Message.WHERE_YOUR_MONEY_GOES))
                             val categories =
                                 dashboard.categories
                                     .filter { it.spent_minor > 0 }
@@ -162,7 +167,7 @@ fun OverviewScreen(state: AppState, vm: FinoraViewModel) {
                                             style = MaterialTheme.typography.headlineMedium,
                                         )
                                         Text(
-                                            "категорий",
+                                            tr(Message.CATEGORIES_72264),
                                             color = Muted,
                                             style = MaterialTheme.typography.bodySmall,
                                         )
@@ -202,13 +207,13 @@ fun OverviewScreen(state: AppState, vm: FinoraViewModel) {
             else
                 item {
                     InfoCard(
-                        "В этом месяце ещё нет расходов. Отправленные и подтверждённые чеки появятся в статистике.",
+                        tr(Message.NO_SPENDING_THIS_MONTH_YET_SUBMITTED_AND_CONFIRMED_RECEIPT),
                         Glyph.CHART,
                     )
                 }
             if (dashboard.accounts.isNotEmpty())
                 item {
-                    SectionTitle("Счета")
+                    SectionTitle(tr(Message.ACCOUNTS))
                     Spacer(Modifier.height(12.dp))
                     Surface(color = SurfaceColor, shape = RoundedCornerShape(22.dp)) {
                         Column(
@@ -237,15 +242,18 @@ fun OverviewScreen(state: AppState, vm: FinoraViewModel) {
             if (dashboard.planned_remaining_minor > 0)
                 item {
                     InfoCard(
-                        "Предстоящие обязательные платежи: ${money(dashboard.planned_remaining_minor)}",
+                        tr(
+                            Message.UPCOMING_ESSENTIAL_PAYMENTS_1_S,
+                            money(dashboard.planned_remaining_minor),
+                        ),
                         Glyph.WALLET,
                     )
                 }
             if (state.insights.isNotEmpty())
                 item {
                     SectionTitle(
-                        "Где можно сэкономить",
-                        "Рекомендации на основе истории организации",
+                        tr(Message.WHERE_YOU_COULD_SAVE),
+                        tr(Message.SUGGESTIONS_BASED_ON_YOUR_ORGANIZATION_S_HISTORY),
                     )
                 }
             state.insights.forEach { insight ->
@@ -260,7 +268,7 @@ fun OverviewScreen(state: AppState, vm: FinoraViewModel) {
                             Text(insight.text, style = MaterialTheme.typography.bodyMedium)
                             if (insight.saving_minor > 0)
                                 Text(
-                                    "Возможная экономия: ${money(insight.saving_minor)}",
+                                    tr(Message.POTENTIAL_SAVINGS_1_S, money(insight.saving_minor)),
                                     color = Green,
                                     fontWeight = FontWeight.Medium,
                                 )
@@ -271,11 +279,11 @@ fun OverviewScreen(state: AppState, vm: FinoraViewModel) {
         } else if (!state.dashboardLoading)
             item {
                 EmptyState(
-                    "Статистика пока недоступна",
-                    "Проверьте соединение с сервером.",
+                    tr(Message.STATISTICS_ARE_NOT_AVAILABLE_YET),
+                    tr(Message.CHECK_YOUR_CONNECTION_TO_THE_SERVER),
                     Glyph.CHART,
                 )
-                PrimaryButton("Обновить", vm::refreshCurrent, Modifier.fillMaxWidth())
+                PrimaryButton(tr(Message.REFRESH), vm::refreshCurrent, Modifier.fillMaxWidth())
             }
     }
 }

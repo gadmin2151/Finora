@@ -12,6 +12,8 @@ import java.io.InputStream
 import java.util.UUID
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import work.gadmin.finora.localization.Message
+import work.gadmin.finora.localization.tr
 
 /** App-private, backup-excluded photos. Every workspace has an independent draft. */
 class DraftStore(private val context: Context, scope: String) {
@@ -23,9 +25,9 @@ class DraftStore(private val context: Context, scope: String) {
         if (!manifest.baseFile.exists()) return Draft()
         val draft = Json.decodeFromString<Draft>(manifest.readFully().decodeToString())
         require(draft.photos.size <= MAX_PHOTOS && draft.photos.all { photoName.matches(it) }) {
-            "Черновик повреждён"
+            tr(Message.THE_DRAFT_IS_DAMAGED)
         }
-        require(draft.photos.all { photo(it).isFile }) { "Фотографии черновика недоступны" }
+        require(draft.photos.all { photo(it).isFile }) { tr(Message.DRAFT_PHOTOS_ARE_UNAVAILABLE) }
         return draft
     }
 
@@ -56,7 +58,7 @@ class DraftStore(private val context: Context, scope: String) {
 
     fun importPhoto(uri: Uri): String =
         context.contentResolver.openInputStream(uri)?.use(::prepare)
-            ?: throw IllegalArgumentException("Не удалось открыть фотографию")
+            ?: throw IllegalArgumentException(tr(Message.COULD_NOT_OPEN_THE_PHOTO))
 
     fun importPhoto(file: File): String = file.inputStream().use(::prepare)
 
@@ -73,7 +75,7 @@ class DraftStore(private val context: Context, scope: String) {
                     if (read < 0) break
                     total += read
                     require(total <= 50L * 1024 * 1024) {
-                        "Фото больше 50 МБ. Выберите меньший размер."
+                        tr(Message.THIS_PHOTO_EXCEEDS_50_MB_CHOOSE_A_SMALLER_ONE)
                     }
                     target.write(buffer, 0, read)
                 }
@@ -85,7 +87,7 @@ class DraftStore(private val context: Context, scope: String) {
                     bounds.outHeight > 0 &&
                     bounds.outWidth.toLong() * bounds.outHeight <= 100_000_000L
             ) {
-                "Нужна фотография JPG, PNG, WebP или HEIC размером до 100 Мп"
+                tr(Message.CHOOSE_A_JPG_PNG_WEBP_OR_HEIC_PHOTO_UP_TO_100_MP)
             }
             val options =
                 BitmapFactory.Options().apply {
@@ -100,7 +102,7 @@ class DraftStore(private val context: Context, scope: String) {
                 }
             val bitmap =
                 BitmapFactory.decodeFile(raw.path, options)
-                    ?: throw IllegalArgumentException("Не удалось прочитать фото")
+                    ?: throw IllegalArgumentException(tr(Message.COULD_NOT_READ_THE_PHOTO))
             val exif = ExifInterface(raw)
             val matrix =
                 Matrix().apply {
@@ -118,7 +120,7 @@ class DraftStore(private val context: Context, scope: String) {
                 bitmap.recycle()
             }
             require(output.length() <= 15 * 1024 * 1024) {
-                "После обработки фото больше 15 МБ. Снимите чек частями."
+                tr(Message.THE_PROCESSED_PHOTO_EXCEEDS_15_MB_CAPTURE_THE_RECEIPT_IN_P)
             }
             return name
         } catch (error: Exception) {

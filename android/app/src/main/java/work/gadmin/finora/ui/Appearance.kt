@@ -21,11 +21,16 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import work.gadmin.finora.localization.Message
+import work.gadmin.finora.localization.tr
 
-enum class ThemeMode(val label: String) {
-    SYSTEM("Как в системе"),
-    LIGHT("Светлая"),
-    DARK("Тёмная");
+enum class ThemeMode(private val labelMessage: Message) {
+    SYSTEM(Message.SYSTEM),
+    LIGHT(Message.LIGHT),
+    DARK(Message.DARK);
+
+    val label: String
+        get() = tr(labelMessage)
 
     fun isDark(systemDark: Boolean) = this == DARK || (this == SYSTEM && systemDark)
 
@@ -83,9 +88,9 @@ fun AppearanceSettings() {
             Modifier.fillMaxWidth().padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Text("Оформление", style = MaterialTheme.typography.titleLarge)
+            Text(tr(Message.APPEARANCE), style = MaterialTheme.typography.titleLarge)
             Text(
-                "Выберите тему, в которой вам комфортно",
+                tr(Message.CHOOSE_THE_THEME_THAT_FEELS_RIGHT_FOR_YOU),
                 color = Muted,
                 style = MaterialTheme.typography.bodyMedium,
             )
@@ -145,13 +150,16 @@ fun AppearanceSettings() {
             }
             Text(
                 if (appearance.mode == ThemeMode.SYSTEM)
-                    "Сейчас ${if (appearance.dark) "тёмная" else "светлая"} · меняется вместе с системой."
-                else "Выбрана вручную. Можно вернуться к теме системы.",
+                    tr(
+                        Message.CURRENTLY_1_S_FOLLOWS_YOUR_DEVICE_SETTINGS,
+                        if (appearance.dark) tr(Message.DARK_9BB13) else tr(Message.LIGHT_AFEA3),
+                    )
+                else tr(Message.CHOSEN_MANUALLY_YOU_CAN_SWITCH_BACK_TO_THE_SYSTEM_THEME),
                 color = Muted,
                 style = MaterialTheme.typography.bodySmall,
             )
             Text(
-                "Выбор сохраняется на этом устройстве",
+                tr(Message.YOUR_CHOICE_IS_SAVED_ON_THIS_DEVICE),
                 color = Muted,
                 style = MaterialTheme.typography.bodySmall,
             )

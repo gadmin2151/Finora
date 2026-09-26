@@ -40,6 +40,7 @@ from .finance import (
     recommendations,
     transaction_dict,
 )
+from .i18n import current_language, t, translated_notice
 from .organizations import identity
 from .receipt_files import append_images
 from .receipts import ReceiptError, confirm_receipt, image_bytes, mev_url, receipt_dict
@@ -75,7 +76,11 @@ def enqueue(db, organization_id: str, kind: str, payload: dict):
         >= 10
     ):
         fail("В очереди уже 10 задач. Дождитесь обработки", 429)
-    job = m.Job(organization_id=organization_id, kind=kind, payload=payload)
+    job = m.Job(
+        organization_id=organization_id,
+        kind=kind,
+        payload={**payload, "language": current_language()},
+    )
     db.add(job)
     db.flush()
     return job
@@ -632,7 +637,7 @@ def register_receipt(
         m.Message(
             organization_id=organization_id,
             role="user",
-            text="Фото чека" if receipt.file_names else "Чек по QR-ссылке",
+            text=t("Фото чека") if receipt.file_names else t("Чек по QR-ссылке"),
             receipt_id=receipt.id,
         )
     )
@@ -936,7 +941,7 @@ def jobs(user: m.Organization = SCOPE, db: Session = DB):
             "id": r.id,
             "kind": r.kind,
             "status": r.status,
-            "progress": r.progress,
+            "progress": translated_notice(r.progress),
             "payload": r.payload if r.kind == "model_pull" else {},
             "result": r.result,
             "created_at": r.created_at,
@@ -1086,7 +1091,20 @@ def export_csv(user: m.Organization = SCOPE):
         buffer = io.StringIO()
         writer = csv.writer(buffer)
         yield "\ufeff"
-        writer.writerow(["Дата", "Тип", "Сумма", "Валюта", "Сумма MDL", "Магазин", "Примечание"])
+        writer.writerow(
+            [
+                t(label)
+                for label in [
+                    "Дата",
+                    "Тип",
+                    "Сумма",
+                    "Валюта",
+                    "Сумма MDL",
+                    "Магазин",
+                    "Примечание",
+                ]
+            ]
+        )
         yield buffer.getvalue()
         buffer.seek(0)
         buffer.truncate(0)

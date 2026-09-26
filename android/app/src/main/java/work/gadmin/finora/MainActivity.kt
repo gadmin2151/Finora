@@ -8,6 +8,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.viewmodel.compose.viewModel
+import work.gadmin.finora.localization.LanguageEnvironment
+import work.gadmin.finora.localization.LanguageRuntime
 import work.gadmin.finora.ui.FinoraApp
 import work.gadmin.finora.ui.FinoraTheme
 import work.gadmin.finora.ui.ThemePreferences
@@ -15,6 +17,7 @@ import work.gadmin.finora.ui.ThemePreferences
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        LanguageRuntime.initialize(this)
         val systemDark =
             resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK ==
                 Configuration.UI_MODE_NIGHT_YES
@@ -24,6 +27,6 @@ class MainActivity : ComponentActivity() {
         )
         WebView.enableSlowWholeDocumentDraw()
         enableEdgeToEdge()
-        setContent { FinoraTheme { FinoraApp(viewModel()) } }
+        setContent { LanguageEnvironment { FinoraTheme { FinoraApp(viewModel()) } } }
     }
 }

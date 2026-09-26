@@ -5,6 +5,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.serialization.json.*
+import work.gadmin.finora.localization.Message
+import work.gadmin.finora.localization.tr
 
 data class FinanceState(
     val month: String = "",
@@ -229,12 +231,13 @@ class FinanceController(
         mutate(
             command,
             when (form.kind) {
-                FinanceEditKind.PLAN -> "Источник дохода сохранён"
-                FinanceEditKind.DEBT -> "Долг записан"
+                FinanceEditKind.PLAN -> tr(Message.INCOME_SOURCE_SAVED)
+                FinanceEditKind.DEBT -> tr(Message.DEBT_RECORDED)
                 FinanceEditKind.REPAY ->
-                    if (form.fullRepayment) "Долг полностью погашен" else "Погашение учтено"
-                FinanceEditKind.INCREASE_DEBT -> "Долг увеличен"
-                else -> "Доход сохранён"
+                    if (form.fullRepayment) tr(Message.DEBT_FULLY_REPAID)
+                    else tr(Message.REPAYMENT_RECORDED)
+                FinanceEditKind.INCREASE_DEBT -> tr(Message.DEBT_INCREASED)
+                else -> tr(Message.INCOME_SAVED)
             },
             editor = true,
         )
@@ -250,20 +253,20 @@ class FinanceController(
                     put("version", plan.version)
                 },
             ),
-            if (plan.active) "Источник приостановлен" else "Источник возобновлён",
+            if (plan.active) tr(Message.SOURCE_PAUSED) else tr(Message.SOURCE_RESUMED),
         )
 
     fun skip(row: IncomeOccurrence) =
         mutate(
             FinanceCommand("/api/income/occurrences/${row.id}/skip", "POST"),
-            if (row.status == "skipped") "Поступление возвращено в план"
-            else "Поступление пропущено",
+            if (row.status == "skipped") tr(Message.PAYMENT_RETURNED_TO_THE_PLAN)
+            else tr(Message.PAYMENT_SKIPPED),
         )
 
     fun void(tx: FinanceTransaction) =
         mutate(
             FinanceCommand("/api/transactions/${tx.id}?version=${tx.version}", "DELETE"),
-            "Зачисление отменено",
+            tr(Message.INCOME_RECEIPT_REVERSED),
         )
 
     private fun mutate(command: FinanceCommand, notice: String, editor: Boolean = false) {
@@ -312,7 +315,8 @@ class FinanceController(
                 if (error is ApiException && error.code == 401) throw error
                 mutable.update {
                     it.copy(
-                        error = "Изменение сохранено. Не удалось обновить список — потяните вниз."
+                        error =
+                            tr(Message.CHANGE_SAVED_COULD_NOT_REFRESH_THE_LIST_PULL_DOWN_TO_RETRY)
                     )
                 }
             }
@@ -323,9 +327,9 @@ class FinanceController(
         private fun message(error: Exception) =
             when (error) {
                 is ApiException,
-                is IllegalArgumentException -> error.message ?: "Проверьте введённые данные"
-                else ->
-                    "Нет подтверждения от сервера. Проверьте интернет и повторите с теми же данными."
+                is IllegalArgumentException ->
+                    error.message ?: tr(Message.CHECK_THE_DETAILS_YOU_ENTERED)
+                else -> tr(Message.NO_CONFIRMATION_FROM_THE_SERVER_CHECK_YOUR_CONNECTION_AND)
             }
     }
 }

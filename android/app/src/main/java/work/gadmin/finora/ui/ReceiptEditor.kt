@@ -20,6 +20,8 @@ import kotlinx.serialization.json.Json
 import work.gadmin.finora.AppState
 import work.gadmin.finora.FinoraViewModel
 import work.gadmin.finora.data.*
+import work.gadmin.finora.localization.Message
+import work.gadmin.finora.localization.tr
 
 @Composable
 fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
@@ -52,10 +54,10 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton({ discard = true }, enabled = enabled) {
-                    LineIcon(Glyph.BACK, "Назад к проверке")
+                    LineIcon(Glyph.BACK, tr(Message.BACK_TO_REVIEW))
                 }
                 Column {
-                    Text("Исправить чек", style = MaterialTheme.typography.titleLarge)
+                    Text(tr(Message.EDIT_RECEIPT), style = MaterialTheme.typography.titleLarge)
                     Text(
                         state.organization?.name.orEmpty(),
                         color = Muted,
@@ -71,10 +73,15 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
-                        "${form.items.size} позиций · сумма строк: ${sum?.toPlainString() ?: "—"} ${form.currency}"
+                        tr(
+                            Message.TEXT_1_S_ITEMS_ITEM_TOTAL_2_S_3_S,
+                            form.items.size,
+                            sum?.toPlainString() ?: "—",
+                            form.currency,
+                        )
                     )
                     PrimaryButton(
-                        if (state.busy) "Сохраняем…" else "Подтвердить и сохранить",
+                        if (state.busy) tr(Message.SAVING) else tr(Message.CONFIRM_AND_SAVE),
                         {
                             try {
                                 form.payload()
@@ -105,26 +112,26 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
         ) {
             item {
                 InfoCard(
-                    "Исправьте данные по чеку. Скидки учитывайте в суммах строк. Расход появится после подтверждения.",
+                    tr(Message.CHECK_THE_DETAILS_AGAINST_YOUR_RECEIPT_INCLUDE_DISCOUNTS_I),
                     Glyph.RECEIPT,
                 )
             }
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     EditField(
-                        "Магазин",
+                        tr(Message.STORE),
                         form.merchant,
                         { form = form.copy(merchant = it.take(200)) },
                         enabled = enabled,
                     )
                     EditField(
-                        "Адрес магазина",
+                        tr(Message.STORE_ADDRESS),
                         form.merchantAddress,
                         { form = form.copy(merchantAddress = it.take(500)) },
                         enabled = enabled,
                     )
                     EditField(
-                        "Дата · ГГГГ-ММ-ДД",
+                        tr(Message.DATE_YYYY_MM_DD),
                         form.date,
                         { form = form.copy(date = it.take(10)) },
                         enabled = enabled,
@@ -138,12 +145,12 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
                                 enabled = enabled,
                                 contentPadding = PaddingValues(horizontal = 8.dp),
                             ) {
-                                Text("Сегодня", style = MaterialTheme.typography.labelLarge)
+                                Text(tr(Message.TODAY), style = MaterialTheme.typography.labelLarge)
                             }
                         },
                     )
                     ChoiceField(
-                        "Валюта",
+                        tr(Message.CURRENCY),
                         form.currency,
                         listOf("MDL", "EUR", "USD", "RON").map { it to it },
                         enabled,
@@ -158,9 +165,9 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
                             )
                     }
                     ChoiceField(
-                        "Счёт",
+                        tr(Message.ACCOUNT),
                         state.accounts.firstOrNull { it.id == form.accountId }?.name
-                            ?: "Выберите счёт",
+                            ?: tr(Message.CHOOSE_AN_ACCOUNT),
                         state.accounts
                             .filter { !it.archived && it.currency == form.currency }
                             .map { it.id to it.name },
@@ -170,14 +177,14 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
                     }
                     if (form.currency != "MDL")
                         EditField(
-                            "Курс · MDL за 1 ${form.currency}",
+                            tr(Message.RATE_MDL_PER_1_1_S, form.currency),
                             form.fxRate,
                             { form = form.copy(fxRate = it.take(18)) },
                             number = true,
                             enabled = enabled,
                         )
                     EditField(
-                        "Итог чека · ${form.currency}",
+                        tr(Message.RECEIPT_TOTAL_1_S, form.currency),
                         form.total,
                         { form = form.copy(total = it.take(16)) },
                         number = true,
@@ -193,7 +200,7 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                "Позиция ${index + 1}",
+                                tr(Message.ITEM_1_S, index + 1),
                                 Modifier.weight(1f),
                                 style = MaterialTheme.typography.titleMedium,
                             )
@@ -206,18 +213,22 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
                                 },
                                 enabled = enabled,
                             ) {
-                                LineIcon(Glyph.TRASH, "Удалить позицию ${index + 1}", size = 20.dp)
+                                LineIcon(
+                                    Glyph.TRASH,
+                                    tr(Message.DELETE_ITEM_1_S, index + 1),
+                                    size = 20.dp,
+                                )
                             }
                         }
                         EditField(
-                            "Название товара",
+                            tr(Message.ITEM_NAME),
                             item.name,
                             { changeLine(index, item.copy(name = it.take(300))) },
                             enabled = enabled,
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             EditField(
-                                "Количество",
+                                tr(Message.QUANTITY),
                                 item.quantity,
                                 { changeLine(index, item.copy(quantity = it.take(18))) },
                                 Modifier.weight(1f),
@@ -225,7 +236,7 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
                                 enabled = enabled,
                             )
                             EditField(
-                                "Ед. изм.",
+                                tr(Message.UNIT),
                                 item.unit,
                                 { changeLine(index, item.copy(unit = it.take(12))) },
                                 Modifier.weight(1f),
@@ -234,7 +245,7 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             EditField(
-                                "Цена",
+                                tr(Message.PRICE),
                                 item.unitPrice,
                                 { changeLine(index, item.copy(unitPrice = it.take(16))) },
                                 Modifier.weight(1f),
@@ -242,7 +253,7 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
                                 enabled = enabled,
                             )
                             EditField(
-                                "Сумма строки",
+                                tr(Message.LINE_TOTAL),
                                 item.total,
                                 { changeLine(index, item.copy(total = it.take(16))) },
                                 Modifier.weight(1f),
@@ -251,10 +262,10 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
                             )
                         }
                         ChoiceField(
-                            "Категория",
+                            tr(Message.CATEGORY),
                             state.categories.firstOrNull { it.id == item.categoryId }?.name
-                                ?: "Без категории",
-                            listOf(null to "Без категории") +
+                                ?: tr(Message.UNCATEGORIZED),
+                            listOf(null to tr(Message.UNCATEGORIZED)) +
                                 state.categories.map { it.id to it.name },
                             enabled,
                         ) {
@@ -271,14 +282,14 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
                 ) {
                     LineIcon(Glyph.PLUS, size = 18.dp)
                     Spacer(Modifier.width(8.dp))
-                    Text("Добавить позицию")
+                    Text(tr(Message.ADD_ITEM))
                 }
                 TextButton(
                     { sum?.let { form = form.copy(total = it.toPlainString()) } },
                     Modifier.fillMaxWidth(),
                     enabled = enabled && sum != null,
                 ) {
-                    Text("Поставить сумму строк в итог")
+                    Text(tr(Message.USE_ITEM_SUM_AS_TOTAL))
                 }
             }
         }
@@ -286,10 +297,18 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
     if (confirm)
         AlertDialog(
             onDismissRequest = { confirm = false },
-            title = { Text("Сохранить исправленный чек?") },
+            title = { Text(tr(Message.SAVE_THE_CORRECTED_RECEIPT)) },
             text = {
                 Text(
-                    "${form.merchant}\n${form.date}\n${form.items.size} позиций · ${form.total} ${form.currency}\nСчёт: ${state.accounts.firstOrNull { it.id == form.accountId }?.name}"
+                    tr(
+                        Message.TEXT_1_S_2_S_3_S_ITEMS_4_S_5_S_ACCOUNT_6_S,
+                        form.merchant,
+                        form.date,
+                        form.items.size,
+                        form.total,
+                        form.currency,
+                        state.accounts.firstOrNull { it.id == form.accountId }?.name,
+                    )
                 )
             },
             confirmButton = {
@@ -297,29 +316,27 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
                     confirm = false
                     vm.confirmReview(form)
                 }) {
-                    Text("Сохранить расход")
+                    Text(tr(Message.SAVE_EXPENSE))
                 }
             },
-            dismissButton = { TextButton({ confirm = false }) { Text("Ещё проверить") } },
+            dismissButton = { TextButton({ confirm = false }) { Text(tr(Message.REVIEW_AGAIN)) } },
         )
     if (discard)
         AlertDialog(
             onDismissRequest = { discard = false },
-            title = { Text("Выйти из редактирования?") },
+            title = { Text(tr(Message.LEAVE_THE_EDITOR)) },
             text = {
-                Text(
-                    "Несохранённые исправления будут отменены. Распознанный чек останется в истории."
-                )
+                Text(tr(Message.UNSAVED_CORRECTIONS_WILL_BE_LOST_THE_RECOGNIZED_RECEIPT_WI))
             },
             confirmButton = {
                 TextButton({
                     discard = false
                     vm.editReceipt(false)
                 }) {
-                    Text("Выйти")
+                    Text(tr(Message.SIGN_OUT_026AB))
                 }
             },
-            dismissButton = { TextButton({ discard = false }) { Text("Продолжить") } },
+            dismissButton = { TextButton({ discard = false }) { Text(tr(Message.CONTINUE)) } },
         )
 }
 
@@ -373,7 +390,7 @@ private fun ChoiceField(
             }
             if (choices.isEmpty())
                 DropdownMenuItem(
-                    text = { Text("Добавьте счёт в веб-версии") },
+                    text = { Text(tr(Message.ADD_AN_ACCOUNT_ON_THE_WEBSITE)) },
                     onClick = { open = false },
                     enabled = false,
                 )

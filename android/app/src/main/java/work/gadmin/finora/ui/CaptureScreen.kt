@@ -29,6 +29,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import work.gadmin.finora.*
 import work.gadmin.finora.data.*
+import work.gadmin.finora.localization.Message
+import work.gadmin.finora.localization.tr
 
 @Composable
 fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
@@ -58,19 +60,20 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
             )
             Spacer(Modifier.height(16.dp))
             Text(
-                if (state.draft.hasContent) "Один чек.\nВсё на месте."
-                else "Меньше рутины.\nБольше жизни.",
+                if (state.draft.hasContent) tr(Message.ONE_RECEIPT_EVERYTHING_TOGETHER)
+                else tr(Message.LESS_ROUTINE_MORE_LIVING),
                 style = MaterialTheme.typography.headlineLarge,
             )
             Spacer(Modifier.height(9.dp))
             Text(
-                if (state.draft.hasContent) "Проверьте снимки и отправьте на распознавание."
-                else "Один снимок — и покупки в вашем бюджете.",
+                if (state.draft.hasContent)
+                    tr(Message.CHECK_YOUR_PHOTOS_AND_SEND_THEM_FOR_RECOGNITION)
+                else tr(Message.ONE_PHOTO_AND_YOUR_PURCHASES_ARE_READY_FOR_YOUR_BUDGET),
                 color = Muted,
             )
         }
         if (state.workspaceLoading)
-            item { BrandLoading("Открываем вашу организацию", compact = true) }
+            item { BrandLoading(tr(Message.OPENING_YOUR_ORGANIZATION), compact = true) }
         if (state.draft.hasContent) {
             item {
                 Surface(shape = RoundedCornerShape(26.dp), color = SurfaceColor) {
@@ -80,23 +83,32 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
-                                Text("Черновик чека", style = MaterialTheme.typography.titleMedium)
                                 Text(
-                                    "Сохранён на этом устройстве",
+                                    tr(Message.RECEIPT_DRAFT),
+                                    style = MaterialTheme.typography.titleMedium,
+                                )
+                                Text(
+                                    tr(Message.SAVED_ON_THIS_DEVICE),
                                     color = Muted,
                                     style = MaterialTheme.typography.bodySmall,
                                 )
                             }
                             IconButton({ discard = true }, enabled = available) {
-                                LineIcon(Glyph.TRASH, "Удалить черновик", tint = Muted)
+                                LineIcon(Glyph.TRASH, tr(Message.DELETE_DRAFT), tint = Muted)
                             }
                         }
                         if (state.draft.qr.isNotBlank())
                             InfoCard(
                                 if (state.draft.pageCaptured)
-                                    "Страница чека сохранена на телефоне и готова к распознаванию."
+                                    tr(
+                                        Message
+                                            .THE_RECEIPT_PAGE_IS_SAVED_ON_YOUR_PHONE_AND_READY_FOR_RECO
+                                    )
                                 else
-                                    "Телефон откроет ссылку на чек и передаст страницу на распознавание.",
+                                    tr(
+                                        Message
+                                            .YOUR_PHONE_WILL_OPEN_THE_RECEIPT_LINK_AND_SEND_THE_PAGE_FO
+                                    ),
                                 Glyph.SCAN,
                             )
                         state.draft.photos.forEachIndexed { index, name ->
@@ -115,9 +127,12 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
                                     )
                                 }
                                 Column(Modifier.weight(1f)) {
-                                    Text("Часть ${index + 1}", fontWeight = FontWeight.SemiBold)
                                     Text(
-                                        "Нажмите, чтобы проверить",
+                                        tr(Message.PART_1_S, index + 1),
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                    Text(
+                                        tr(Message.TAP_TO_REVIEW),
                                         color = Muted,
                                         style = MaterialTheme.typography.bodySmall,
                                     )
@@ -126,14 +141,14 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
                                     IconButton({ vm.movePhoto(index, -1) }, enabled = available) {
                                         LineIcon(
                                             Glyph.BACK,
-                                            "Переместить часть ${index + 1} раньше",
+                                            tr(Message.MOVE_PART_1_S_EARLIER, index + 1),
                                             size = 19.dp,
                                         )
                                     }
                                 IconButton({ vm.removePhoto(name) }, enabled = available) {
                                     LineIcon(
                                         Glyph.CLOSE,
-                                        "Удалить часть ${index + 1}",
+                                        tr(Message.DELETE_PART_1_S, index + 1),
                                         tint = Muted,
                                         size = 20.dp,
                                     )
@@ -149,7 +164,7 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
                             ) {
                                 LineIcon(Glyph.PLUS, size = 18.dp)
                                 Spacer(Modifier.width(8.dp))
-                                Text("Добавить часть чека · ${state.draft.photos.size}/4")
+                                Text(tr(Message.ADD_A_RECEIPT_PART_1_S_4, state.draft.photos.size))
                             }
                         }
                         Box {
@@ -164,14 +179,14 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
                                 Text(
                                     state.accounts
                                         .firstOrNull { it.id == state.draft.accountId }
-                                        ?.name ?: "Счёт по настройке сервера",
+                                        ?.name ?: tr(Message.SERVER_DEFAULT_ACCOUNT),
                                     Modifier.weight(1f),
                                 )
                                 LineIcon(Glyph.DOWN, size = 18.dp)
                             }
                             DropdownMenu(accountMenu, { accountMenu = false }) {
                                 DropdownMenuItem(
-                                    text = { Text("По настройке сервера") },
+                                    text = { Text(tr(Message.SERVER_DEFAULT)) },
                                     onClick = {
                                         vm.setAccount(null)
                                         accountMenu = false
@@ -196,20 +211,21 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
                                 modifier = Modifier.fillMaxWidth(),
                             )
                             Text(
-                                if (progress >= 1f) "Сервер принимает чек…"
-                                else "Передаём фото: ${(progress * 100).toInt()}%",
+                                if (progress >= 1f) tr(Message.THE_SERVER_IS_RECEIVING_YOUR_RECEIPT)
+                                else tr(Message.UPLOADING_PHOTOS_1_S, (progress * 100).toInt()),
                                 color = Muted,
                             )
                         }
                         PrimaryButton(
-                            if (state.busy) "Обрабатываем…" else "Распознать чек",
+                            if (state.busy) tr(Message.PROCESSING_CC91E)
+                            else tr(Message.READ_RECEIPT),
                             vm::sendDraft,
                             Modifier.fillMaxWidth(),
                             available,
                             Glyph.ARROW,
                         )
                         Text(
-                            "Организация: ${state.organization?.name}",
+                            tr(Message.ORGANIZATION_1_S, state.organization?.name),
                             color = Muted,
                             style = MaterialTheme.typography.bodySmall,
                         )
@@ -236,7 +252,7 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
                         ) {
                             BrandMark(Modifier.size(100.dp))
                             Text(
-                                "01 / БЫСТРЫЙ СТАРТ",
+                                tr(Message.TEXT_01_QUICK_START),
                                 color = Amber,
                                 style = MaterialTheme.typography.labelSmall,
                                 modifier = Modifier.padding(top = 7.dp),
@@ -244,7 +260,7 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
                         }
                         Spacer(Modifier.height(12.dp))
                         Text(
-                            "Сканировать QR",
+                            tr(Message.SCAN_QR_CODE),
                             fontSize = 25.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = HeroInk,
@@ -252,7 +268,7 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
                         Spacer(Modifier.height(7.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                "Наведите на код\nвнизу бумажного чека",
+                                tr(Message.POINT_AT_THE_CODE_AT_THE_BOTTOM_OF_YOUR_RECEIPT),
                                 color = Mint.copy(alpha = .85f),
                                 modifier = Modifier.weight(1f),
                             )
@@ -273,8 +289,8 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                     CaptureTile(
-                        "Снять чек",
-                        "Короткий или длинный",
+                        tr(Message.CAPTURE_RECEIPT),
+                        tr(Message.SHORT_OR_LONG_RECEIPTS),
                         Glyph.CAMERA,
                         Modifier.weight(1f),
                         available && state.draft.photos.size < MAX_PHOTOS,
@@ -282,8 +298,8 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
                         vm.camera(CameraMode.LONG_RECEIPT)
                     }
                     CaptureTile(
-                        "Из галереи",
-                        "Готовые снимки",
+                        tr(Message.FROM_GALLERY),
+                        tr(Message.EXISTING_PHOTOS),
                         Glyph.IMAGE,
                         Modifier.weight(1f),
                         available && state.draft.photos.size < MAX_PHOTOS,
@@ -301,17 +317,17 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
                 TextButton({ manualQr = true }, Modifier.fillMaxWidth(), enabled = available) {
                     LineIcon(Glyph.LINK, size = 18.dp)
                     Spacer(Modifier.width(8.dp))
-                    Text("Вставить ссылку на чек")
+                    Text(tr(Message.PASTE_A_RECEIPT_LINK))
                 }
                 Spacer(Modifier.height(8.dp))
                 InfoCard(
-                    "Короткий чек — один кадр. Длинный — ведите камеру сверху вниз. Получится одно фото для проверки.",
+                    tr(Message.FOR_A_SHORT_RECEIPT_ONE_FRAME_IS_ENOUGH_FOR_A_LONG_ONE_MOV),
                     Glyph.SPARK,
                 )
             }
         item {
             Text(
-                "ВАШ СЕРВЕР · ВАШИ ДАННЫЕ",
+                tr(Message.YOUR_SERVER_YOUR_DATA),
                 style = MaterialTheme.typography.labelSmall,
                 color = Muted,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
@@ -322,7 +338,7 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
     if (manualQr)
         AlertDialog(
             onDismissRequest = { manualQr = false },
-            title = { Text("Ссылка на электронный чек") },
+            title = { Text(tr(Message.ELECTRONIC_RECEIPT_LINK)) },
             text = {
                 OutlinedTextField(
                     qrText,
@@ -339,29 +355,27 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
                     },
                     enabled = qrText.isNotBlank(),
                 ) {
-                    Text("Добавить")
+                    Text(tr(Message.ADD))
                 }
             },
-            dismissButton = { TextButton({ manualQr = false }) { Text("Отмена") } },
+            dismissButton = { TextButton({ manualQr = false }) { Text(tr(Message.CANCEL)) } },
         )
     if (discard)
         AlertDialog(
             onDismissRequest = { discard = false },
-            title = { Text("Удалить черновик?") },
+            title = { Text(tr(Message.DELETE_THIS_DRAFT)) },
             text = {
-                Text(
-                    "Фотографии этого черновика будут удалены с устройства. Отправленные чеки останутся на сервере."
-                )
+                Text(tr(Message.THIS_DRAFT_S_PHOTOS_WILL_BE_REMOVED_FROM_THE_DEVICE_SUBMIT))
             },
             confirmButton = {
                 TextButton({
                     vm.discardDraft()
                     discard = false
                 }) {
-                    Text("Удалить")
+                    Text(tr(Message.DELETE))
                 }
             },
-            dismissButton = { TextButton({ discard = false }) { Text("Оставить") } },
+            dismissButton = { TextButton({ discard = false }) { Text(tr(Message.KEEP)) } },
         )
     preview?.let { file -> PhotoDialog(file) { preview = null } }
 }
@@ -426,7 +440,7 @@ fun LocalPhoto(
         }
     if (image != null) {
         if (full) ReceiptImageViewer(requireNotNull(image), modifier)
-        else Image(requireNotNull(image), "Фотография чека", modifier, contentScale = scale)
+        else Image(requireNotNull(image), tr(Message.RECEIPT_PHOTO), modifier, contentScale = scale)
     } else
         Box(modifier.background(SoftGreen), contentAlignment = Alignment.Center) {
             LineIcon(Glyph.IMAGE)
@@ -448,7 +462,7 @@ private fun PhotoDialog(file: File, onClose: () -> Unit) {
                     .padding(12.dp)
                     .background(Forest, RoundedCornerShape(50)),
             ) {
-                LineIcon(Glyph.CLOSE, "Закрыть фото", tint = Color.White)
+                LineIcon(Glyph.CLOSE, tr(Message.CLOSE_PHOTO), tint = Color.White)
             }
         }
     }
