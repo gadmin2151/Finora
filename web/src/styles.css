@@ -1131,6 +1131,11 @@ code {
   display: inline-flex;
   margin: 0;
 }
+.receipt-input-modes button {
+  min-width: 0;
+  white-space: normal;
+  padding-inline: 10px;
+}
 .segmented.compact button {
   padding: 7px 13px;
   min-height: 32px;

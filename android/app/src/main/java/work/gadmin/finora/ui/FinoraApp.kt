@@ -111,7 +111,8 @@ fun FinoraApp(vm: FinoraViewModel) {
                 vm::closeReceiptPage,
                 vm::receiveReceiptPage,
             )
-        state.editingReceipt && state.detail != null -> ReceiptEditor(state, vm)
+        state.editingReceipt && (state.detail != null || state.manualReceiptKey != null) ->
+            ReceiptEditor(state, vm)
         else -> {
             val composingChat =
                 state.page == Page.CHAT &&

@@ -12,6 +12,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import java.io.File
 import java.time.LocalDate
+import java.util.UUID
 import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
@@ -25,6 +26,53 @@ class ReceiptReviewAcceptanceTest {
     @get:Rule(order = 0) val languageRule = RussianUiLanguageRule()
 
     @get:Rule(order = 1) val rule = createComposeRule()
+
+    @Test
+    fun manualReceiptCalculatesWeightedItemsAndKeepsDiscountBeforeConfirmation() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        assumeTrue(!File(context.noBackupFilesDir, "session.enc").exists())
+        val store = ViewModelStore()
+        val vm = FinoraViewModel(context.applicationContext as Application)
+        store.put("manual-receipt-test", vm)
+        val state =
+            AppState(
+                starting = false,
+                editingReceipt = true,
+                manualReceiptKey = UUID.randomUUID().toString(),
+                organization = Organization("test", "Test organization", "admin"),
+                accounts = listOf(Account("cash", "Наличные", "MDL")),
+            )
+        try {
+            rule.setContent { FinoraTheme { ReceiptEditor(state, vm) } }
+            fun input(label: String, value: String) {
+                val field = hasSetTextAction() and hasText(label)
+                rule.onNode(hasScrollToIndexAction()).performScrollToNode(field)
+                rule.onNode(field).performTextReplacement(value)
+                androidx.test.espresso.Espresso.closeSoftKeyboard()
+                rule.waitForIdle()
+            }
+            input("Магазин", "TEST MARKET")
+            rule.onNodeWithText("Дата · ГГГГ-ММ-ДД").assertTextContains(LocalDate.now().toString())
+            input("Название товара", "TEST ORANGES")
+            input("Количество", "1.312")
+            input("Цена", "33.99")
+            rule.onNodeWithText("Сумма строки").assertTextContains("44.59")
+            input("Сумма строки", "40.00")
+            rule.onNodeWithText("1 позиций · сумма строк: 40.00 MDL").assertExists()
+            rule.onNodeWithText("Подтвердить и сохранить").performClick()
+            rule.onNodeWithText("Сохранить чек и расход?").assertExists()
+            rule.onNodeWithText("TEST MARKET", substring = true).assertExists()
+            InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()?.let { image
+                ->
+                File(context.filesDir, "receipt-manual.png").outputStream().use {
+                    image.compress(Bitmap.CompressFormat.PNG, 100, it)
+                }
+                image.recycle()
+            }
+        } finally {
+            rule.runOnIdle { store.clear() }
+        }
+    }
 
     @Test
     fun missingDatePreservesTotalAndTodayIsAnExplicitEditableChoice() {

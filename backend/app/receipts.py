@@ -1,5 +1,6 @@
 import asyncio
 import csv
+import hashlib
 import io
 import json
 import re
@@ -39,7 +40,7 @@ from .finance import (
     today,
 )
 from .i18n import current_language, t, translated_notice
-from .schemas import ReceiptConfirm, SplitInput, TransactionInput
+from .schemas import ManualReceipt, ReceiptConfirm, SplitInput, TransactionInput
 from .web_receipts import WebReceiptError, capture_receipt_page, receipt_link
 
 pillow_heif.register_heif_opener()
@@ -970,6 +971,40 @@ def confirm_receipt(db, organization_id: str, receipt: m.Receipt, data: ReceiptC
     audit(db, organization_id, "receipt.confirmed", receipt.id)
     db.flush()
     return receipt_dict(db, receipt)
+
+
+def create_manual_receipt(db, organization_id: str, data: ManualReceipt) -> dict:
+    """Post an administrator's explicit entry atomically, without OCR or a source file."""
+    lock_organization(db, organization_id)
+    key = "manual:" + str(data.request_key)
+    fields = data.model_dump(exclude={"request_key"})
+    signature = hashlib.sha256(
+        json.dumps(data.model_dump(mode="json", exclude={"request_key"}), sort_keys=True).encode()
+    ).hexdigest()
+    prior = db.scalar(
+        select(m.Receipt).where(
+            m.Receipt.organization_id == organization_id, m.Receipt.source_key == key
+        )
+    )
+    if prior:
+        if prior.deleted_at:
+            fail("Этот чек ранее удалён администратором", 409)
+        if prior.original.get("manual_signature") != signature:
+            fail("Этот запрос уже сохранён с другими данными. Откройте сохранённый чек", 409)
+        return {"receipt": receipt_dict(db, prior), "duplicate": True}
+    receipt = m.Receipt(
+        organization_id=organization_id,
+        created_by=db.info.get("actor_id"),
+        source="manual",
+        source_key=key,
+        status="review",
+        original={"document_type": "manual_receipt", "manual_signature": signature},
+    )
+    db.add(receipt)
+    db.flush()
+    result = confirm_receipt(db, organization_id, receipt, ReceiptConfirm(**fields, version=1))
+    audit(db, organization_id, "receipt.manual_created", receipt.id)
+    return {"receipt": result, "duplicate": False}
 
 
 async def process_receipt(receipt_id: str):

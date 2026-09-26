@@ -43,7 +43,14 @@ from .finance import (
 from .i18n import current_language, t, translated_notice
 from .organizations import identity
 from .receipt_files import append_images
-from .receipts import ReceiptError, confirm_receipt, image_bytes, mev_url, receipt_dict
+from .receipts import (
+    ReceiptError,
+    confirm_receipt,
+    create_manual_receipt,
+    image_bytes,
+    mev_url,
+    receipt_dict,
+)
 from .security import (
     current_organization,
     current_user,
@@ -776,6 +783,13 @@ def link_receipt(data: s.ReceiptLink, user: m.Organization = SCOPE, db: Session 
         [],
         data.review_required or source == "web",
     )
+
+
+@router.post("/receipts/manual")
+def manual_receipt(data: s.ManualReceipt, user: m.Organization = SCOPE, db: Session = DB):
+    result = create_manual_receipt(db, user.id, data)
+    db.commit()
+    return result
 
 
 @router.post("/receipts/{key}/accept")

@@ -2,9 +2,17 @@
 
 Нативное приложение на Kotlin / Jetpack Compose для Android 8.0 и новее. Основной сценарий — быстро добавить чек в выбранную организацию. Сервер по умолчанию: `https://finora.gadmin.work`; на экране входа можно указать другой сервер Finora с действительным HTTPS-сертификатом.
 
-**[Скачать подписанный APK 1.9.2](https://finora.gadmin.work/assets/mobile/finora-1.9.2.apk)** · [SHA-256](https://finora.gadmin.work/assets/mobile/finora-1.9.2.apk.sha256) · [Отчёт о проверке](VERIFICATION.md).
+**[Скачать подписанный APK 1.12.0](https://finora.gadmin.work/assets/mobile/finora-1.12.0.apk)** · [SHA-256](https://finora.gadmin.work/assets/mobile/finora-1.12.0.apk.sha256) · [Отчёт о проверке](VERIFICATION.md).
 
-Ссылка выше ведёт на ранее опубликованную 1.9.2. Исходный код этой ветки — **1.11.0**; подписанный APK собирается в `artifacts/android/finora-1.11.0.apk`. Публикация на сервере выполняется отдельно.
+Версия **1.12.0** (`versionCode 23`), подписанный APK: `artifacts/android/finora-1.12.0.apk`. Обновите сервер перед установкой.
+
+## Ручной чек · 1.12.0
+
+Администратору организации доступна кнопка **Добавить → Чек вручную**. Фото, QR, AI и банковская операция не требуются. Дата заполнена сегодняшним днём, счёт можно выбрать из активных счетов организации. Введите магазин и товары: количество × цена автоматически даёт сумму строки, которую можно скорректировать для скидки. Итог считается по строкам.
+
+Кнопка **Подтвердить и сохранить** сначала показывает магазин, дату, число позиций, сумму и счёт. После подтверждения сервер одновременно сохраняет чек и расход. Повторная отправка того же запроса не задваивает покупку. Фото можно прикрепить позже на сайте.
+
+**English:** Organization admins can use **Add → Manual receipt**. Enter a store and items without an image, QR or bank import. Line totals and the receipt total are calculated automatically; discounted totals remain editable. Confirm the summary to save one receipt and one account expense, with safe retries.
 
 ## Кошелёк, категории и помощник · 1.11.0
 

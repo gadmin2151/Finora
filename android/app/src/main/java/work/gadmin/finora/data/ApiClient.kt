@@ -403,6 +403,18 @@ class ApiClient(val server: String, savedCookie: String? = null) {
             )
         )
 
+    suspend fun manualReceipt(org: String, form: ReceiptForm, requestKey: String): ReceiptResult =
+        json.decodeFromString(
+            execute(
+                request(
+                    "/api/receipts/manual",
+                    org,
+                    "POST",
+                    jsonBody(form.manualPayload(requestKey)),
+                )
+            )
+        )
+
     suspend fun reviewReceipt(org: String, id: String, form: ReceiptForm): Receipt =
         json.decodeFromString(
             execute(request("/api/receipts/$id/review", org, "POST", jsonBody(form.payload())))

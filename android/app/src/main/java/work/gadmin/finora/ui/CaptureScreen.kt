@@ -314,6 +314,18 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
             }
         if (!state.draft.hasContent)
             item {
+                if (state.organization?.isAdmin == true) {
+                    OutlinedButton(
+                        vm::createManualReceipt,
+                        Modifier.fillMaxWidth(),
+                        enabled = available,
+                    ) {
+                        LineIcon(Glyph.RECEIPT, size = 18.dp)
+                        Spacer(Modifier.width(8.dp))
+                        Text(tr(Message.MANUAL_RECEIPT))
+                    }
+                    Spacer(Modifier.height(8.dp))
+                }
                 TextButton({ manualQr = true }, Modifier.fillMaxWidth(), enabled = available) {
                     LineIcon(Glyph.LINK, size = 18.dp)
                     Spacer(Modifier.width(8.dp))

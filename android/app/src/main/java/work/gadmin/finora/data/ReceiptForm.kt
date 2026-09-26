@@ -1,6 +1,7 @@
 package work.gadmin.finora.data
 
 import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.LocalDate
 import java.util.UUID
 import kotlinx.serialization.Serializable
@@ -33,7 +34,24 @@ data class ReceiptLineForm(
     val unitPrice: String = "",
     val total: String = "",
     val categoryId: String? = null,
-)
+) {
+    fun calculateTotal(): ReceiptLineForm =
+        copy(
+            total =
+                runCatching {
+                        val count = receiptNumber(quantity)
+                        require(count > BigDecimal.ZERO && count <= BigDecimal("100000"))
+                        val amount =
+                            (count * receiptNumber(unitPrice, true)).setScale(
+                                2,
+                                RoundingMode.HALF_UP,
+                            )
+                        require(amount <= BigDecimal("1000000000"))
+                        amount.toPlainString()
+                    }
+                    .getOrDefault("")
+        )
+}
 
 @Serializable
 data class ReceiptForm(
@@ -105,7 +123,30 @@ data class ReceiptForm(
         }
     }
 
+    fun manualPayload(requestKey: String): JsonObject =
+        JsonObject(
+            payload().filterKeys { it != "version" } +
+                ("request_key" to JsonPrimitive(UUID.fromString(requestKey).toString()))
+        )
+
     companion object {
+        fun manual(accounts: List<Account>, selectedAccount: String? = null): ReceiptForm {
+            val account =
+                accounts.firstOrNull { it.id == selectedAccount && !it.archived }
+                    ?: accounts.firstOrNull { !it.archived && it.currency == "MDL" }
+                    ?: accounts.firstOrNull { !it.archived }
+            return ReceiptForm(
+                merchant = "",
+                date = LocalDate.now().toString(),
+                currency = account?.currency ?: "MDL",
+                total = "",
+                accountId = account?.id,
+                fxRate = if (account?.currency in listOf(null, "MDL")) "1" else "",
+                version = 1,
+                items = listOf(ReceiptLineForm()),
+            )
+        }
+
         fun from(receipt: Receipt, accounts: List<Account>): ReceiptForm =
             ReceiptForm(
                 merchant = receipt.merchant,

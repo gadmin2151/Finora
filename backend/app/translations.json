@@ -277,5 +277,6 @@
   "Корректировка уже изменена или отменена. Обновите баланс и создайте новую": "This adjustment has already been edited or reversed. Refresh the balance and create a new one",
   "Остаток счёта изменился. Обновите данные и проверьте сумму корректировки": "The account balance has changed. Refresh the data and check the adjustment amount",
   "Текущий остаток уже совпадает с указанным. Корректировка не требуется": "The current balance already matches the entered amount. No adjustment is needed",
-  "Сумма одной корректировки не может превышать 1 000 000 000": "A single adjustment cannot exceed 1,000,000,000"
+  "Сумма одной корректировки не может превышать 1 000 000 000": "A single adjustment cannot exceed 1,000,000,000",
+  "Этот запрос уже сохранён с другими данными. Откройте сохранённый чек": "This request was already saved with different details. Open the saved receipt."
 }

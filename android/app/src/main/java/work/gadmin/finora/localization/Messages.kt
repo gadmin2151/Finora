@@ -2,6 +2,16 @@ package work.gadmin.finora.localization
 
 /** App-owned copy only; user names, receipt content and chat history are never translated. */
 enum class Message(val english: String, val russian: String) {
+    MANUAL_RECEIPT("Manual receipt", "Чек вручную"),
+    MANUAL_RECEIPT_HELP(
+        "Enter the store and items. No photo, QR code or bank transaction is required. Saving records the expense on the selected account. The total is calculated from the items; adjust line totals for discounts.",
+        "Введите магазин и товары. Фото, QR и банковская операция не нужны. При сохранении расход спишется с выбранного счёта. Итог считается по товарам; скидки учитывайте в суммах строк.",
+    ),
+    SAVE_MANUAL_RECEIPT("Save this receipt and expense?", "Сохранить чек и расход?"),
+    DISCARD_MANUAL_RECEIPT(
+        "The entered receipt has not been saved. Leave and discard it?",
+        "Введённый чек ещё не сохранён. Выйти и отменить ввод?",
+    ),
     ARCHIVED_ACCOUNT("Archived · balance retained", "Архивный · остаток сохранён"),
     CATEGORY_TAP_HINT(
         "Tap a category to see purchased items",

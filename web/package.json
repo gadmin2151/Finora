@@ -10,7 +10,8 @@
     "format": "prettier --write src",
     "lint": "eslint src",
     "test:i18n": "node --test tests/i18n.test.mjs",
-    "test:wallet-chat": "node --test tests/wallet-chat.test.mjs"
+    "test:wallet-chat": "node --test tests/wallet-chat.test.mjs",
+    "test:receipts": "node --test tests/receipt-amounts.test.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.0",

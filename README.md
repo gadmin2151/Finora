@@ -74,6 +74,12 @@ Mint, warm gold and a little more breathing room. Follow your system theme or ch
 
 <p align="center"><a href="docs/SHOWCASE.md#en"><strong>Explore purchases, reports, the assistant and mobile finances →</strong></a><br /><sub>Actual application screens. All people, organizations and financial records shown are fictional.</sub></p>
 
+## Enter a receipt manually
+
+Organization administrators can create a receipt without a photo, QR code, AI service or imported bank transaction. On the web, open **Receipts → Add receipt → Manual**. On Android 1.12+, open the central **Add** tab → **Manual receipt**.
+
+Enter the store, date, payment account and items. Quantity × price fills each line total; edit a line total to include a discount. Finora adds the lines and, after confirmation, records one receipt and one account expense with category breakdowns. You can attach an original later. A failed connection can be retried without duplicating the expense. Regular members keep their existing upload and review permissions.
+
 ## Your language, from the first sign-in
 
 **English and Russian are available in both the web and native Android apps.** Choose a language on the sign-in screen, or change it later under **My profile → Interface language** on the web and **avatar → Language** on Android.

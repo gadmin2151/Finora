@@ -142,11 +142,12 @@ def current_organization(
         )
         if membership is None:
             raise HTTPException(403, "Нет доступа к этой организации")
-    receipt_add = path in {"/api/receipts/upload", "/api/receipts/link"}
+    receipt_upload = path in {"/api/receipts/upload", "/api/receipts/link"}
+    receipt_add = receipt_upload or path == "/api/receipts/manual"
     if receipt_add and not key:
         raise HTTPException(409, "Перед добавлением чека выберите организацию")
     if membership.role != "admin":
-        allowed_write = receipt_add or path in {
+        allowed_write = receipt_upload or path in {
             "/api/chat",
             "/api/receipts/{key}/comments",
             "/api/receipts/{key}/accept",

@@ -480,7 +480,12 @@ export function Receipts() {
                   {receipt.purchased_on
                     ? dateLabel(receipt.purchased_on)
                     : t("Дата ещё не распознана")}{" "}
-                  · {receipt.source === "mev" ? "MEV" : t("Фото чека")}
+                  ·{" "}
+                  {receipt.source === "manual"
+                    ? t("Ручной чек")
+                    : receipt.source === "mev"
+                      ? "MEV"
+                      : t("Фото чека")}
                 </p>
                 <div className="receipt-card-lines">
                   {receipt.items.slice(0, 3).map((i) => (

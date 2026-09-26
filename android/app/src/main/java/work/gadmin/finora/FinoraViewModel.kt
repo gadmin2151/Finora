@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import java.io.File
 import java.io.IOException
 import java.time.YearMonth
+import java.util.UUID
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -42,6 +43,7 @@ data class AppState(
     val camera: CameraMode? = null,
     val receiptPageUrl: String? = null,
     val editingReceipt: Boolean = false,
+    val manualReceiptKey: String? = null,
     val busy: Boolean = false,
     val workspaceLoading: Boolean = false,
     val refreshing: Boolean = false,
@@ -516,16 +518,48 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
     fun editReceipt(editing: Boolean) {
         if (!mutable.value.busy) {
             refresh.cancel()
-            mutable.update { it.copy(editingReceipt = editing, error = null) }
+            mutable.update {
+                it.copy(editingReceipt = editing, manualReceiptKey = null, error = null)
+            }
+        }
+    }
+
+    fun createManualReceipt() {
+        val current = mutable.value
+        if (current.busy || current.workspaceLoading || current.organization?.isAdmin != true)
+            return
+        refresh.cancel()
+        mutable.update {
+            it.copy(
+                editingReceipt = true,
+                manualReceiptKey = UUID.randomUUID().toString(),
+                error = null,
+            )
         }
     }
 
     fun confirmReview(form: ReceiptForm) = writeAction {
         val current = mutable.value
+        val org = requireNotNull(current.organization)
+        if (current.manualReceiptKey != null) {
+            require(org.isAdmin) { tr(Message.AVAILABLE_TO_ADMINISTRATORS) }
+            val confirmed =
+                requireNotNull(api).manualReceipt(org.id, form, current.manualReceiptKey).receipt
+            mutable.update {
+                it.copy(
+                    editingReceipt = false,
+                    manualReceiptKey = null,
+                    page = Page.RECEIPTS,
+                    notice = tr(Message.RECEIPT_CONFIRMED_EXPENSE_ADDED),
+                )
+            }
+            loadReceipts()
+            loadDashboard()
+            openReceipt(confirmed.id)
+            return@writeAction
+        }
         val receipt = requireNotNull(current.detail)
-        val confirmed =
-            requireNotNull(api)
-                .reviewReceipt(requireNotNull(current.organization).id, receipt.id, form)
+        val confirmed = requireNotNull(api).reviewReceipt(org.id, receipt.id, form)
         mutable.update {
             it.copy(
                 detail = confirmed,
@@ -571,6 +605,7 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
                 detail = it.receipts.firstOrNull { receipt -> receipt.id == id },
                 detailLoading = true,
                 editingReceipt = false,
+                manualReceiptKey = null,
                 comments = if (it.detailId == id) it.comments else emptyList(),
                 lastRefreshedAt = null,
             )
@@ -597,6 +632,7 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
                 comments = emptyList(),
                 detailLoading = false,
                 editingReceipt = false,
+                manualReceiptKey = null,
             )
         }
     }

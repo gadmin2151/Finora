@@ -1,6 +1,8 @@
 import { defaultReceiptUnit, unitLabel, canonicalUnit } from "./units";
 import { t, getLocale } from "./i18n";
 import { ReceiptOriginals } from "./ReceiptOriginals";
+import { receiptLineTotal } from "./receiptAmounts";
+import { moneyMinor, minorDecimal } from "./wallet";
 import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -8,6 +10,7 @@ import {
   Check,
   FileImage,
   Link2,
+  PenLine,
   Plus,
   RefreshCw,
   Trash2,
@@ -91,6 +94,33 @@ export function UploadReceipt({ onClose }: { onClose: () => void }) {
     setFiles(selected);
     setFileError("");
   }
+  if (mode === "manual" && isAdmin)
+    return (
+      <ReceiptForm
+        manual
+        receipt={{
+          id: "manual",
+          source: "manual",
+          source_url: null,
+          merchant: "",
+          purchased_on: today(),
+          currency,
+          total_minor: null,
+          status: "review",
+          error: null,
+          warnings: [],
+          account_id: account || null,
+          fx_rate: currency === "MDL" ? "1" : rate,
+          version: 1,
+          transaction_id: null,
+          files: [],
+          created_at: "",
+          items: [],
+        }}
+        onClose={onClose}
+        onBack={() => setMode("photo")}
+      />
+    );
   return (
     <Modal
       title={t("Добавить чек")}
@@ -110,7 +140,7 @@ export function UploadReceipt({ onClose }: { onClose: () => void }) {
         </p>
       </div>
       <Form onSubmit={() => action.mutate(undefined)}>
-        <div className="segmented">
+        <div className="segmented receipt-input-modes">
           <button
             type="button"
             className={mode === "photo" ? "selected" : ""}
@@ -125,8 +155,14 @@ export function UploadReceipt({ onClose }: { onClose: () => void }) {
             onClick={() => setMode("link")}
           >
             <Link2 size={17} />
-            {t("Ссылка из QR-кода")}
+            {t("QR-ссылка")}
           </button>
+          {isAdmin && (
+            <button type="button" onClick={() => setMode("manual")}>
+              <PenLine size={17} />
+              {t("Вручную")}
+            </button>
+          )}
         </div>
         {mode === "photo" ? (
           <>
@@ -463,16 +499,22 @@ function ReceiptComments({ receiptId }: { receiptId: string }) {
 function ReceiptForm({
   receipt,
   onClose,
+  manual = false,
+  onBack,
 }: {
   receipt: Receipt;
   onClose: () => void;
+  manual?: boolean;
+  onBack?: () => void;
 }) {
-  const { accounts, categories, toast, isAdmin } = useApp();
+  const { accounts, categories, toast, isAdmin, organization, navigate } =
+    useApp();
+  const [requestKey] = useState(() => crypto.randomUUID());
   const [merchant, setMerchant] = useState(receipt.merchant);
   const [address, setAddress] = useState(receipt.merchant_address ?? "");
   const [date, setDate] = useState(receipt.purchased_on ?? today());
   const [currency, setCurrency] = useState<string>(receipt.currency);
-  const [total, setTotal] = useState(
+  const [enteredTotal, setTotal] = useState(
     receipt.total_minor ? decimal(receipt.total_minor) : "",
   );
   const [account, setAccount] = useState(receipt.account_id ?? "");
@@ -500,9 +542,14 @@ function ReceiptForm({
   );
   const readonly =
     !isAdmin || ["posted", "queued", "processing"].includes(receipt.status);
+  const sum = items.reduce(
+    (value, item) => value + (moneyMinor(item.total) ?? 0),
+    0,
+  );
+  const total = manual ? minorDecimal(sum) : enteredTotal;
   const matches = useQuery({
     queryKey: ["receipt-matches", date, account, total],
-    enabled: !readonly && !!account && !!date && Number(total) > 0,
+    enabled: !manual && !readonly && !!account && !!date && Number(total) > 0,
     queryFn: () =>
       api<{ items: Transaction[] }>(
         `/transactions?month=${date.slice(0, 7)}&account_id=${account}&kind=expense&limit=200`,
@@ -510,7 +557,7 @@ function ReceiptForm({
   });
   const action = useAction(
     () =>
-      send(`/receipts/${receipt.id}/confirm`, {
+      send(manual ? "/receipts/manual" : `/receipts/${receipt.id}/confirm`, {
         merchant,
         merchant_address: address,
         purchased_on: date,
@@ -519,11 +566,13 @@ function ReceiptForm({
         account_id: account,
         fx_rate: currency === "MDL" ? null : rate,
         items: items.map((i) => ({ ...i, category_id: i.category_id || null })),
-        version: receipt.version,
-        transaction_id: transaction || null,
+        ...(manual
+          ? { request_key: requestKey }
+          : { version: receipt.version, transaction_id: transaction || null }),
       }),
     () => {
       toast(t("Чек и товары сохранены в учёте"));
+      if (manual) navigate("receipts");
       onClose();
     },
   );
@@ -534,33 +583,57 @@ function ReceiptForm({
       onClose();
     },
   );
-  const sum = items.reduce(
-    (sum, i) => sum + Math.round(Number(i.total || 0) * 100),
-    0,
-  );
   const difference = Math.round(Number(total || 0) * 100) - sum;
   function change(
     index: number,
     field: keyof ReturnType<typeof blank>,
     value: string,
   ) {
-    setItems(items.map((i, n) => (n === index ? { ...i, [field]: value } : i)));
+    setItems(
+      items.map((item, n) => {
+        if (n !== index) return item;
+        const changed = { ...item, [field]: value };
+        if (manual && (field === "quantity" || field === "unit_price"))
+          changed.total = receiptLineTotal(
+            changed.quantity,
+            changed.unit_price,
+          );
+        return changed;
+      }),
+    );
   }
   return (
     <Modal
       wide
       title={
-        receipt.status === "posted"
-          ? t("Чек в вашем учёте")
-          : t("Проверить чек")
+        manual
+          ? t("Создать чек вручную")
+          : receipt.status === "posted"
+            ? t("Чек в вашем учёте")
+            : t("Проверить чек")
       }
-      description={t(
-        "Проверьте магазин, дату и итог каждой строки. Скидки должны входить в суммы товаров.",
-      )}
-      onClose={onClose}
+      description={
+        manual
+          ? t("Введите покупки. Фото, QR и банковская операция не нужны.")
+          : t(
+              "Проверьте магазин, дату и итог каждой строки. Скидки должны входить в суммы товаров.",
+            )
+      }
+      onClose={() => {
+        if (!action.isPending) onClose();
+      }}
     >
       <div className="receipt-status">
-        <Badge status={receipt.status} />
+        {manual ? (
+          <strong>
+            {t("Организация:")} {organization.name}
+          </strong>
+        ) : (
+          <Badge status={receipt.status} />
+        )}
+        {receipt.source === "manual" && (
+          <span className="badge">{t("Ручной чек")}</span>
+        )}
         {receipt.source_url && (
           <a href={receipt.source_url} target="_blank" rel="noreferrer">
             {t("Открыть сайт чека ↗")}
@@ -574,10 +647,10 @@ function ReceiptForm({
         </div>
       ))}
       <Form onSubmit={() => action.mutate(undefined)}>
-        <div className="receipt-layout">
-          <ReceiptOriginals receipt={receipt} />
+        <div className={manual ? "receipt-manual-layout" : "receipt-layout"}>
+          {!manual && <ReceiptOriginals receipt={receipt} />}
           <div>
-            <fieldset disabled={readonly}>
+            <fieldset disabled={readonly || action.isPending}>
               <div className="form-grid">
                 <Field label={t("Магазин")}>
                   <input
@@ -592,7 +665,11 @@ function ReceiptForm({
                     maxLength={500}
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
-                    placeholder={t("Адрес, напечатанный на чеке")}
+                    placeholder={
+                      manual
+                        ? t("Необязательно")
+                        : t("Адрес, напечатанный на чеке")
+                    }
                   />
                 </Field>
                 <Field label={t("Дата покупки")}>
@@ -606,7 +683,20 @@ function ReceiptForm({
                   />
                 </Field>
                 <Field label={t("Валюта")}>
-                  <CurrencySelect value={currency} onChange={setCurrency} />
+                  <CurrencySelect
+                    value={currency}
+                    onChange={(value) => {
+                      setCurrency(value);
+                      if (manual) {
+                        setAccount(
+                          accounts.find(
+                            (a) => !a.archived && a.currency === value,
+                          )?.id ?? "",
+                        );
+                        setRate(value === "MDL" ? "1" : "");
+                      }
+                    }}
+                  />
                 </Field>
                 <Field label={t("Счёт оплаты")}>
                   <AccountSelect
@@ -695,6 +785,7 @@ function ReceiptForm({
                       <button
                         className="icon-button danger-hover"
                         type="button"
+                        disabled={manual && items.length === 1}
                         aria-label={t("Удалить товар {0}", n + 1)}
                         onClick={() =>
                           setItems(items.filter((_, index) => index !== n))
@@ -710,6 +801,7 @@ function ReceiptForm({
                 <button
                   className="text-button"
                   type="button"
+                  disabled={items.length >= 200}
                   onClick={() => setItems([...items, blank()])}
                 >
                   <Plus size={17} />
@@ -718,7 +810,15 @@ function ReceiptForm({
               )}
               <div className="receipt-total">
                 <Field label={t("Итого по чеку · {0}", currency)}>
-                  <MoneyInput value={total} onChange={setTotal} />
+                  {manual ? (
+                    <input
+                      readOnly
+                      value={total}
+                      aria-label={t("Итог рассчитан по товарам")}
+                    />
+                  ) : (
+                    <MoneyInput value={total} onChange={setTotal} />
+                  )}
                 </Field>
                 <div className={difference ? "negative" : "positive"}>
                   {difference ? (
@@ -731,7 +831,7 @@ function ReceiptForm({
                   )}
                 </div>
               </div>
-              {!readonly && (
+              {!readonly && !manual && (
                 <Field
                   label={t("Привязать к существующему расходу (необязательно)")}
                   hint={t(
@@ -764,9 +864,16 @@ function ReceiptForm({
             </fieldset>
           </div>
         </div>
+        {manual && (
+          <div className="notice">
+            {t(
+              "После сохранения чек и товары попадут в аналитику, а сумма спишется с выбранного счёта. Итог считается по строкам; скидку можно учесть в итоге товара.",
+            )}
+          </div>
+        )}
         <ErrorBox error={action.error ?? retry.error} />
         <footer className="modal-footer">
-          {!readonly && (
+          {!readonly && !manual && (
             <button
               type="button"
               className="button secondary"
@@ -777,18 +884,35 @@ function ReceiptForm({
               {t("Распознать снова")}
             </button>
           )}
-          <button type="button" className="button secondary" onClick={onClose}>
+          <button
+            type="button"
+            className="button secondary"
+            onClick={onClose}
+            disabled={action.isPending}
+          >
             {t("Закрыть")}
           </button>
+          {manual && onBack && (
+            <button
+              type="button"
+              className="button secondary"
+              disabled={action.isPending}
+              onClick={onBack}
+            >
+              {t("Назад")}
+            </button>
+          )}
           {!readonly && (
             <Submit pending={action.isPending}>{t("Сохранить расход")}</Submit>
           )}
         </footer>
       </Form>
-      {isAdmin && !["queued", "processing"].includes(receipt.status) && (
-        <ReceiptModeration receipt={receipt} onClose={onClose} />
-      )}
-      <ReceiptComments receiptId={receipt.id} />
+      {!manual &&
+        isAdmin &&
+        !["queued", "processing"].includes(receipt.status) && (
+          <ReceiptModeration receipt={receipt} onClose={onClose} />
+        )}
+      {!manual && <ReceiptComments receiptId={receipt.id} />}
     </Modal>
   );
 }

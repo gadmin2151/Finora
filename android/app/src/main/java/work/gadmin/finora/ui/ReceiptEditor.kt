@@ -25,17 +25,21 @@ import work.gadmin.finora.localization.tr
 
 @Composable
 fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
-    val receipt = requireNotNull(state.detail)
+    val manual = state.manualReceiptKey != null
+    val receipt = state.detail
     var form by
         rememberSaveable(
-            receipt.id,
+            state.manualReceiptKey ?: requireNotNull(receipt).id,
             stateSaver =
                 Saver<ReceiptForm, String>(
                     save = { Json.encodeToString(it) },
                     restore = { Json.decodeFromString(it) },
                 ),
         ) {
-            mutableStateOf(ReceiptForm.from(receipt, state.accounts))
+            mutableStateOf(
+                if (manual) ReceiptForm.manual(state.accounts, state.draft.accountId)
+                else ReceiptForm.from(requireNotNull(receipt), state.accounts)
+            )
         }
     var error by remember { mutableStateOf<String?>(null) }
     var confirm by remember { mutableStateOf(false) }
@@ -43,8 +47,17 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
     BackHandler { if (!state.busy) discard = true }
     val sum = form.lineSum()
     val enabled = !state.busy
+    fun changeItems(items: List<ReceiptLineForm>) {
+        val next = form.copy(items = items)
+        form = if (manual) next.copy(total = next.lineSum()?.toPlainString() ?: "") else next
+    }
     fun changeLine(index: Int, value: ReceiptLineForm) {
-        form = form.copy(items = form.items.toMutableList().apply { set(index, value) })
+        val prior = form.items[index]
+        val changed =
+            if (manual && (prior.quantity != value.quantity || prior.unitPrice != value.unitPrice))
+                value.calculateTotal()
+            else value
+        changeItems(form.items.toMutableList().apply { set(index, changed) })
     }
     Scaffold(
         containerColor = Paper,
@@ -57,7 +70,10 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
                     LineIcon(Glyph.BACK, tr(Message.BACK_TO_REVIEW))
                 }
                 Column {
-                    Text(tr(Message.EDIT_RECEIPT), style = MaterialTheme.typography.titleLarge)
+                    Text(
+                        tr(if (manual) Message.MANUAL_RECEIPT else Message.EDIT_RECEIPT),
+                        style = MaterialTheme.typography.titleLarge,
+                    )
                     Text(
                         state.organization?.name.orEmpty(),
                         color = Muted,
@@ -112,7 +128,10 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
         ) {
             item {
                 InfoCard(
-                    tr(Message.CHECK_THE_DETAILS_AGAINST_YOUR_RECEIPT_INCLUDE_DISCOUNTS_I),
+                    tr(
+                        if (manual) Message.MANUAL_RECEIPT_HELP
+                        else Message.CHECK_THE_DETAILS_AGAINST_YOUR_RECEIPT_INCLUDE_DISCOUNTS_I
+                    ),
                     Glyph.RECEIPT,
                 )
             }
@@ -158,6 +177,10 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
                         form =
                             form.copy(
                                 currency = requireNotNull(currency),
+                                fxRate =
+                                    if (manual) {
+                                        if (currency == "MDL") "1" else ""
+                                    } else form.fxRate,
                                 accountId =
                                     state.accounts
                                         .firstOrNull { it.currency == currency && !it.archived }
@@ -188,7 +211,7 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
                         form.total,
                         { form = form.copy(total = it.take(16)) },
                         number = true,
-                        enabled = enabled,
+                        enabled = enabled && !manual,
                     )
                 }
             }
@@ -206,12 +229,9 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
                             )
                             IconButton(
                                 {
-                                    form =
-                                        form.copy(
-                                            items = form.items.filterNot { it.key == item.key }
-                                        )
+                                    changeItems(form.items.filterNot { it.key == item.key })
                                 },
-                                enabled = enabled,
+                                enabled = enabled && (!manual || form.items.size > 1),
                             ) {
                                 LineIcon(
                                     Glyph.TRASH,
@@ -276,7 +296,7 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
             }
             item {
                 OutlinedButton(
-                    { form = form.copy(items = form.items + ReceiptLineForm()) },
+                    { changeItems(form.items + ReceiptLineForm()) },
                     Modifier.fillMaxWidth(),
                     enabled = enabled && form.items.size < 200,
                 ) {
@@ -284,20 +304,28 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
                     Spacer(Modifier.width(8.dp))
                     Text(tr(Message.ADD_ITEM))
                 }
-                TextButton(
-                    { sum?.let { form = form.copy(total = it.toPlainString()) } },
-                    Modifier.fillMaxWidth(),
-                    enabled = enabled && sum != null,
-                ) {
-                    Text(tr(Message.USE_ITEM_SUM_AS_TOTAL))
-                }
+                if (!manual)
+                    TextButton(
+                        { sum?.let { form = form.copy(total = it.toPlainString()) } },
+                        Modifier.fillMaxWidth(),
+                        enabled = enabled && sum != null,
+                    ) {
+                        Text(tr(Message.USE_ITEM_SUM_AS_TOTAL))
+                    }
             }
         }
     }
     if (confirm)
         AlertDialog(
             onDismissRequest = { confirm = false },
-            title = { Text(tr(Message.SAVE_THE_CORRECTED_RECEIPT)) },
+            title = {
+                Text(
+                    tr(
+                        if (manual) Message.SAVE_MANUAL_RECEIPT
+                        else Message.SAVE_THE_CORRECTED_RECEIPT
+                    )
+                )
+            },
             text = {
                 Text(
                     tr(
@@ -326,7 +354,12 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
             onDismissRequest = { discard = false },
             title = { Text(tr(Message.LEAVE_THE_EDITOR)) },
             text = {
-                Text(tr(Message.UNSAVED_CORRECTIONS_WILL_BE_LOST_THE_RECOGNIZED_RECEIPT_WI))
+                Text(
+                    tr(
+                        if (manual) Message.DISCARD_MANUAL_RECEIPT
+                        else Message.UNSAVED_CORRECTIONS_WILL_BE_LOST_THE_RECOGNIZED_RECEIPT_WI
+                    )
+                )
             },
             confirmButton = {
                 TextButton({

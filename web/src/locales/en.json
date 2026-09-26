@@ -986,5 +986,13 @@
   "Подтвердить изменение": "Confirm adjustment",
   "Корректировка −": "Negative adjustment",
   "Посмотреть товары: {0}": "View purchases: {0}",
-  "Укажите остаток, отличающийся от текущего.": "Enter a balance different from the current balance."
+  "Укажите остаток, отличающийся от текущего.": "Enter a balance different from the current balance.",
+  "QR-ссылка": "QR link",
+  "Вручную": "Manual",
+  "Создать чек вручную": "Create a manual receipt",
+  "Введите покупки. Фото, QR и банковская операция не нужны.": "Enter your purchases. No photo, QR code or bank transaction is needed.",
+  "Ручной чек": "Manual receipt",
+  "Итог рассчитан по товарам": "Total calculated from items",
+  "После сохранения чек и товары попадут в аналитику, а сумма спишется с выбранного счёта. Итог считается по строкам; скидку можно учесть в итоге товара.": "Saving adds the receipt and items to your reports and records the expense on the selected account. The total is calculated from the lines; adjust a line total to include a discount.",
+  "Чек введён вручную. Фото можно прикрепить позже, оно не обязательно.": "This receipt was entered manually. A photo is optional and can be attached later."
 }

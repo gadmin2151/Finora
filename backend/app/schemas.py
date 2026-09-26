@@ -1,6 +1,7 @@
 from datetime import date
 from decimal import Decimal
 from typing import Literal
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -242,7 +243,7 @@ class ReceiptLineInput(Strict):
     category_id: str | None = None
 
 
-class ReceiptConfirm(Strict):
+class ReceiptInput(Strict):
     merchant: str = Field(min_length=1, max_length=200)
     merchant_address: str | None = Field(default=None, max_length=500)
     purchased_on: date
@@ -251,6 +252,13 @@ class ReceiptConfirm(Strict):
     account_id: str
     fx_rate: Decimal | None = Field(default=None, gt=0, le=100000)
     items: list[ReceiptLineInput] = Field(min_length=1, max_length=200)
+
+
+class ManualReceipt(ReceiptInput):
+    request_key: UUID
+
+
+class ReceiptConfirm(ReceiptInput):
     version: int = Field(ge=1)
     transaction_id: str | None = None
 
