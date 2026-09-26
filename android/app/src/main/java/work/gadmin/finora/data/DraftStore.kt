@@ -92,7 +92,7 @@ class DraftStore(private val context: Context, scope: String) {
                     inPreferredConfig = Bitmap.Config.RGB_565
                     inSampleSize = 1
                     while (
-                        maxOf(bounds.outWidth, bounds.outHeight) / inSampleSize > 5000 ||
+                        maxOf(bounds.outWidth, bounds.outHeight) / inSampleSize > 16_000 ||
                             bounds.outWidth.toLong() * bounds.outHeight /
                                 inSampleSize /
                                 inSampleSize > 16_000_000

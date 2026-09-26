@@ -175,7 +175,11 @@ def image_bytes(raw: bytes) -> tuple[bytes, str | None]:
             if original.format not in {"JPEG", "PNG", "WEBP", "HEIF", "HEIC"}:
                 fail("Поддерживаются JPEG, PNG, WebP и HEIC")
             image = ImageOps.exif_transpose(original).convert("RGB")
-            image.thumbnail((2400, 6000))
+            # Keep narrow panoramic receipts readable instead of crushing them to 6000 px.
+            image.thumbnail((2400, 16_000))
+            if image.width * image.height > 16_000_000:
+                scale = (16_000_000 / (image.width * image.height)) ** 0.5
+                image.thumbnail((int(image.width * scale), int(image.height * scale)))
             qr = next(
                 (
                     b.text
@@ -451,8 +455,40 @@ def parse_mev(text: str) -> dict:
     }
 
 
+def long_receipt_views(images: list[bytes]) -> list[bytes]:
+    """Original evidence plus at most eight ordered overlapping views per tall photo."""
+    result = []
+    for raw in images[:4]:
+        result.append(raw)
+        try:
+            with Image.open(io.BytesIO(raw)) as image:
+                if image.height <= max(4000, image.width * 4):
+                    continue
+                overlap = 180
+                height = max(1600, min(3000, image.width * 3))
+                # Eight views cover the whole accepted 16000 px image, including its tail.
+                height = max(height, (image.height + 7 * overlap + 7) // 8)
+                top = 0
+                while top < image.height:
+                    bottom = min(top + height, image.height)
+                    output = io.BytesIO()
+                    image.crop((0, top, image.width, bottom)).convert("RGB").save(
+                        output, "JPEG", quality=94
+                    )
+                    result.append(output.getvalue())
+                    if bottom == image.height:
+                        break
+                    top = bottom - overlap
+        except (OSError, ValueError):
+            continue
+    return result
+
+
 def vision_images(images: list[bytes]) -> list[bytes]:
     """Keep the complete photo as evidence, with enlarged views of long receipts."""
+    panoramic = long_receipt_views(images)
+    if len(panoramic) > len(images):
+        return panoramic
     if len(images) != 1:
         return images
     try:
@@ -541,7 +577,10 @@ def needs_total_check(receipt: ExtractedReceipt) -> bool:
 
 
 def total_detail_images(images: list[bytes]) -> list[bytes]:
-    """Full-width overlapping halves preserve totals wherever they are printed."""
+    """Full-width overlapping views preserve totals wherever they are printed."""
+    panoramic = long_receipt_views(images)
+    if len(panoramic) > len(images):
+        return panoramic
     result = []
     for raw in images[:4]:
         result.append(raw)
@@ -914,8 +953,8 @@ async def process_receipt(receipt_id: str):
     if result is None or not result["readable"]:
         if provider != "disabled":
             extraction_provider = provider
-            prepared_images = (
-                images if from_phone else await asyncio.to_thread(vision_images, images)
+            prepared_images = await asyncio.to_thread(
+                long_receipt_views if from_phone else vision_images, images
             )
             try:
                 result, _ = await ai.generate(

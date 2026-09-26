@@ -81,7 +81,7 @@ fun CameraScreen(
             permission = it
         }
     LaunchedEffect(Unit) { if (!permission) requestPermission.launch(Manifest.permission.CAMERA) }
-    BackHandler(!busy) { onClose() }
+    BackHandler(!busy && (mode != CameraMode.LONG_RECEIPT || !permission)) { onClose() }
     if (!permission) {
         Column(
             Modifier.fillMaxSize().background(Paper).safeDrawingPadding().padding(28.dp),
@@ -110,6 +110,10 @@ fun CameraScreen(
             }
             TextButton(onClose) { Text("Назад · можно выбрать фото из галереи") }
         }
+        return
+    }
+    if (mode == CameraMode.LONG_RECEIPT) {
+        LongReceiptCamera(busy, error, onClose, onPhoto)
         return
     }
     val view = remember {
@@ -353,7 +357,7 @@ fun CameraScreen(
                 if (mode == CameraMode.QR)
                     "Наведите на QR внизу чека.\nКоснитесь кода для фокусировки."
                 else
-                    "Держите телефон параллельно чеку.\nДля длинного чека снимите несколько частей.",
+                    "Держите телефон параллельно чеку.\nДля длинной ленты есть режим «Длинный чек».",
                 color = Color.White,
                 textAlign = TextAlign.Center,
             )

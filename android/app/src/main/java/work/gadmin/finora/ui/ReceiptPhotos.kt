@@ -3,8 +3,6 @@ package work.gadmin.finora.ui
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.rememberTransformableState
-import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -13,10 +11,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -30,8 +26,6 @@ import work.gadmin.finora.data.Receipt
 @Composable
 fun ReceiptPhotos(receipt: Receipt, organization: String, vm: FinoraViewModel) {
     var selected by remember(receipt.id, organization) { mutableStateOf<Int?>(null) }
-    var zoom by remember(selected) { mutableFloatStateOf(1f) }
-    var offset by remember(selected) { mutableStateOf(Offset.Zero) }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         SectionTitle("Фото чека · ${receipt.files.size}")
         LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -64,19 +58,7 @@ fun ReceiptPhotos(receipt: Receipt, organization: String, vm: FinoraViewModel) {
                     organization,
                     index,
                     vm,
-                    Modifier.fillMaxSize()
-                        .transformable(
-                            rememberTransformableState { change, pan, _ ->
-                                zoom = (zoom * change).coerceIn(1f, 5f)
-                                offset = if (zoom == 1f) Offset.Zero else offset + pan
-                            }
-                        )
-                        .graphicsLayer {
-                            scaleX = zoom
-                            scaleY = zoom
-                            translationX = offset.x
-                            translationY = offset.y
-                        },
+                    Modifier.fillMaxSize().padding(12.dp),
                     full = true,
                 )
                 IconButton(
@@ -117,7 +99,7 @@ private fun RemotePhoto(
                                     inSampleSize = 1
                                     while (
                                         maxOf(bounds.outWidth, bounds.outHeight) / inSampleSize >
-                                            if (full) 5000 else 500
+                                            if (full) 16_000 else 500
                                     ) inSampleSize *= 2
                                 }
                             requireNotNull(
@@ -133,13 +115,17 @@ private fun RemotePhoto(
     Box(modifier, contentAlignment = Alignment.Center) {
         when {
             result == null -> BrandPulse(Modifier.size(48.dp))
-            result?.isSuccess == true ->
-                Image(
-                    requireNotNull(result?.getOrNull()).asImageBitmap(),
-                    "Часть ${index + 1} чека",
-                    Modifier.fillMaxSize(),
-                    contentScale = if (full) ContentScale.Fit else ContentScale.Crop,
-                )
+            result?.isSuccess == true -> {
+                val image = requireNotNull(result?.getOrNull()).asImageBitmap()
+                if (full) ReceiptImageViewer(image, Modifier.fillMaxSize())
+                else
+                    Image(
+                        image,
+                        "Часть ${index + 1} чека",
+                        Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                    )
+            }
             else -> TextButton({ retry++ }) { Text("Повторить") }
         }
     }

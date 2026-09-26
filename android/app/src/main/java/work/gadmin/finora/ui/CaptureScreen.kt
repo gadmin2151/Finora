@@ -6,8 +6,6 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.rememberTransformableState
-import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,12 +14,10 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -275,7 +271,7 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
                 Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                     CaptureTile(
                         "Сфотографировать",
-                        "До 4 частей чека",
+                        "Обычный снимок",
                         Glyph.CAMERA,
                         Modifier.weight(1f),
                         available && state.draft.photos.size < MAX_PHOTOS,
@@ -297,6 +293,18 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
                     }
                 }
             }
+        if (state.draft.qr.isBlank())
+            item {
+                CaptureTile(
+                    "Длинный чек",
+                    "Ведите камеру сверху вниз — снимки склеятся автоматически",
+                    Glyph.RECEIPT,
+                    Modifier.fillMaxWidth(),
+                    available && state.draft.photos.size < MAX_PHOTOS,
+                ) {
+                    vm.camera(CameraMode.LONG_RECEIPT)
+                }
+            }
         if (!state.draft.hasContent)
             item {
                 TextButton({ manualQr = true }, Modifier.fillMaxWidth(), enabled = available) {
@@ -306,7 +314,7 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
                 }
                 Spacer(Modifier.height(8.dp))
                 InfoCard(
-                    "Длинный чек? Снимите его несколькими частями с небольшим перекрытием. Мы соберём их в одну покупку.",
+                    "Длинный чек склеивается на телефоне в одно фото. Перед распознаванием можно проверить весь снимок.",
                     Glyph.SPARK,
                 )
             }
@@ -418,16 +426,17 @@ fun LocalPhoto(
                                 inSampleSize = 1
                                 while (
                                     maxOf(bounds.outWidth, bounds.outHeight) / inSampleSize >
-                                        if (full) 5000 else 600
+                                        if (full) 16_000 else 600
                                 ) inSampleSize *= 2
                             }
                         BitmapFactory.decodeFile(it.path, options)?.asImageBitmap()
                     }
                 }
         }
-    if (image != null)
-        Image(requireNotNull(image), "Фотография чека", modifier, contentScale = scale)
-    else
+    if (image != null) {
+        if (full) ReceiptImageViewer(requireNotNull(image), modifier)
+        else Image(requireNotNull(image), "Фотография чека", modifier, contentScale = scale)
+    } else
         Box(modifier.background(SoftGreen), contentAlignment = Alignment.Center) {
             LineIcon(Glyph.IMAGE)
         }
@@ -436,27 +445,10 @@ fun LocalPhoto(
 @Composable
 private fun PhotoDialog(file: File, onClose: () -> Unit) {
     Dialog(onClose, DialogProperties(usePlatformDefaultWidth = false)) {
-        var zoom by remember { mutableFloatStateOf(1f) }
-        var offset by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
         Box(Modifier.fillMaxSize().background(Color.Black).safeDrawingPadding()) {
             LocalPhoto(
                 file,
-                Modifier.fillMaxSize()
-                    .clip(RoundedCornerShape(1.dp))
-                    .transformable(
-                        rememberTransformableState { change, pan, _ ->
-                            zoom = (zoom * change).coerceIn(1f, 5f)
-                            offset =
-                                if (zoom == 1f) androidx.compose.ui.geometry.Offset.Zero
-                                else offset + pan
-                        }
-                    )
-                    .graphicsLayer {
-                        scaleX = zoom
-                        scaleY = zoom
-                        translationX = offset.x
-                        translationY = offset.y
-                    },
+                Modifier.fillMaxSize().padding(12.dp),
                 full = true,
             )
             IconButton(

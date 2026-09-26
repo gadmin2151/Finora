@@ -13,6 +13,10 @@
 
 ![Finora dashboard with fictional demonstration data](docs/assets/overview.png)
 
+## New in 1.6: scan a long receipt
+
+Move the Android camera from the top of a receipt to the bottom. **Long receipt** mode captures overlapping sections and assembles one vertical photo locally, with pause, full-image review and zoom before upload. No AI key or network connection is needed for stitching. [How it works and its limits](docs/LONG-RECEIPTS.md).
+
 ## A clear picture of everyday money
 
 - **One workspace per organization.** Share finances with your household or team. Switch organizations before adding a receipt. Administrators manage money and people; members add receipts, comment and explore statistics.

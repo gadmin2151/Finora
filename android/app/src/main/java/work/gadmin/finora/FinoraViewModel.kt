@@ -24,6 +24,7 @@ enum class Page {
 enum class CameraMode {
     QR,
     PHOTO,
+    LONG_RECEIPT,
 }
 
 data class AppState(
@@ -256,7 +257,10 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
     fun camera(mode: CameraMode?) {
         if (mutable.value.busy || mutable.value.workspaceLoading) return
         refresh.cancel()
-        if (mode == CameraMode.PHOTO && mutable.value.draft.photos.size >= MAX_PHOTOS) {
+        if (
+            mode in setOf(CameraMode.PHOTO, CameraMode.LONG_RECEIPT) &&
+                mutable.value.draft.photos.size >= MAX_PHOTOS
+        ) {
             reportError("В одном чеке может быть до 4 фотографий")
             return
         }
