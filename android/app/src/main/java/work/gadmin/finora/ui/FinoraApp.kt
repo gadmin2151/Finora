@@ -275,7 +275,7 @@ fun FinoraApp(vm: FinoraViewModel) {
                                             verticalArrangement =
                                                 Arrangement.spacedBy(
                                                     2.dp,
-                                                    Alignment.Bottom,
+                                                    Alignment.CenterVertically,
                                                 ),
                                         ) {
                                             if (capture)
