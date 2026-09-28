@@ -6,7 +6,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Search, SlidersHorizontal, ArrowUpRight } from "lucide-react";
 import { api, useAction } from "../api";
 import { useApp } from "../context";
-import type { Receipt } from "../types";
+import { ReceiptAuthor, ReceiptAuthorFilter } from "../ReceiptAuthor";
+import type { Receipt, ReceiptCreator } from "../types";
 import {
   Empty,
   ErrorBox,
@@ -30,6 +31,7 @@ type Purchase = {
   merchant: string;
   currency: string;
   purchased_on: string;
+  creator?: ReceiptCreator;
 };
 type Result = {
   items: Purchase[];
@@ -58,6 +60,7 @@ const initial = {
   merchant: "",
   category_id: "",
   account_id: "",
+  created_by: "",
   currency: "",
   unit: "",
   sort: "newest",
@@ -96,7 +99,7 @@ export default function Purchases() {
   }
   const query = useQuery({
     queryKey: ["purchases", params.toString()],
-    queryFn: () => api<Result>(`/purchases?${params}`),
+    queryFn: ({ signal }) => api<Result>(`/purchases?${params}`, { signal }),
   });
   const details = useAction(async (id: string) => {
     const receipt = await api<Receipt>(`/receipts/${id}`);
@@ -194,6 +197,10 @@ export default function Purchases() {
           )}
         </div>
         <div className="purchase-filter-grid secondary-filters">
+          <ReceiptAuthorFilter
+            value={filters.created_by}
+            onChange={(value) => change("created_by", value)}
+          />
           <Field label={t("Счёт")}>
             <select
               value={filters.account_id}
@@ -295,6 +302,7 @@ export default function Purchases() {
                               <small className="block muted">
                                 {item.merchant}
                               </small>
+                              <ReceiptAuthor creator={item.creator} />
                             </td>
                             <td>{dateLabel(item.purchased_on)}</td>
                             <td>{categoryName(item.category_id)}</td>

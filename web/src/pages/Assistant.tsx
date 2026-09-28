@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { api, queryClient, send, useAction } from "../api";
 import { ReportCard } from "../ReportCard";
+import { ReceiptAuthor, ReceiptAuthorFilter } from "../ReceiptAuthor";
 import { useApp } from "../context";
 import type { Insight, Job, Message, Receipt } from "../types";
 import {
@@ -413,13 +414,16 @@ export function Assistant() {
 export function Receipts() {
   const { open } = useApp();
   const [search, setSearch] = useState("");
+  const [createdBy, setCreatedBy] = useState("");
   const [offset, setOffset] = useState(0);
+  const params = new URLSearchParams({ search, offset: String(offset) });
+  if (createdBy) params.set("created_by", createdBy);
   const query = useQuery({
-    queryKey: ["receipts", search, offset],
-    queryFn: () =>
-      api<{ items: Receipt[]; total: number }>(
-        `/receipts?search=${encodeURIComponent(search)}&offset=${offset}`,
-      ),
+    queryKey: ["receipts", search, createdBy, offset],
+    queryFn: ({ signal }) =>
+      api<{ items: Receipt[]; total: number }>(`/receipts?${params}`, {
+        signal,
+      }),
     refetchInterval: 4000,
   });
   return (
@@ -453,6 +457,13 @@ export function Receipts() {
             placeholder={t("Найти магазин")}
           />
         </div>
+        <ReceiptAuthorFilter
+          value={createdBy}
+          onChange={(value) => {
+            setCreatedBy(value);
+            setOffset(0);
+          }}
+        />
         <span className="muted">
           {counted(query.data?.total ?? 0, [t("чек"), t("чека"), t("чеков")])}
         </span>
@@ -487,6 +498,7 @@ export function Receipts() {
                       ? "MEV"
                       : t("Фото чека")}
                 </p>
+                <ReceiptAuthor creator={receipt.creator} />
                 <div className="receipt-card-lines">
                   {receipt.items.slice(0, 3).map((i) => (
                     <div key={i.id}>
@@ -558,18 +570,39 @@ export function Receipts() {
         <section className="panel">
           <Empty
             icon={<ScanLine size={30} />}
-            title={t("Ваша коллекция чеков начинается здесь")}
-            text={t(
-              "Отправьте фото чека. Finora сохранит оригинал, выделит товары и поможет разобраться в расходах.",
-            )}
+            title={
+              search || createdBy
+                ? t("Чеки не найдены")
+                : t("Ваша коллекция чеков начинается здесь")
+            }
+            text={
+              search || createdBy
+                ? t("Измените магазин или пользователя в фильтрах.")
+                : t(
+                    "Отправьте фото чека. Finora сохранит оригинал, выделит товары и поможет разобраться в расходах.",
+                  )
+            }
             action={
-              <button
-                className="button primary"
-                onClick={() => open({ type: "upload" })}
-              >
-                <Camera size={18} />
-                {t("Загрузить первый чек")}
-              </button>
+              search || createdBy ? (
+                <button
+                  className="button secondary"
+                  onClick={() => {
+                    setSearch("");
+                    setCreatedBy("");
+                    setOffset(0);
+                  }}
+                >
+                  {t("Сбросить фильтры")}
+                </button>
+              ) : (
+                <button
+                  className="button primary"
+                  onClick={() => open({ type: "upload" })}
+                >
+                  <Camera size={18} />
+                  {t("Загрузить первый чек")}
+                </button>
+              )
             }
           />
         </section>

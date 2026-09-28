@@ -269,3 +269,119 @@ def test_inconsistent_posted_amounts_are_not_modified(owner, client, accounts):
         result = refresh_receipt_categories(db, owner["id"])
         assert result["skipped"] == {"amount_mismatch": 1}
         assert receipt.version == 1 and result["receipts_updated"] == 0
+
+
+@pytest.mark.parametrize("source", ["manual", "review"])
+def test_confirmation_categorizes_new_and_corrected_items_preserving_choices(
+    client, owner, accounts, categories, source
+):
+    catalog = {category["name"]: category["id"] for category in categories}
+    with SessionLocal() as db:
+        db.add(
+            m.Rule(
+                organization_id=owner["id"],
+                pattern="House blend",
+                category_id=catalog["Кофе и чай"],
+            )
+        )
+        if source == "review":
+            receipt = m.Receipt(
+                organization_id=owner["id"],
+                created_by=owner["id"],
+                source="photo",
+                source_key=uuid4().hex,
+                status="review",
+                original={"ocr_text": "Original source"},
+                file_names=["original.jpg"],
+            )
+            db.add(receipt)
+            db.flush()
+            rid = receipt.id
+        db.commit()
+    names = ["Bautura energizanta Red Bull", "Cafea", "House blend", "Unknown item"]
+    body = {
+        "merchant": "Corrected market",
+        "purchased_on": date.today().isoformat(),
+        "total": "40.00",
+        "account_id": accounts[0]["id"],
+        "items": [
+            {
+                "name": name,
+                "quantity": "1",
+                "unit_price": "10.00",
+                "total": "10.00",
+                "category_id": catalog["Подарки"] if name == "Cafea" else None,
+            }
+            for name in names
+        ],
+    }
+    if source == "manual":
+        body["request_key"] = str(uuid4())
+        response = client.post("/api/receipts/manual", json=body)
+    else:
+        body["version"] = 1
+        response = client.post(f"/api/receipts/{rid}/review", json=body)
+    assert response.status_code == 200, response.text
+    result = response.json()["receipt"] if source == "manual" else response.json()
+    assert {line["name"]: line["category_id"] for line in result["items"]} == {
+        names[0]: catalog["Энергетики"],
+        names[1]: catalog["Подарки"],
+        names[2]: catalog["Кофе и чай"],
+        names[3]: None,
+    }
+    with SessionLocal() as db:
+        tx = db.get(m.Transaction, result["transaction_id"])
+        allocations = list(
+            db.scalars(select(m.Allocation).where(m.Allocation.transaction_id == tx.id))
+        )
+        assert {a.category_id: a.amount_minor for a in allocations} == {
+            catalog["Энергетики"]: 1000,
+            catalog["Подарки"]: 1000,
+            catalog["Кофе и чай"]: 1000,
+            None: 1000,
+        }
+        assert sum(a.base_minor for a in allocations) == tx.base_minor == 4000
+        if source == "review":
+            stored = db.get(m.Receipt, rid)
+            assert stored.original == {"ocr_text": "Original source"}
+            assert stored.file_names == ["original.jpg"]
+
+
+def test_missing_only_backfill_preserves_explicit_categories_money_and_evidence(
+    client, owner, accounts, categories
+):
+    catalog = {category["name"]: category["id"] for category in categories}
+    with SessionLocal() as db:
+        receipt, tx = stored_receipt(owner, accounts[0], db)
+        items = list(
+            db.scalars(select(m.ReceiptItem).where(m.ReceiptItem.receipt_id == receipt.id))
+        )
+        missing = next(item for item in items if "Red Bull" in item.name)
+        missing.category_id = None
+        preserved = next(item for item in items if item is not missing)
+        original = receipt.original.copy()
+        money_before = (tx.amount_minor, tx.base_minor, tx.fx_rate, tx.account_id)
+        postings_before = [(p.id, p.amount_minor) for p in db.scalars(select(m.Posting))]
+        names_before = {item.id: item.name for item in items}
+        db.flush()
+        result = refresh_receipt_categories(db, owner["id"], only_uncategorized=True)
+        assert result["items_updated"] == result["receipts_updated"] == 1
+        assert result["names_repaired"] == result["merchants_repaired"] == 0
+        assert result["addresses_added"] == 0
+        assert missing.category_id == catalog["Энергетики"]
+        assert preserved.category_id == catalog["Продукты"]
+        assert {item.id: item.name for item in items} == names_before
+        assert receipt.original == original and receipt.file_names == ["original.jpg"]
+        assert receipt.merchant == "ELECTRONIC SERVICE"
+        assert (tx.amount_minor, tx.base_minor, tx.fx_rate, tx.account_id) == money_before
+        assert [(p.id, p.amount_minor) for p in db.scalars(select(m.Posting))] == postings_before
+        allocations = list(
+            db.scalars(select(m.Allocation).where(m.Allocation.transaction_id == tx.id))
+        )
+        assert {a.category_id: a.amount_minor for a in allocations} == {
+            catalog["Энергетики"]: 6380,
+            catalog["Продукты"]: 70000,
+        }
+        assert sum(a.base_minor for a in allocations) == tx.base_minor
+        again = refresh_receipt_categories(db, owner["id"], only_uncategorized=True)
+        assert again["scanned"] == again["items_updated"] == 0

@@ -2,6 +2,7 @@ package work.gadmin.finora.data
 
 import java.time.LocalDate
 import java.util.UUID
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
@@ -20,6 +21,51 @@ class ReceiptFormTest {
                 ReceiptLineForm(name = "Bread", quantity = "2", unitPrice = "6.00", total = "11.50")
             ),
         )
+
+    @Test
+    fun correctedNamesReclassifyCarriedCategoriesButKeepExplicitChoices() {
+        val carried = ReceiptLineForm(name = "Bread", categoryId = "bakery")
+        assertEquals("bakery", carried.rename("Bread").categoryId)
+        assertNull(carried.rename("Coffee").categoryId)
+        val chosen = carried.chooseCategory("gifts").rename("Coffee")
+        assertEquals("gifts", chosen.categoryId)
+        assertTrue(chosen.categoryChosen)
+        val restored = Json.decodeFromString<ReceiptLineForm>(Json.encodeToString(chosen))
+        assertEquals("gifts", restored.rename("Tea").categoryId)
+        assertNull(restored.chooseCategory(null).rename("Tea").categoryId)
+        assertFalse(Json.decodeFromString<ReceiptLineForm>("{}").categoryChosen)
+        val payload =
+            form().copy(items = listOf(form().items.single().chooseCategory("gifts"))).payload()
+        val item = payload.getValue("items").jsonArray.single().jsonObject
+        assertEquals("gifts", item.getValue("category_id").jsonPrimitive.content)
+        assertFalse(item.containsKey("categoryChosen"))
+    }
+
+    @Test
+    fun receiptAndPurchaseAuthorsRemainCompatibleWithOlderResponses() {
+        val receipt =
+            """{"id":"r","source":"photo","status":"posted","version":1,"created_at":"2026-09-28"}"""
+        assertNull(Json.decodeFromString<Receipt>(receipt).creator)
+        val author = ReceiptAuthor("u", "Test", "tester", true)
+        assertEquals(
+            author,
+            Json.decodeFromString<Receipt>(
+                    Json.encodeToString(
+                        Json.decodeFromString<Receipt>(receipt).copy(creator = author)
+                    )
+                )
+                .creator,
+        )
+        val purchase =
+            """{"id":"p","receipt_id":"r","name":"Tea","quantity":"1","unit":"шт","total_minor":100,"merchant":"Shop","currency":"MDL"}"""
+        assertNull(Json.decodeFromString<PurchaseItem>(purchase).creator)
+        val authors =
+            Json.decodeFromString<ReceiptAuthorPage>(
+                """{"items":[{"id":null,"name":"Unknown author"}]}"""
+            )
+        assertNull(authors.items.single().id)
+        assertFalse(authors.has_more)
+    }
 
     @Test
     fun preservesDiscountsAndCorrectionsWithExactDecimals() {

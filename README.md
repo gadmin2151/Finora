@@ -25,6 +25,8 @@
 
 The **current wallet** includes debt repayments and shows balances separately from monthly income. Adjust an account with an auditable add/subtract/set action, and open spending categories to explore their receipt items. [Wallet and chat guide →](docs/WALLET.md)
 
+**Know who added each receipt.** Filter receipts and purchases by their author, and compare category spending for each participant. Missing item categories are assigned when you confirm a manual or corrected receipt; your explicit category choices stay intact. [Receipt authors and categories →](docs/RECEIPT-AUTHORS.md)
+
 ## Cash and cards: your choice
 
 Choose **Settings → Money tracking** on the web, or **profile → Money tracking** on Android. **All together** merges every MDL account into the primary account: opening balances are added, transactions, receipts and plans are reassigned, and the empty source accounts are removed. Amounts, categories and receipt originals stay intact. New transactions use the single account. Switch to separate mode to create new accounts; the merged history stays on the primary account. Existing foreign-currency accounts remain separate without automatic conversion.

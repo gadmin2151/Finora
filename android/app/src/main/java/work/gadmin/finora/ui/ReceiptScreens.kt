@@ -58,14 +58,22 @@ fun ReceiptsScreen(state: AppState, vm: FinoraViewModel) {
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             )
         }
+        item {
+            ReceiptAuthorFilter(
+                state.receiptAuthors,
+                state.receiptAuthorId,
+                onChange = vm::receiptAuthor,
+            )
+        }
         if (state.receiptsLoading && !state.refreshing)
             item { BrandLoading(tr(Message.LOADING_YOUR_RECEIPTS), compact = true) }
         if (state.receipts.isEmpty() && !state.receiptsLoading)
             item {
                 EmptyState(
-                    if (state.search.isBlank()) tr(Message.YOUR_FIRST_RECEIPT_IS_A_FRESH_START)
+                    if (state.search.isBlank() && state.receiptAuthorId == null)
+                        tr(Message.YOUR_FIRST_RECEIPT_IS_A_FRESH_START)
                     else tr(Message.NOTHING_FOUND),
-                    if (state.search.isBlank())
+                    if (state.search.isBlank() && state.receiptAuthorId == null)
                         tr(Message.SCAN_A_QR_CODE_OR_PHOTOGRAPH_A_PURCHASE_IT_WILL_APPEAR_HER)
                     else tr(Message.TRY_ANOTHER_STORE_NAME),
                 )
@@ -121,6 +129,7 @@ fun ReceiptsScreen(state: AppState, vm: FinoraViewModel) {
                             fontWeight = FontWeight.SemiBold,
                         )
                     }
+                    ReceiptAuthorLabel(receipt.creator)
                 }
             }
         }
@@ -199,6 +208,7 @@ fun ReceiptDetailScreen(state: AppState, vm: FinoraViewModel) {
                     )
                 }
                 Text(receipt.purchased_on ?: receipt.created_at.take(10), color = Muted)
+                ReceiptAuthorLabel(receipt.creator)
                 Spacer(Modifier.height(18.dp))
                 Text(
                     receipt.total_minor?.let { money(it, receipt.currency) }

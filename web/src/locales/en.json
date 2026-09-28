@@ -1029,5 +1029,21 @@
   "Единый счёт": "Single account",
   "Один счёт MDL: объединяются остатки, чеки и вся история операций.": "One MDL account: balances, receipts and all transaction history are merged.",
   "При объединении все счета MDL станут одним: остатки складываются, операции и планы переносятся на основной счёт. Суммы, категории и оригиналы чеков сохраняются. Другие валюты остаются отдельно.": "Merging combines all MDL accounts into one: balances are added, and transactions and plans move to the primary account. Amounts, categories and original receipts are preserved. Other currencies stay separate.",
-  "Чтобы снова вести счета отдельно, включите раздельный режим и создайте новые счета. Объединённая история останется на основном счёте.": "To keep accounts separate again, switch to separate mode and create new accounts. The merged history stays in the primary account."
+  "Чтобы снова вести счета отдельно, включите раздельный режим и создайте новые счета. Объединённая история останется на основном счёте.": "To keep accounts separate again, switch to separate mode and create new accounts. The merged history stays in the primary account.",
+  "Автор не указан": "Author not recorded",
+  "Добавил: {0}": "Added by: {0}",
+  "Кто добавил чек": "Receipt added by",
+  "Загрузка…": "Loading…",
+  " · неактивен": " · inactive",
+  "Категории по пользователям": "Categories by user",
+  "По подтверждённым чекам. Пользователь — тот, кто добавил чек.": "Confirmed receipts only. The user is the person who added the receipt.",
+  "За выбранный период нет подходящих покупок.": "No matching purchases for the selected period.",
+  "Каждая валюта показана отдельно. Старые чеки без автора выделены в отдельную группу.": "Currencies are shown separately. Older receipts with no recorded author appear as a separate group.",
+  "Категории новых и исправленных товаров определятся при сохранении. Выбранную вами категорию сохраним.": "Categories for new or renamed items are assigned when you save. Categories you select yourself are preserved.",
+  "Определить автоматически": "Choose automatically",
+  "Чеки не найдены": "No receipts found",
+  "Измените магазин или пользователя в фильтрах.": "Try a different store or user in the filters.",
+  "Сбросить фильтры": "Clear filters",
+  "Выбранный пользователь": "Selected user",
+  "График показывает часть категорий. Уточните период или пользователя, чтобы увидеть полное распределение.": "The chart shows a subset of categories. Narrow the period or select a user to see the full breakdown."
 }

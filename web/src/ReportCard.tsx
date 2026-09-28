@@ -19,9 +19,11 @@ function displayValue(value: string) {
 export function ReportCard({
   report,
   compact = false,
+  authorName,
 }: {
   report: AnalyticsReport;
   compact?: boolean;
+  authorName?: string;
 }) {
   const { open, categories } = useApp();
   const details = useAction(async (id: string) =>
@@ -49,6 +51,7 @@ export function ReportCard({
         report.query.merchant,
         category,
         report.query.currency,
+        authorName,
       ].some(Boolean) && (
         <p className="report-filters">
           {[
@@ -56,6 +59,7 @@ export function ReportCard({
             report.query.merchant && t("Магазин: {0}", report.query.merchant),
             category,
             report.query.currency,
+            authorName && t("Добавил: {0}", authorName),
           ]
             .filter(Boolean)
             .join(" · ")}

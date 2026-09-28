@@ -51,12 +51,27 @@ data class ReceiptItem(
 )
 
 @Serializable
+data class ReceiptAuthor(
+    val id: String? = null,
+    val name: String = "",
+    val username: String? = null,
+    val active: Boolean = false,
+)
+
+@Serializable
+data class ReceiptAuthorPage(
+    val items: List<ReceiptAuthor> = emptyList(),
+    val has_more: Boolean = false,
+)
+
+@Serializable
 data class Receipt(
     val id: String,
     val source: String,
     val source_url: String? = null,
     val review_required: Boolean = false,
     val created_by: String? = null,
+    val creator: ReceiptAuthor? = null,
     val merchant: String = "",
     val merchant_address: String = "",
     val purchased_on: String? = null,

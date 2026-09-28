@@ -243,7 +243,7 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
                         EditField(
                             tr(Message.ITEM_NAME),
                             item.name,
-                            { changeLine(index, item.copy(name = it.take(300))) },
+                            { changeLine(index, item.rename(it.take(300))) },
                             enabled = enabled,
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -284,12 +284,12 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
                         ChoiceField(
                             tr(Message.CATEGORY),
                             state.categories.firstOrNull { it.id == item.categoryId }?.name
-                                ?: tr(Message.UNCATEGORIZED),
-                            listOf(null to tr(Message.UNCATEGORIZED)) +
+                                ?: tr(Message.AUTO_CATEGORY_ON_SAVE),
+                            listOf(null to tr(Message.AUTO_CATEGORY_ON_SAVE)) +
                                 state.categories.map { it.id to it.name },
                             enabled,
                         ) {
-                            changeLine(index, item.copy(categoryId = it))
+                            changeLine(index, item.chooseCategory(it))
                         }
                     }
                 }
@@ -398,7 +398,7 @@ private fun EditField(
 }
 
 @Composable
-private fun ChoiceField(
+internal fun ChoiceField(
     label: String,
     value: String,
     choices: List<Pair<String?, String>>,

@@ -391,11 +391,13 @@ export function CategorySelect({
   value,
   onChange,
   required = false,
+  emptyLabel = t("Без категории"),
 }: {
   categories: Category[];
   value: string;
   onChange: (value: string) => void;
   required?: boolean;
+  emptyLabel?: string;
 }) {
   return (
     <select
@@ -403,7 +405,7 @@ export function CategorySelect({
       onChange={(e) => onChange(e.target.value)}
       required={required}
     >
-      <option value="">{t("Без категории")}</option>
+      <option value="">{emptyLabel}</option>
       {categories.map((c) => (
         <option key={c.id} value={c.id}>
           {c.name}

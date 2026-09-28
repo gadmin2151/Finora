@@ -44,6 +44,13 @@ fun CategoryPurchasesScreen(vm: FinoraViewModel) {
             Text(tr(Message.PURCHASE_COUNT, state.total), fontWeight = FontWeight.Medium)
             state.totals.forEach { Text(money(it.total_minor, it.currency), color = Green) }
         }
+        item {
+            ReceiptAuthorFilter(
+                state.authors,
+                state.createdBy,
+                onChange = vm.purchases::selectAuthor,
+            )
+        }
         items(state.items, key = PurchaseItem::id) { item ->
             Surface(
                 onClick = { vm.openReceipt(item.receipt_id) },
@@ -70,6 +77,7 @@ fun CategoryPurchasesScreen(vm: FinoraViewModel) {
                         Spacer(Modifier.weight(1f))
                         LineIcon(Glyph.CHEVRON, size = 17.dp)
                     }
+                    ReceiptAuthorLabel(item.creator)
                 }
             }
         }

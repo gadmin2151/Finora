@@ -27,6 +27,7 @@ class Login(Strict):
 
 class CategoryRefresh(Strict):
     after: str = Field(default="", max_length=36, pattern=r"^(?:[0-9a-f-]{36})?$")
+    only_uncategorized: bool = False
 
 
 class PasswordChange(Strict):

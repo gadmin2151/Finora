@@ -18,6 +18,8 @@ data class PurchaseItem(
     val currency: String,
     val purchased_on: String? = null,
     val category_id: String? = null,
+    val created_by: String? = null,
+    val creator: ReceiptAuthor? = null,
 )
 
 @Serializable data class CurrencyTotal(val currency: String, val total_minor: Long)
@@ -39,6 +41,8 @@ data class PurchaseHistoryState(
     val totals: List<CurrencyTotal> = emptyList(),
     val loading: Boolean = false,
     val error: String? = null,
+    val authors: List<ReceiptAuthor> = emptyList(),
+    val createdBy: String? = null,
 )
 
 fun purchaseMonthRange(month: String): Pair<String, String> =
@@ -77,9 +81,23 @@ class PurchaseHistoryController(
             mutable.update { it.copy(loading = true, error = null) }
             try {
                 val offset = if (more) current.offset else 0
-                val result = client().purchases(org, category.id, current.month, offset)
+                val (result, authors) =
+                    coroutineScope {
+                        val api = client()
+                        val page = async {
+                            api.purchases(
+                                org,
+                                category.id,
+                                current.month,
+                                offset,
+                                current.createdBy,
+                            )
+                        }
+                        val authorList = if (more) null else async { api.receiptAuthors(org) }
+                        page.await() to authorList?.await()?.items
+                    }
                 ensureActive()
-                if (organization()?.id == org)
+                if (organization()?.id == org && mutable.value.createdBy == current.createdBy)
                     mutable.update {
                         it.copy(
                             items =
@@ -88,6 +106,7 @@ class PurchaseHistoryController(
                             total = result.total,
                             totals = result.totals,
                             offset = offset + result.items.size,
+                            authors = authors ?: it.authors,
                         )
                     }
             } catch (error: Exception) {
@@ -108,5 +127,22 @@ class PurchaseHistoryController(
                 if (isActive) mutable.update { it.copy(loading = false) }
             }
         }
+    }
+
+    fun selectAuthor(createdBy: String?) {
+        if (mutable.value.createdBy == createdBy) return
+        job?.cancel()
+        mutable.update {
+            it.copy(
+                createdBy = createdBy,
+                items = emptyList(),
+                total = 0,
+                offset = 0,
+                totals = emptyList(),
+                loading = false,
+                error = null,
+            )
+        }
+        load()
     }
 }

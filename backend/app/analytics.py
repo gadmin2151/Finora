@@ -5,12 +5,14 @@ from decimal import ROUND_HALF_UP, Decimal
 from typing import Literal
 
 from pydantic import Field, model_validator
-from sqlalchemy import case, extract, func, select
+from sqlalchemy import case, extract, func, or_, select
+from sqlalchemy.orm import aliased
 
 from . import models as m
 from .finance import money, owned
 from .i18n import t, unit_label
 from .purchases import PurchaseFilters, history
+from .receipt_authors import creator_filter
 from .schemas import Currency, Strict
 
 
@@ -21,6 +23,7 @@ class ReportQuery(Strict):
     search: str = Field(default="", max_length=100)
     merchant: str = Field(default="", max_length=100)
     category_id: str = Field(default="", max_length=36)
+    created_by: str = Field(default="", max_length=36)
     currency: Currency | None = None
 
     @model_validator(mode="after")
@@ -150,6 +153,21 @@ def report(db, organization_id: str, query: ReportQuery) -> Report:
         clauses.append(tx.merchant.icontains(query.merchant, autoescape=True))
     if query.currency:
         clauses.append(tx.currency == query.currency)
+    if query.created_by:
+        authored_receipts = select(m.Receipt.id).where(
+            m.Receipt.organization_id == organization_id,
+            m.Receipt.deleted_at.is_(None),
+            m.Receipt.status == "posted",
+            creator_filter(query.created_by),
+        )
+        original = aliased(m.Transaction)
+        authored_transactions = select(original.id).where(
+            original.organization_id == organization_id,
+            original.receipt_id.in_(authored_receipts),
+        )
+        clauses.append(
+            or_(tx.receipt_id.in_(authored_receipts), tx.refund_of.in_(authored_transactions))
+        )
     category_clause = (
         allocation.category_id.is_(None)
         if query.category_id == "uncategorized"
@@ -199,6 +217,10 @@ def report(db, organization_id: str, query: ReportQuery) -> Report:
     if query.category_id:
         notices.append(
             t("Для категории учтена только её часть разделённых расходов; доходы сюда не входят.")
+        )
+    if query.created_by:
+        notices.append(
+            t("Выбраны чеки этого автора и связанные возвраты. Операции без чека не включены.")
         )
     rows: list[ReportRow] = []
     total_rows = 0

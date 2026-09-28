@@ -5,7 +5,13 @@ import { Download, SlidersHorizontal } from "lucide-react";
 import { api } from "../api";
 import { useApp } from "../context";
 import { ReportCard } from "../ReportCard";
-import type { AnalyticsReport, ReportKind } from "../types";
+import {
+  creatorName,
+  ReceiptAuthorFilter,
+  useReceiptAuthors,
+} from "../ReceiptAuthor";
+import { ReceiptCategoryChart } from "../ReceiptCategoryChart";
+import type { AnalyticsReport, CreatorCategory, ReportKind } from "../types";
 import { ErrorBox, Field, Loading, PageHeading, today } from "../ui";
 
 export default function Reports() {
@@ -29,6 +35,7 @@ export default function Reports() {
     merchant: "",
     category_id: "",
     currency: "",
+    created_by: "",
   });
   const [applied, setApplied] = useState(filters);
   const params = new URLSearchParams(
@@ -39,6 +46,27 @@ export default function Reports() {
     queryFn: ({ signal }) =>
       api<AnalyticsReport>(`/reports?${params}`, { signal }),
   });
+  const authors = useReceiptAuthors();
+  const author = authors.data?.items.find(
+    (creator) => (creator.id ?? "unknown") === applied.created_by,
+  );
+  const selectedAuthor = applied.created_by
+    ? author || applied.created_by === "unknown"
+      ? creatorName(author)
+      : t("Выбранный пользователь")
+    : undefined;
+  const chartParams = new URLSearchParams(params);
+  chartParams.delete("kind");
+  chartParams.set("limit", "1");
+  const chart = useQuery({
+    queryKey: ["receipt-category-chart", chartParams.toString()],
+    enabled: applied.kind === "categories",
+    queryFn: ({ signal }) =>
+      api<{
+        creator_categories: CreatorCategory[];
+        creator_categories_truncated: boolean;
+      }>(`/purchases?${chartParams}`, { signal }),
+  });
   const products = ["purchases", "prices"].includes(filters.kind);
   function download() {
     if (!query.data) return;
@@ -46,6 +74,7 @@ export default function Reports() {
     const lines = [
       value.title,
       `${value.query.date_from} — ${value.query.date_to}`,
+      ...(selectedAuthor ? [t("Добавил: {0}", selectedAuthor)] : []),
       "",
       ...value.metrics.map((m) => `${m.label}: ${m.value}`),
       "",
@@ -162,6 +191,10 @@ export default function Reports() {
               }
             />
           </Field>
+          <ReceiptAuthorFilter
+            value={filters.created_by}
+            onChange={(value) => setFilters({ ...filters, created_by: value })}
+          />
           <Field label={t("Валюта операций")}>
             <select
               value={filters.currency}
@@ -197,7 +230,28 @@ export default function Reports() {
       {query.isPending ? (
         <Loading />
       ) : (
-        query.data && <ReportCard report={query.data} />
+        query.data && (
+          <ReportCard report={query.data} authorName={selectedAuthor} />
+        )
+      )}
+      {applied.kind === "categories" && (
+        <>
+          <ErrorBox error={chart.error} />
+          {chart.data?.creator_categories_truncated && (
+            <p className="notice warning">
+              {t(
+                "График показывает часть категорий. Уточните период или пользователя, чтобы увидеть полное распределение.",
+              )}
+            </p>
+          )}
+          {chart.isPending ? (
+            <Loading />
+          ) : (
+            chart.data && (
+              <ReceiptCategoryChart rows={chart.data.creator_categories} />
+            )
+          )}
+        </>
       )}
     </>
   );

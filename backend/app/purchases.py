@@ -8,6 +8,7 @@ from pydantic import Field, model_validator
 from sqlalchemy import func, select
 
 from . import models as m
+from .receipt_authors import creator_data, creator_filter, load_creators
 from .receipts import normalized
 from .schemas import Currency, Strict
 
@@ -17,6 +18,7 @@ class PurchaseFilters(Strict):
     merchant: str = Field(default="", max_length=100)
     category_id: str = Field(default="", max_length=36)
     account_id: str = Field(default="", max_length=36)
+    created_by: str = Field(default="", max_length=36)
     currency: Currency | None = None
     unit: str = Field(default="", max_length=12)
     date_from: date | None = None
@@ -48,6 +50,7 @@ def history(db, organization_id: str, filters: PurchaseFilters):
             receipt.merchant,
             receipt.currency,
             receipt.purchased_on,
+            receipt.created_by,
             tx.account_id,
         )
         .join(receipt, receipt.id == item.receipt_id)
@@ -76,6 +79,8 @@ def history(db, organization_id: str, filters: PurchaseFilters):
         )
     if filters.account_id:
         query = query.where(tx.account_id == filters.account_id)
+    if filters.created_by:
+        query = query.where(creator_filter(filters.created_by))
     if filters.currency:
         query = query.where(receipt.currency == filters.currency)
     if filters.unit:
@@ -112,8 +117,32 @@ def history(db, organization_id: str, filters: PurchaseFilters):
             .limit(filters.limit)
         ).mappings()
     ]
+    creator_totals = list(
+        db.execute(
+            select(
+                selected.c.created_by,
+                selected.c.category_id,
+                selected.c.currency,
+                func.sum(selected.c.total_minor).label("total_minor"),
+                func.count(func.distinct(selected.c.receipt_id)).label("receipt_count"),
+            )
+            .group_by(selected.c.created_by, selected.c.category_id, selected.c.currency)
+            .order_by(
+                selected.c.created_by,
+                selected.c.currency,
+                func.sum(selected.c.total_minor).desc(),
+                selected.c.category_id,
+            )
+            .limit(1001)
+        ).mappings()
+    )
+    creators = load_creators(
+        db,
+        {row["created_by"] for row in items} | {row["created_by"] for row in creator_totals[:1000]},
+    )
     for row in items:
         row["quantity"], row["unit_minor"] = str(row["quantity"]), str(row["unit_minor"])
+        row["creator"] = creators.get(row["created_by"]) or creator_data(None, row["created_by"])
         row.pop("normalized_name")
     categories = [
         {"category_id": cat, "currency": currency, "total_minor": int(value)}
@@ -198,5 +227,16 @@ def history(db, organization_id: str, filters: PurchaseFilters):
         "receipt_count": receipts,
         "totals": totals,
         "categories": categories,
+        "creator_categories": [
+            {
+                "creator": creators.get(row["created_by"]) or creator_data(None, row["created_by"]),
+                "category_id": row["category_id"],
+                "currency": row["currency"],
+                "total_minor": int(row["total_minor"]),
+                "receipt_count": row["receipt_count"],
+            }
+            for row in creator_totals[:1000]
+        ],
+        "creator_categories_truncated": len(creator_totals) > 1000,
         "comparisons": comparisons,
     }

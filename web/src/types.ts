@@ -112,9 +112,23 @@ export type ReceiptItem = {
   total_minor: number;
   category_id: string | null;
 };
+export type ReceiptCreator = {
+  id: string | null;
+  name: string;
+  username: string | null;
+  active: boolean;
+};
+export type CreatorCategory = {
+  creator: ReceiptCreator;
+  category_id: string | null;
+  currency: string;
+  total_minor: number;
+  receipt_count: number;
+};
 export type Receipt = {
   id: string;
   created_by?: string | null;
+  creator?: ReceiptCreator;
   source: string;
   source_url: string | null;
   merchant: string;
@@ -171,6 +185,7 @@ export type AnalyticsReport = {
     merchant: string;
     category_id: string;
     currency: string | null;
+    created_by?: string;
   };
   title: string;
   metrics: { label: string; value: string }[];

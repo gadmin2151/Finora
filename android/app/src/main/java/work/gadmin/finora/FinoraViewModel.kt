@@ -57,6 +57,8 @@ data class AppState(
     val categories: List<Category> = emptyList(),
     val receipts: List<Receipt> = emptyList(),
     val receiptCount: Int = 0,
+    val receiptAuthors: List<ReceiptAuthor> = emptyList(),
+    val receiptAuthorId: String? = null,
     val search: String = "",
     val receiptsLoading: Boolean = false,
     val purchaseCategory: Category? = null,
@@ -586,13 +588,35 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
 
     fun search(value: String) {
         refresh.cancel()
-        mutable.update { it.copy(search = value.take(100), lastRefreshedAt = null) }
+        mutable.update {
+            it.copy(
+                search = value.take(100),
+                receipts = emptyList(),
+                receiptCount = 0,
+                lastRefreshedAt = null,
+            )
+        }
         loadReceipts(debounce = true)
+    }
+
+    fun receiptAuthor(value: String?) {
+        refresh.cancel()
+        mutable.update {
+            it.copy(
+                receiptAuthorId = value,
+                receipts = emptyList(),
+                receiptCount = 0,
+                lastRefreshedAt = null,
+            )
+        }
+        loadReceipts()
     }
 
     fun loadReceipts(more: Boolean = false, debounce: Boolean = false) {
         val current = mutable.value
         current.organization ?: return
+        if (more && (current.receiptsLoading || current.receipts.size >= current.receiptCount))
+            return
         receiptsJob?.cancel()
         receiptsJob = viewModelScope.launch {
             if (debounce) delay(350)
@@ -999,22 +1023,36 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    private suspend fun fetchReceipts(current: AppState, more: Boolean = false) {
-        val result =
-            requireNotNull(api)
-                .receipts(
-                    requireNotNull(current.organization).id,
-                    current.search,
-                    if (more) current.receipts.size else 0,
-                )
-        currentCoroutineContext().ensureActive()
-        mutable.update {
-            it.copy(
-                receipts =
-                    if (more) (it.receipts + result.items).distinctBy(Receipt::id)
-                    else result.items,
-                receiptCount = result.total,
+    private suspend fun fetchReceipts(current: AppState, more: Boolean = false) = coroutineScope {
+        val client = requireNotNull(api)
+        val org = requireNotNull(current.organization).id
+        val receipts = async {
+            client.receipts(
+                org,
+                current.search,
+                if (more) current.receipts.size else 0,
+                current.receiptAuthorId,
             )
+        }
+        val authors = if (more) null else async { client.receiptAuthors(org) }
+        val result = receipts.await()
+        val authorList = authors?.await()?.items
+        ensureActive()
+        mutable.update {
+            if (
+                it.organization?.id != org ||
+                    it.search != current.search ||
+                    it.receiptAuthorId != current.receiptAuthorId
+            )
+                it
+            else
+                it.copy(
+                    receipts =
+                        if (more) (it.receipts + result.items).distinctBy(Receipt::id)
+                        else result.items,
+                    receiptCount = result.total,
+                    receiptAuthors = authorList ?: it.receiptAuthors,
+                )
         }
     }
 

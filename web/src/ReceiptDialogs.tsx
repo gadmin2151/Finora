@@ -1,6 +1,7 @@
 import { defaultReceiptUnit, unitLabel, canonicalUnit } from "./units";
 import { t, getLocale } from "./i18n";
 import { ReceiptOriginals } from "./ReceiptOriginals";
+import { ReceiptAuthor } from "./ReceiptAuthor";
 import { receiptLineTotal } from "./receiptAmounts";
 import { moneyMinor, minorDecimal } from "./wallet";
 import { useRef, useState } from "react";
@@ -527,6 +528,7 @@ function ReceiptForm({
     unit_price: "",
     total: "",
     category_id: "",
+    category_selected: false,
   });
   const [items, setItems] = useState(
     receipt.items.length
@@ -537,6 +539,7 @@ function ReceiptForm({
           unit_price: decimal(i.unit_price_minor),
           total: decimal(i.total_minor),
           category_id: i.category_id ?? "",
+          category_selected: false,
         }))
       : [blank()],
   );
@@ -565,7 +568,14 @@ function ReceiptForm({
         total,
         account_id: account,
         fx_rate: currency === "MDL" ? null : rate,
-        items: items.map((i) => ({ ...i, category_id: i.category_id || null })),
+        items: items.map((i) => ({
+          name: i.name,
+          quantity: i.quantity,
+          unit: i.unit,
+          unit_price: i.unit_price,
+          total: i.total,
+          category_id: i.category_id || null,
+        })),
         ...(manual
           ? { request_key: requestKey }
           : { version: receipt.version, transaction_id: transaction || null }),
@@ -586,13 +596,16 @@ function ReceiptForm({
   const difference = Math.round(Number(total || 0) * 100) - sum;
   function change(
     index: number,
-    field: keyof ReturnType<typeof blank>,
+    field: Exclude<keyof ReturnType<typeof blank>, "category_selected">,
     value: string,
   ) {
     setItems(
       items.map((item, n) => {
         if (n !== index) return item;
         const changed = { ...item, [field]: value };
+        if (field === "category_id") changed.category_selected = !!value;
+        if (field === "name" && !item.category_selected)
+          changed.category_id = "";
         if (manual && (field === "quantity" || field === "unit_price"))
           changed.total = receiptLineTotal(
             changed.quantity,
@@ -640,6 +653,7 @@ function ReceiptForm({
           </a>
         )}
       </div>
+      {!manual && <ReceiptAuthor creator={receipt.creator} />}
       {receipt.error && <div className="notice warning">{receipt.error}</div>}
       {receipt.warnings.map((w, i) => (
         <div className="notice warning" key={i}>
@@ -719,6 +733,13 @@ function ReceiptForm({
                   </Field>
                 )}
               </div>
+              {!readonly && (
+                <p className="muted receipt-category-help">
+                  {t(
+                    "Категории новых и исправленных товаров определятся при сохранении. Выбранную вами категорию сохраним.",
+                  )}
+                </p>
+              )}
               <div className="receipt-items">
                 {items.map((i, n) => (
                   <div className="receipt-item" key={n}>
@@ -740,6 +761,11 @@ function ReceiptForm({
                           categories={categories}
                           value={i.category_id}
                           onChange={(v) => change(n, "category_id", v)}
+                          emptyLabel={
+                            readonly
+                              ? t("Без категории")
+                              : t("Определить автоматически")
+                          }
                         />
                       </Field>
                       <div className="item-numbers">

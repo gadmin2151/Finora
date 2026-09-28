@@ -43,6 +43,7 @@ from .finance import (
 )
 from .i18n import current_language, t, translated_notice
 from .organizations import identity
+from .receipt_authors import creator_filter, load_creators, organization_creators
 from .receipt_files import append_images
 from .receipts import (
     ReceiptError,
@@ -377,7 +378,9 @@ def add_daily_categories(user: m.Organization = SCOPE, db: Session = DB):
 
 @router.post("/categories/refresh")
 def refresh_categories(data: s.CategoryRefresh, user: m.Organization = SCOPE, db: Session = DB):
-    result = refresh_receipt_categories(db, user.id, data.after)
+    result = refresh_receipt_categories(
+        db, user.id, data.after, only_uncategorized=data.only_uncategorized
+    )
     db.commit()
     return result
 
@@ -613,9 +616,15 @@ def delete_budget(key: str, user: m.Organization = SCOPE, db: Session = DB):
     return {"ok": True}
 
 
+@router.get("/receipt-authors")
+def receipt_authors(user: m.Organization = SCOPE, db: Session = DB):
+    return organization_creators(db, user.id)
+
+
 @router.get("/receipts")
 def receipts(
     search: str = Query("", max_length=100),
+    created_by: str = Query("", max_length=36),
     offset: int = Query(0, ge=0),
     user: m.Organization = SCOPE,
     db: Session = DB,
@@ -625,6 +634,8 @@ def receipts(
     )
     if search:
         query = query.where(m.Receipt.merchant.icontains(search, autoescape=True))
+    if created_by:
+        query = query.where(creator_filter(created_by))
     rows = list(db.scalars(query.order_by(m.Receipt.created_at.desc()).offset(offset).limit(30)))
     ids = [r.id for r in rows]
     items = {}
@@ -640,8 +651,9 @@ def receipts(
             select(m.Transaction).where(m.Transaction.receipt_id.in_(ids), ~m.Transaction.voided)
         )
     }
+    creators = load_creators(db, (row.created_by for row in rows))
     return {
-        "items": [receipt_dict(db, r, (items, transactions)) for r in rows],
+        "items": [receipt_dict(db, r, (items, transactions, creators)) for r in rows],
         "total": db.scalar(select(func.count()).select_from(query.subquery())),
     }
 
@@ -713,6 +725,8 @@ def register_receipt(
         receipt.original = {"phone_page_text": page_text}
     db.flush()
     append_images(receipt, images)
+    if not prior:
+        audit(db, organization_id, "receipt.registered", receipt.id)
     db.add(
         m.Message(
             organization_id=organization_id,

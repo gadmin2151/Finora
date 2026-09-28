@@ -2,6 +2,10 @@ package work.gadmin.finora.localization
 
 /** App-owned copy only; user names, receipt content and chat history are never translated. */
 enum class Message(val english: String, val russian: String) {
+    RECEIPT_AUTHOR("Added by", "Добавил"),
+    ALL_RECEIPT_AUTHORS("All users", "Все пользователи"),
+    UNKNOWN_RECEIPT_AUTHOR("Unknown author", "Автор неизвестен"),
+    AUTO_CATEGORY_ON_SAVE("Choose automatically on save", "Определить при сохранении"),
     ACCOUNTING_TITLE("Money tracking", "Учёт денег"),
     ACCOUNTING_SCOPE(
         "Shared by %1\$s, the website and your phone.",

@@ -70,7 +70,9 @@ def source_name_repairs(
     return repairs, merchant, address or None
 
 
-def refresh_receipt_categories(db: Session, organization_id: str, after: str = "") -> dict:
+def refresh_receipt_categories(
+    db: Session, organization_id: str, after: str = "", *, only_uncategorized: bool = False
+) -> dict:
     lock_organization(db, organization_id)
     result = {
         "categories_added": install_daily_categories(db, organization_id),
@@ -83,14 +85,21 @@ def refresh_receipt_categories(db: Session, organization_id: str, after: str = "
         "skipped": {},
         "next_cursor": None,
     }
+    conditions = [
+        m.Receipt.organization_id == organization_id,
+        m.Receipt.deleted_at.is_(None),
+        m.Receipt.id > after,
+    ]
+    if only_uncategorized:
+        conditions.append(
+            m.Receipt.id.in_(
+                select(m.ReceiptItem.receipt_id).where(m.ReceiptItem.category_id.is_(None))
+            )
+        )
     receipts = list(
         db.scalars(
             select(m.Receipt)
-            .where(
-                m.Receipt.organization_id == organization_id,
-                m.Receipt.deleted_at.is_(None),
-                m.Receipt.id > after,
-            )
+            .where(*conditions)
             .order_by(m.Receipt.id)
             .limit(BATCH_SIZE + 1)
             .with_for_update()
@@ -170,21 +179,27 @@ def refresh_receipt_categories(db: Session, organization_id: str, after: str = "
         ):
             skip("amount_mismatch")
             continue
-        repairs, merchant, address = source_name_repairs(receipt, items)
+        repairs, merchant, address = (
+            ({}, None, None) if only_uncategorized else source_name_repairs(receipt, items)
+        )
         changes = []
         splits = defaultdict(int)
         for item in items:
             name = repairs.get(item.id, item.name)
             category = (
-                categorize(
-                    db,
-                    organization_id,
-                    name,
-                    merchant or receipt.merchant,
-                    custom_names.get(item.category_id, ""),
-                    context,
+                item.category_id
+                if only_uncategorized and item.category_id
+                else (
+                    categorize(
+                        db,
+                        organization_id,
+                        name,
+                        merchant or receipt.merchant,
+                        custom_names.get(item.category_id, ""),
+                        context,
+                    )
+                    or item.category_id
                 )
-                or item.category_id
             )
             splits[category] += item.total_minor
             if category != item.category_id or name != item.name:

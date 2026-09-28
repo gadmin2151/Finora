@@ -41,6 +41,7 @@ from .finance import (
     today,
 )
 from .i18n import current_language, t, translated_notice
+from .receipt_authors import receipt_creator
 from .schemas import ManualReceipt, ReceiptConfirm, SplitInput, TransactionInput
 from .web_receipts import WebReceiptError, capture_receipt_page, receipt_link
 
@@ -821,6 +822,9 @@ def receipt_dict(db, receipt: m.Receipt, preloaded=None):
         "source_url": receipt.source_url,
         "review_required": receipt.review_required,
         "created_by": receipt.created_by,
+        "creator": receipt_creator(
+            db, receipt, preloaded[2] if preloaded is not None and len(preloaded) > 2 else None
+        ),
         "merchant": receipt.merchant,
         "merchant_address": receipt.original.get("merchant_address", ""),
         "document_type": receipt.original.get("document_type", "fiscal_receipt"),
@@ -895,7 +899,20 @@ def confirm_receipt(db, organization_id: str, receipt: m.Receipt, data: ReceiptC
         != category_ids
     ):
         fail("Категория не найдена", 404)
-    for item in data.items:
+    # Corrections and manual entries can add products that never passed through
+    # OCR. Classify their missing categories before building expense allocations,
+    # while keeping every explicit choice made by the user.
+    classification = category_context(db, organization_id)
+    items = [
+        item.model_copy(
+            update={
+                "category_id": item.category_id
+                or categorize(db, organization_id, item.name, data.merchant, context=classification)
+            }
+        )
+        for item in data.items
+    ]
+    for item in items:
         splits[item.category_id] += minor(item.total)
     if data.transaction_id:
         tx = owned(db, m.Transaction, data.transaction_id, organization_id, True)
@@ -956,7 +973,7 @@ def confirm_receipt(db, organization_id: str, receipt: m.Receipt, data: ReceiptC
         receipt.original = {**receipt.original, "review_warnings": receipt.warnings}
         receipt.warnings = []
     db.execute(delete(m.ReceiptItem).where(m.ReceiptItem.receipt_id == receipt.id))
-    for item in data.items:
+    for item in items:
         db.add(
             m.ReceiptItem(
                 receipt_id=receipt.id,

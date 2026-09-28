@@ -34,7 +34,14 @@ data class ReceiptLineForm(
     val unitPrice: String = "",
     val total: String = "",
     val categoryId: String? = null,
+    val categoryChosen: Boolean = false,
 ) {
+    fun rename(value: String): ReceiptLineForm =
+        copy(name = value, categoryId = categoryId.takeIf { categoryChosen || name == value })
+
+    fun chooseCategory(value: String?): ReceiptLineForm =
+        copy(categoryId = value, categoryChosen = value != null)
+
     fun calculateTotal(): ReceiptLineForm =
         copy(
             total =

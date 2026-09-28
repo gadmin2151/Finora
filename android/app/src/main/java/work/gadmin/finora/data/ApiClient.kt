@@ -271,7 +271,20 @@ class ApiClient(val server: String, savedCookie: String? = null) {
 
     suspend fun categories(org: String): List<Category> = get("/api/categories", org)
 
-    suspend fun purchases(org: String, category: String, month: String, offset: Int): PurchasePage {
+    suspend fun receiptAuthors(org: String): ReceiptAuthorPage =
+        try {
+            get("/api/receipt-authors", org)
+        } catch (error: ApiException) {
+            if (error.code == 404) ReceiptAuthorPage() else throw error
+        }
+
+    suspend fun purchases(
+        org: String,
+        category: String,
+        month: String,
+        offset: Int,
+        createdBy: String? = null,
+    ): PurchasePage {
         val (from, to) = purchaseMonthRange(month)
         val url =
             origin
@@ -283,6 +296,7 @@ class ApiClient(val server: String, savedCookie: String? = null) {
                 .addQueryParameter("offset", offset.toString())
                 .addQueryParameter("limit", "30")
                 .addQueryParameter("sort", "newest")
+                .apply { createdBy?.let { addQueryParameter("created_by", it) } }
                 .build()
         return get(url.encodedPath + "?" + url.encodedQuery, org)
     }
@@ -331,13 +345,19 @@ class ApiClient(val server: String, savedCookie: String? = null) {
         )
     }
 
-    suspend fun receipts(org: String, search: String, offset: Int): ReceiptPage {
+    suspend fun receipts(
+        org: String,
+        search: String,
+        offset: Int,
+        createdBy: String? = null,
+    ): ReceiptPage {
         val url =
             origin
                 .newBuilder()
                 .encodedPath("/api/receipts")
                 .addQueryParameter("search", search.take(100))
                 .addQueryParameter("offset", offset.toString())
+                .apply { createdBy?.let { addQueryParameter("created_by", it) } }
                 .build()
         return get(url.encodedPath + "?" + url.encodedQuery, org)
     }
