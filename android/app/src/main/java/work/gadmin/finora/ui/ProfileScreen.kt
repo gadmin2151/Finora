@@ -18,6 +18,7 @@ import androidx.core.net.toUri
 import work.gadmin.finora.AppState
 import work.gadmin.finora.BuildConfig
 import work.gadmin.finora.FinoraViewModel
+import work.gadmin.finora.data.PRIVACY_POLICY_URL
 import work.gadmin.finora.localization.Message
 import work.gadmin.finora.localization.tr
 
@@ -133,6 +134,19 @@ fun ProfileScreen(state: AppState, vm: FinoraViewModel) {
                         Modifier.fillMaxWidth(),
                     ) {
                         Text(tr(Message.OPEN_WEBSITE))
+                    }
+                    TextButton(
+                        {
+                            context.startActivity(
+                                Intent(
+                                    Intent.ACTION_VIEW,
+                                    PRIVACY_POLICY_URL.toUri(),
+                                )
+                            )
+                        },
+                        Modifier.fillMaxWidth(),
+                    ) {
+                        Text(tr(Message.PRIVACY_POLICY))
                     }
                 }
             }

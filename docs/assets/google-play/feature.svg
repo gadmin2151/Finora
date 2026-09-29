@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500" viewBox="0 0 1024 500" role="img" aria-label="Finora Personal Finance">
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#091411"/>
+      <stop offset=".58" stop-color="#142f25"/>
+      <stop offset="1" stop-color="#235742"/>
+    </linearGradient>
+    <radialGradient id="glow"><stop stop-color="#9cf0bd" stop-opacity=".33"/><stop offset="1" stop-color="#9cf0bd" stop-opacity="0"/></radialGradient>
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="19"/></filter>
+  </defs>
+  <rect width="1024" height="500" fill="url(#background)"/>
+  <circle cx="834" cy="247" r="286" fill="url(#glow)"/>
+  <circle cx="824" cy="250" r="186" fill="none" stroke="#b2efce" stroke-opacity=".17"/>
+  <circle cx="824" cy="250" r="235" fill="none" stroke="#b2efce" stroke-opacity=".10"/>
+  <rect x="35" y="35" width="954" height="430" rx="28" fill="none" stroke="#d4f4de" stroke-opacity=".16"/>
+  <text x="70" y="118" fill="#f3f7ef" font-family="Arial, Helvetica, sans-serif" font-size="58" font-weight="700" letter-spacing="-2">finora<tspan fill="#92dfb9">.</tspan></text>
+  <text x="70" y="235" fill="#f5f8f2" font-family="Arial, Helvetica, sans-serif" font-size="60" font-weight="700" letter-spacing="-2">PERSONAL</text>
+  <text x="70" y="307" fill="#a7edc7" font-family="Arial, Helvetica, sans-serif" font-size="60" font-weight="700" letter-spacing="-2">FINANCE</text>
+  <rect x="70" y="355" width="395" height="3" rx="1.5" fill="#b6edce" fill-opacity=".43"/>
+  <text x="70" y="399" fill="#bfd9c7" font-family="Arial, Helvetica, sans-serif" font-size="23" letter-spacing="1">RECEIPTS  ·  INSIGHTS  ·  CONTROL</text>
+  <ellipse cx="814" cy="410" rx="167" ry="28" fill="#020c08" opacity=".44" filter="url(#shadow)"/>
+  <image x="630" y="68" width="374" height="374" href="app-icon.png"/>
+</svg>

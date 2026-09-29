@@ -11,6 +11,7 @@ import work.gadmin.finora.localization.Message
 import work.gadmin.finora.localization.tr
 
 const val DEFAULT_SERVER = "https://finora.gadmin.work"
+const val PRIVACY_POLICY_URL = "https://finora.gadmin.work/privacy.html"
 const val MAX_PHOTOS = 4
 
 fun serverOrigin(input: String): String {

@@ -108,6 +108,12 @@ if static.exists():
     def web(path: str):
         if path.startswith("api/"):
             return JSONResponse({"detail": t("Не найдено")}, status_code=404)
-        if path in {"favicon.svg", "finora-icon.png", "manifest.webmanifest", "sw.js"}:
+        if path in {
+            "favicon.svg",
+            "finora-icon.png",
+            "manifest.webmanifest",
+            "sw.js",
+            "privacy.html",
+        }:
             return FileResponse(static / path)
         return FileResponse(static / "index.html", headers={"Cache-Control": "no-cache"})

@@ -229,7 +229,10 @@ function Login() {
             </span>
           </div>
         </div>
-        <footer>27G Finora · Personal Finance</footer>
+        <footer>
+          27G Finora · Personal Finance ·{" "}
+          <a href="/privacy.html">{t("Политика конфиденциальности")}</a>
+        </footer>
       </main>
     </div>
   );

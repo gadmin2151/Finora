@@ -200,6 +200,8 @@ Server CI checks tests, migrations, formatting, dependencies and both container 
 
 Have an idea that makes everyday finance simpler? Open an issue with the use case. Contributions to receipt handling, accessibility, translations and documentation are welcome; use synthetic examples instead of personal financial data.
 
+The public service's bilingual [privacy policy](https://finora.gadmin.work/privacy.html) is also linked from Android sign-in and profile screens. Self-hosted operators control their own server data and backups.
+
 ---
 
 <p align="center"><strong>Your receipts. Your money. Your server.</strong><br />Built by <a href="https://github.com/gadmin2151">gadmin2151</a> · 27G Finora · <a href="LICENSE">MIT license</a></p>

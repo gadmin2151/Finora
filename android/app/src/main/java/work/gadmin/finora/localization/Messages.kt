@@ -100,6 +100,7 @@ enum class Message(val english: String, val russian: String) {
     OVERDUE("Overdue", "Срок прошёл"),
     DUE_BY("Due by", "Вернуть до"),
     LANGUAGE("Language", "Язык"),
+    PRIVACY_POLICY("Privacy policy", "Политика конфиденциальности"),
     DEVICE_LANGUAGE("Device language", "Язык телефона"),
     LANGUAGE_HINT(
         "Use your phone’s language or choose your own. Other languages use English.",
