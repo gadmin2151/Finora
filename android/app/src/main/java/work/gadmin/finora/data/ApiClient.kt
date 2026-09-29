@@ -403,6 +403,10 @@ class ApiClient(val server: String, savedCookie: String? = null) {
 
     suspend fun chatJobs(org: String): List<ChatJob> = get("/api/jobs", org)
 
+    suspend fun reportChatAnswer(org: String, id: String) {
+        execute(request("/api/chat/$id/report", org, "POST", jsonBody(buildJsonObject {})))
+    }
+
     suspend fun sendChat(
         org: String,
         text: String,

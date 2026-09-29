@@ -4,6 +4,8 @@
 
 Choose your organization, open **Аналитика → AI-помощник** on the web or **AI** in Android. Chat history is shared with the organization, not private to a single member.
 
+Users can flag a harmful AI answer directly below that answer in either client. The server records one organization-scoped report per user and answer in the audit log (`chat.answer_reported`); subsequent taps are safe to retry. Operators should review these reports and the linked answer in the shared chat, then use them to improve the AI configuration and safeguards. The report never posts or deletes financial data.
+
 Examples:
 
 - `Сколько ушло на продукты с 1 по 25 сентября?`

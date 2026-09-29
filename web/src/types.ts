@@ -166,6 +166,7 @@ export type Message = {
   text: string;
   receipt_id: string | null;
   created_at: string;
+  reported?: boolean;
   details: {
     provider?: string;
     error?: boolean;

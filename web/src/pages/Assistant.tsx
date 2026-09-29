@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Clock3,
   Paperclip,
+  Flag,
   ScanLine,
   Search,
   Send,
@@ -100,6 +101,17 @@ export function Assistant() {
   const receiptAction = useAction(async (id: string) => {
     const receipt = await api<Receipt>(`/receipts/${id}`);
     open({ type: "receipt", receipt });
+  });
+  const reportAnswer = useMutation({
+    mutationFn: (id: string) => send(`/chat/${id}/report`, {}),
+    onSuccess: async (_, id) => {
+      setOlder((previous) =>
+        previous.map((message) =>
+          message.id === id ? { ...message, reported: true } : message,
+        ),
+      );
+      await queryClient.invalidateQueries({ queryKey: ["chat"] });
+    },
   });
   const latestMessageId = messages.data?.at(-1)?.id;
   useLayoutEffect(() => {
@@ -286,6 +298,26 @@ export function Assistant() {
                             ? ` · ${message.details.provider === "reports" ? t("Расчёт Finora") : message.details.provider === "ollama" ? t("Локальная модель") : "OpenAI"}`
                             : ""}
                         </small>
+                        {message.role === "assistant" &&
+                          !message.details.error &&
+                          ["openai", "ollama"].includes(
+                            message.details.provider ?? "",
+                          ) && (
+                            <button
+                              className="text-button chat-report"
+                              disabled={
+                                message.reported ||
+                                (reportAnswer.isPending &&
+                                  reportAnswer.variables === message.id)
+                              }
+                              onClick={() => reportAnswer.mutate(message.id)}
+                            >
+                              <Flag size={14} />
+                              {message.reported
+                                ? t("Жалоба отправлена")
+                                : t("Пожаловаться на ответ AI")}
+                            </button>
+                          )}
                       </div>
                     </div>
                   ))}
@@ -337,6 +369,7 @@ export function Assistant() {
           <ErrorBox
             error={
               action.error ??
+              reportAnswer.error ??
               receiptAction.error ??
               messages.error ??
               more.error

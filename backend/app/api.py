@@ -975,6 +975,18 @@ def chat(before: str | None = None, user: m.Organization = SCOPE, db: Session = 
     rows = list(
         db.scalars(query.order_by(m.Message.created_at.desc(), m.Message.id.desc()).limit(60))
     )
+    reported_ids = set()
+    if rows:
+        reported_ids = set(
+            db.scalars(
+                select(m.Audit.entity_id).where(
+                    m.Audit.organization_id == user.id,
+                    m.Audit.actor_id == db.info.get("actor_id"),
+                    m.Audit.action == "chat.answer_reported",
+                    m.Audit.entity_id.in_([row.id for row in rows]),
+                )
+            )
+        )
     return [
         {
             "id": r.id,
@@ -984,9 +996,41 @@ def chat(before: str | None = None, user: m.Organization = SCOPE, db: Session = 
             "created_at": r.created_at,
             "details": r.details,
             "actor_id": r.details.get("actor_id"),
+            "reported": r.id in reported_ids,
         }
         for r in reversed(rows)
     ]
+
+
+@router.post("/chat/{key}/report")
+def report_chat_answer(
+    key: str,
+    user: m.Organization = SCOPE,
+    actor: m.User = ACTOR,
+    db: Session = DB,
+):
+    message = owned(db, m.Message, key, user.id)
+    if (
+        message.role != "assistant"
+        or message.details.get("error")
+        or message.details.get("provider") not in {"openai", "ollama"}
+    ):
+        fail("Можно пожаловаться только на ответ помощника", 422)
+    lock_organization(db, user.id)
+    previous = db.scalar(
+        select(m.Audit.id)
+        .where(
+            m.Audit.organization_id == user.id,
+            m.Audit.actor_id == actor.id,
+            m.Audit.action == "chat.answer_reported",
+            m.Audit.entity_id == key,
+        )
+        .limit(1)
+    )
+    if not previous:
+        audit(db, user.id, "chat.answer_reported", key, {"reason": "offensive_content"})
+        db.commit()
+    return {"reported": True}
 
 
 @router.post("/chat")

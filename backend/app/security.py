@@ -149,6 +149,7 @@ def current_organization(
     if membership.role != "admin":
         allowed_write = receipt_upload or path in {
             "/api/chat",
+            "/api/chat/{key}/report",
             "/api/receipts/{key}/comments",
             "/api/receipts/{key}/accept",
             "/api/receipts/{key}/review",

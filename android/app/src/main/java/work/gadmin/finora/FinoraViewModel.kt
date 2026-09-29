@@ -946,6 +946,22 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
 
     fun chatDraft(text: String) = mutable.update { it.copy(chatDraft = text.take(3000)) }
 
+    fun reportChatAnswer(id: String) = writeAction {
+        val org = requireNotNull(mutable.value.organization).id
+        requireNotNull(api).reportChatAnswer(org, id)
+        mutable.update {
+            if (it.organization?.id != org) it
+            else
+                it.copy(
+                    chat =
+                        it.chat.map { message ->
+                            if (message.id == id) message.copy(reported = true) else message
+                        },
+                    notice = tr(Message.AI_ANSWER_REPORTED),
+                )
+        }
+    }
+
     fun sendChat(report: String? = null) = writeAction {
         val current = mutable.value
         val org = requireNotNull(current.organization).id

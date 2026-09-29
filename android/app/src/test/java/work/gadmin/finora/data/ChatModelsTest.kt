@@ -13,10 +13,12 @@ class ChatModelsTest {
             json.decodeFromString<List<ChatMessage>>(
                 """[
             {"id":"old","role":"user","text":"Hello","created_at":"2025-02-01T10:00:00Z","actor_id":null,"details":{}},
-            {"id":"new","role":"assistant","text":"Ready","created_at":"2025-02-01T10:00:01Z","details":{"provider":"reports","reports":[{"query":{"kind":"summary","date_from":"2025-02-01","date_to":"2025-02-28"},"title":"Summary","metrics":[{"label":"Expenses","value":"25.00 MDL"}],"rows":[{"label":"Milk","value":"25.00 MDL","receipt_id":"receipt"}],"total_rows":1,"notices":["Verified"]}]}}
+            {"id":"new","role":"assistant","text":"Ready","created_at":"2025-02-01T10:00:01Z","reported":true,"details":{"provider":"reports","reports":[{"query":{"kind":"summary","date_from":"2025-02-01","date_to":"2025-02-28"},"title":"Summary","metrics":[{"label":"Expenses","value":"25.00 MDL"}],"rows":[{"label":"Milk","value":"25.00 MDL","receipt_id":"receipt"}],"total_rows":1,"notices":["Verified"]}]}}
         ]"""
             )
         assertTrue(messages.first().details.reports.isEmpty())
+        assertFalse(messages.first().reported)
+        assertTrue(messages.last().reported)
         val report = messages.last().details.reports.single()
         assertEquals("25.00 MDL", report.metrics.single().value)
         assertEquals("receipt", report.rows.single().receipt_id)

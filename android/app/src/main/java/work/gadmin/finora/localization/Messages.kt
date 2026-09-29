@@ -673,6 +673,8 @@ enum class Message(val english: String, val russian: String) {
     FINORA_VERIFIED_CALCULATION("Finora · verified calculation", "Finora · точный расчёт"),
     FINORA_LOCAL_AI("Finora · local AI", "Finora · локальный AI"),
     FINORA_ASSISTANT("Finora · assistant", "Finora · помощник"),
+    REPORT_AI_ANSWER("Report harmful answer", "Пожаловаться на ответ AI"),
+    AI_ANSWER_REPORTED("Report sent", "Жалоба отправлена"),
     OPEN_RECEIPT_AND_ITEMS("Open receipt and items", "Открыть чек и товары"),
     SHOW_ORIGINAL_RECEIPT("Show original receipt", "Показать исходный чек"),
     SHOW_LESS("Show less", "Свернуть"),

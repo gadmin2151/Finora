@@ -157,7 +157,7 @@ fun ChatScreen(state: AppState, vm: FinoraViewModel) {
                         }
                     }
                 items(state.chat, key = ChatMessage::id) { message ->
-                    ChatBubble(message, vm::openReceipt)
+                    ChatBubble(message, vm::openReceipt, vm::reportChatAnswer, state.busy)
                 }
             }
             if (pending != null)
@@ -235,7 +235,12 @@ fun ChatScreen(state: AppState, vm: FinoraViewModel) {
 }
 
 @Composable
-private fun ChatBubble(message: ChatMessage, openReceipt: (String) -> Unit) {
+private fun ChatBubble(
+    message: ChatMessage,
+    openReceipt: (String) -> Unit,
+    reportAnswer: (String) -> Unit,
+    busy: Boolean,
+) {
     val user = message.role == "user"
     Column(
         Modifier.fillMaxWidth(),
@@ -279,6 +284,21 @@ private fun ChatBubble(message: ChatMessage, openReceipt: (String) -> Unit) {
             }
         }
         message.details.reports.forEach { report -> ReportBlock(report, openReceipt) }
+        if (
+            !user && !message.details.error && message.details.provider in setOf("openai", "ollama")
+        ) {
+            TextButton(
+                onClick = { reportAnswer(message.id) },
+                enabled = !busy && !message.reported,
+            ) {
+                Text(
+                    tr(
+                        if (message.reported) Message.AI_ANSWER_REPORTED
+                        else Message.REPORT_AI_ANSWER
+                    )
+                )
+            }
+        }
         Text(
             message.created_at.take(16).replace('T', ' '),
             color = Muted,

@@ -50,6 +50,7 @@ data class ChatMessage(
     val created_at: String,
     val receipt_id: String? = null,
     val details: ChatDetails = ChatDetails(),
+    val reported: Boolean = false,
 )
 
 @Serializable

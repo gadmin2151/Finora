@@ -11,6 +11,7 @@ from app.analytics import ReportQuery
 from app.db import SessionLocal
 from app.finance import create_transaction
 from app.schemas import TransactionInput
+from app.security import hasher
 
 
 def add_tx(client, accounts, **fields):
@@ -125,6 +126,102 @@ def queued_job(client, **fields):
     assert response.status_code == 200, response.text
     with SessionLocal() as db:
         return db.get(m.Job, response.json()["job_id"])
+
+
+def test_ai_answer_can_be_reported_once_within_its_organization(client, owner):
+    org_id = client.headers["X-Organization-ID"]
+    with SessionLocal() as db:
+        answer = m.Message(
+            organization_id=org_id,
+            role="assistant",
+            text="An unsafe answer",
+            details={"provider": "openai"},
+        )
+        prompt = m.Message(organization_id=org_id, role="user", text="Question")
+        failed = m.Message(
+            organization_id=org_id,
+            role="assistant",
+            text="Provider error",
+            details={"error": True},
+        )
+        receipt_notice = m.Message(
+            organization_id=org_id,
+            role="assistant",
+            text="Receipt processed",
+        )
+        foreign_org = m.Organization(name="Another organization")
+        db.add_all([answer, prompt, failed, receipt_notice, foreign_org])
+        db.flush()
+        foreign_answer = m.Message(
+            organization_id=foreign_org.id,
+            role="assistant",
+            text="Private answer",
+        )
+        db.add(foreign_answer)
+        ids = answer.id, prompt.id, failed.id, receipt_notice.id, foreign_answer.id
+        db.commit()
+
+    answer_id, prompt_id, failed_id, notice_id, foreign_id = ids
+    assert client.post(f"/api/chat/{answer_id}/report").json() == {"reported": True}
+    assert client.post(f"/api/chat/{answer_id}/report").json() == {"reported": True}
+    assert client.post(f"/api/chat/{prompt_id}/report").status_code == 422
+    assert client.post(f"/api/chat/{failed_id}/report").status_code == 422
+    assert client.post(f"/api/chat/{notice_id}/report").status_code == 422
+    assert client.post(f"/api/chat/{foreign_id}/report").status_code == 404
+    messages = client.get("/api/chat").json()
+    assert next(row for row in messages if row["id"] == answer_id)["reported"] is True
+    assert next(row for row in messages if row["id"] == prompt_id)["reported"] is False
+    with SessionLocal() as db:
+        reports = list(
+            db.scalars(
+                select(m.Audit).where(
+                    m.Audit.action == "chat.answer_reported",
+                    m.Audit.entity_id == answer_id,
+                )
+            )
+        )
+        assert len(reports) == 1
+        assert reports[0].organization_id == org_id
+        assert reports[0].actor_id == owner["id"]
+        assert reports[0].details == {"reason": "offensive_content"}
+
+    with SessionLocal() as db:
+        member = m.User(
+            username="reporting-member",
+            name="Member",
+            password_hash=hasher.hash("test-member-password-2026"),
+        )
+        db.add(member)
+        db.flush()
+        db.add(m.Membership(user_id=member.id, organization_id=org_id, role="user"))
+        db.commit()
+        member_id = member.id
+    login = client.post(
+        "/api/auth/login",
+        json={"username": "reporting-member", "password": "test-member-password-2026"},
+        headers={"X-Finora-Client": "web"},
+    )
+    assert login.status_code == 200
+    client.headers["X-CSRF-Token"] = login.json()["csrf"]
+    assert client.post(f"/api/chat/{answer_id}/report").status_code == 200
+    assert (
+        next(row for row in client.get("/api/chat").json() if row["id"] == answer_id)["reported"]
+        is True
+    )
+    assert client.get("/api/audit").status_code == 403
+    with SessionLocal() as db:
+        assert (
+            db.scalar(
+                select(func.count())
+                .select_from(m.Audit)
+                .where(
+                    m.Audit.action == "chat.answer_reported",
+                    m.Audit.entity_id == answer_id,
+                    m.Audit.actor_id == member_id,
+                )
+            )
+            == 1
+        )
 
 
 def test_reports_work_without_ai_and_message_retry_is_idempotent(client, accounts):
