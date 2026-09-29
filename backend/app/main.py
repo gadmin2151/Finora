@@ -108,12 +108,17 @@ if static.exists():
     def web(path: str):
         if path.startswith("api/"):
             return JSONResponse({"detail": t("Не найдено")}, status_code=404)
+        if path == "privacy.html":
+            # Play's policy crawler must see the contact address without Cloudflare
+            # rewriting the HTML into a JavaScript-decoded email placeholder.
+            return FileResponse(
+                static / path, headers={"Cache-Control": "public, max-age=300, no-transform"}
+            )
         if path in {
             "favicon.svg",
             "finora-icon.png",
             "manifest.webmanifest",
             "sw.js",
-            "privacy.html",
         }:
             return FileResponse(static / path)
         return FileResponse(static / "index.html", headers={"Cache-Control": "no-cache"})
