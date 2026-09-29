@@ -408,7 +408,7 @@ export function Assistant() {
             </button>
             <textarea
               aria-label={t("Сообщение помощнику")}
-              rows={1}
+              rows={2}
               maxLength={3000}
               placeholder={t("Спросите о расходах или прикрепите чек…")}
               value={text}

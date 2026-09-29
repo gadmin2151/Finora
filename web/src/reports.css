@@ -2,31 +2,56 @@
   min-width: 0;
   padding: clamp(18px, 3vw, 30px);
 }
-.route-assistant {
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  height: calc(100dvh - 110px);
-  min-height: 540px;
+.workspace.route-assistant {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
 }
-.route-assistant .page-heading {
-  margin-bottom: 22px;
+.workspace.route-assistant .workspace-footer {
+  display: none;
+}
+.main-content.route-assistant {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-width: 1920px;
+  padding-top: 20px;
+  padding-bottom: 20px;
+}
+.main-content.route-assistant .page-heading {
+  margin-bottom: 14px;
   flex-shrink: 0;
 }
-.route-assistant .page-heading h1 {
-  font-size: clamp(25px, 2.8vw, 36px);
+.main-content.route-assistant .page-heading .eyebrow {
+  margin-bottom: 4px;
 }
-.route-assistant .chat-panel {
+.main-content.route-assistant .page-heading h1 {
+  font-size: clamp(23px, 2vw, 30px);
+}
+.main-content.route-assistant .page-heading p {
+  margin-top: 5px;
+  line-height: 1.4;
+}
+.main-content.route-assistant .chat-panel {
   flex: 1;
   height: auto;
   min-height: 0;
 }
-.route-assistant .chat-body {
+.main-content.route-assistant .chat-body {
   min-height: 0;
   overscroll-behavior: contain;
 }
-.route-assistant .chat-bottom {
+.main-content.route-assistant .chat-messages,
+.main-content.route-assistant .chat-bottom > * {
+  width: 100%;
+  max-width: 1120px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.main-content.route-assistant .chat-bottom {
   flex-shrink: 0;
+  padding-top: 13px;
+  padding-bottom: 12px;
 }
 .report-heading {
   display: flex;
@@ -306,25 +331,24 @@
   background: #82ddb516;
 }
 @media (max-width: 650px) {
-  .route-assistant {
-    height: calc(100dvh - 86px);
-    min-height: 480px;
+  .main-content.route-assistant {
+    min-height: 0;
     padding-top: 12px;
     padding-bottom: 8px;
   }
-  .route-assistant .page-heading {
+  .main-content.route-assistant .page-heading {
     margin-bottom: 12px;
     gap: 8px;
     align-items: center;
   }
-  .route-assistant .page-heading h1 {
+  .main-content.route-assistant .page-heading h1 {
     font-size: 21px;
     letter-spacing: -0.5px;
   }
-  .route-assistant .page-heading .eyebrow {
+  .main-content.route-assistant .page-heading .eyebrow {
     display: none;
   }
-  .route-assistant .page-heading p {
+  .main-content.route-assistant .page-heading p {
     font-size: 11px;
     line-height: 1.5;
     margin-top: 6px;

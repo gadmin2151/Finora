@@ -1826,10 +1826,10 @@ tbody tr:hover {
 .composer textarea {
   border: 0;
   box-shadow: none;
-  padding: 6px;
-  min-height: 30px;
-  max-height: 120px;
-  resize: none;
+  padding: 8px;
+  min-height: 54px;
+  max-height: 180px;
+  resize: vertical;
   font-size: 14px;
   line-height: 1.7;
 }

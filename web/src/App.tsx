@@ -560,7 +560,7 @@ function Workspace({
         onSwitch={switchOrganization}
         onLogout={() => logout.mutate(undefined)}
       />
-      <div className="workspace" inert={menu}>
+      <div className={`workspace route-${activeRoute}`} inert={menu}>
         <header className="topbar">
           <div className="breadcrumb">
             <button
