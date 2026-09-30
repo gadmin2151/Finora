@@ -519,7 +519,9 @@ export function Receipts() {
                   </span>
                   <Badge status={receipt.status} />
                 </div>
-                <h2>{receipt.merchant || t("Новый чек")}</h2>
+                <h2 title={receipt.merchant || t("Новый чек")}>
+                  {receipt.merchant || t("Новый чек")}
+                </h2>
                 <p>
                   {receipt.purchased_on
                     ? dateLabel(receipt.purchased_on)
@@ -535,7 +537,7 @@ export function Receipts() {
                 <div className="receipt-card-lines">
                   {receipt.items.slice(0, 3).map((i) => (
                     <div key={i.id}>
-                      <span>{i.name}</span>
+                      <span title={i.name}>{i.name}</span>
                       <span>{amount(i.total_minor, receipt.currency)}</span>
                     </div>
                   ))}

@@ -1,27 +1,40 @@
 import { useSyncExternalStore } from "react";
+import {
+  parseThemePreference,
+  resolveTheme,
+  type ThemePreference,
+} from "./themeCore";
 
-export type ThemePreference = "system" | "light" | "dark";
+export type { ThemePreference } from "./themeCore";
 const key = "finora.appearance";
 const system = window.matchMedia("(prefers-color-scheme: dark)");
 const listeners = new Set<() => void>();
 function read(): ThemePreference {
   try {
-    const saved = localStorage.getItem(key);
-    return saved === "light" || saved === "dark" ? saved : "system";
+    return parseThemePreference(localStorage.getItem(key));
   } catch {
     // Storage may be unavailable in a restricted browser; switching still works for this visit.
     return "system";
   }
 }
 let preference = read();
+let resolved = resolveTheme(preference, system.matches);
 function apply() {
-  const theme =
-    preference === "system" ? (system.matches ? "dark" : "light") : preference;
+  const theme = resolveTheme(preference, system.matches);
+  resolved = theme;
   document.documentElement.dataset.theme = theme;
-  document.documentElement.style.colorScheme = theme;
+  document.documentElement.style.colorScheme =
+    theme === "light" ? "light" : "dark";
   document
     .querySelector('meta[name="theme-color"]')
-    ?.setAttribute("content", theme === "dark" ? "#101715" : "#f5f8f5");
+    ?.setAttribute(
+      "content",
+      theme === "light"
+        ? "#f5f8f5"
+        : theme === "material"
+          ? "#18191b"
+          : "#101715",
+    );
   listeners.forEach((listener) => listener());
 }
 apply();
@@ -49,9 +62,6 @@ const subscribe = (listener: () => void) => {
 };
 export function useAppearance() {
   const choice = useSyncExternalStore(subscribe, () => preference);
-  const resolved = useSyncExternalStore(
-    subscribe,
-    () => document.documentElement.dataset.theme,
-  );
-  return { preference: choice, dark: resolved === "dark", setTheme };
+  const theme = useSyncExternalStore(subscribe, () => resolved);
+  return { preference: choice, theme, dark: theme !== "light", setTheme };
 }

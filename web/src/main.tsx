@@ -14,6 +14,7 @@ import "./appearance.css";
 import "./themeStore";
 import "./language.css";
 import "./wallet-chat.css";
+import "./layout.css";
 
 class ErrorBoundary extends Component<
   { children: ReactNode },

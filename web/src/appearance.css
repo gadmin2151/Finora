@@ -121,7 +121,7 @@
   background: #fff;
   box-shadow: 0 30px 90px #15281e30;
 }
-[data-theme="light"] .modal-backdrop {
+[data-theme="light"] .modal::backdrop {
   background: #15281e55;
 }
 [data-theme="light"] input,
@@ -186,6 +186,116 @@
   color: #fff;
   background: #20583f;
 }
+
+/* Material Black keeps neutral elevation surfaces and the Finora mint accent. */
+:root[data-theme="material"] {
+  color-scheme: dark;
+  --primary: #a0e4c5;
+  --primary-dark: #c6f4df;
+  --text: #f0f1f3;
+  --muted: #b2b6be;
+  --border: #3a3c42;
+  --sidebar: #202124;
+  --surface: #242529;
+  --accent: #a0e4c5;
+  --accent-soft: #a0e4c514;
+  --ink-strong: #f0f1f3;
+  --ink-muted: #b2b6be;
+  --ink-accent: #a0e4c5;
+  --ink-warning: #e8c788;
+  --ink-danger: #ffb4ab;
+  --fill-surface: #242529;
+  --fill-subtle: #2a2b30;
+  --fill-accent: #a0e4c514;
+  --fill-warning: #342f25;
+  --fill-danger: #392726;
+  --fill-hover: #ffffff09;
+  --line: #3a3c42;
+  --chart-income: #a0e4c5;
+  --chart-expense: #e8c788;
+  --chart-grid: #ffffff12;
+  background: #18191b;
+}
+[data-theme="material"] body {
+  background: #18191b;
+}
+[data-theme="material"] .sidebar {
+  background: #202124;
+  box-shadow: 0 8px 28px #00000024;
+}
+[data-theme="material"] .topbar {
+  background: #242529f5;
+}
+[data-theme="material"] .panel,
+[data-theme="material"] .stat-card,
+[data-theme="material"] .profile-settings {
+  background: #242529;
+  box-shadow: 0 2px 8px #0000001a;
+  border-radius: 18px;
+}
+[data-theme="material"] .main-stat {
+  background: linear-gradient(115deg, #2b2d32, #242529);
+  border-color: #a0e4c533;
+}
+[data-theme="material"] .balance-orbit {
+  background: #303238;
+  box-shadow: 0 8px 24px #00000024;
+}
+[data-theme="material"] .primary {
+  color: #122e23;
+  box-shadow: none;
+}
+[data-theme="material"] .primary:hover {
+  background: #b1eed3;
+}
+[data-theme="material"] .secondary:hover,
+[data-theme="material"] .icon-button:hover {
+  background: #ffffff0e;
+}
+[data-theme="material"] .navigation-link.active,
+[data-theme="material"] .segmented .selected {
+  background: #a0e4c51a;
+  color: var(--primary);
+}
+[data-theme="material"] .navigation-link:hover,
+[data-theme="material"] .navigation-group-toggle:hover {
+  background: #ffffff09;
+}
+[data-theme="material"] .organization-popover,
+[data-theme="material"] .modal {
+  background: #2a2b30;
+  box-shadow: 0 16px 48px #0006;
+}
+[data-theme="material"] .modal::backdrop {
+  background: #0009;
+}
+[data-theme="material"] .report-metrics > div,
+[data-theme="material"] .report-highlight,
+[data-theme="material"] .chat-bottom,
+[data-theme="material"] .login-main {
+  background: #2a2b30;
+}
+[data-theme="material"] .login-story {
+  background: linear-gradient(145deg, #303238, #202124);
+}
+[data-theme="material"] .login-card-shape {
+  background: linear-gradient(140deg, #42464b, #2a2b30);
+}
+[data-theme="material"] .receipt-originals {
+  background: #ffffff04;
+}
+[data-theme="material"] .brand-edition {
+  color: #e8c788;
+}
+[data-theme="material"] input:focus,
+[data-theme="material"] select:focus,
+[data-theme="material"] textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px #a0e4c518;
+}
+[data-theme="material"] .appearance-trigger {
+  color: var(--primary);
+}
 .chart-legend .green {
   background: var(--chart-income);
 }
@@ -220,7 +330,7 @@
 }
 .appearance-choices {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   margin-top: 20px;
 }
@@ -317,6 +427,17 @@
 }
 .theme-miniature.dark b {
   background: #37624e;
+}
+.theme-miniature.material {
+  background: #18191b;
+  border-color: #3a3c42;
+}
+.theme-miniature.material > i,
+.theme-miniature.material em {
+  background: #303238;
+}
+.theme-miniature.material b {
+  background: #a0e4c5;
 }
 .theme-miniature.system {
   background: linear-gradient(110deg, #f5f8f5 50%, #101715 50%);

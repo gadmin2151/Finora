@@ -30,7 +30,7 @@
   }
   .stats-grid {
     gap: 12px;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
   .stat-card {
     padding: 17px 15px;
@@ -55,10 +55,10 @@
   .budget-grid,
   .accounts-grid,
   .receipts-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .model-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .settings-grid {
     grid-template-columns: minmax(0, 1.5fr) minmax(240px, 1fr);
@@ -97,7 +97,7 @@
 }
 @media (max-width: 1050px) {
   .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .stat-card {
     padding: 20px 23px;

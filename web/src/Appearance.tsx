@@ -1,7 +1,8 @@
 import { t } from "./i18n";
 import { useId } from "react";
-import { Check, Monitor, Moon, Sun } from "lucide-react";
+import { Check, Leaf, Monitor, Moon, Sun } from "lucide-react";
 import { useAppearance, type ThemePreference } from "./themeStore";
+import { nextTheme, themeNames } from "./themeCore";
 
 const choices = [
   {
@@ -12,17 +13,18 @@ const choices = [
     icon: Monitor,
   },
   {
+    value: "dark",
+    title: themeNames.dark,
+    icon: Leaf,
+  },
+  {
     value: "light",
-    get title() {
-      return t("Светлая");
-    },
+    title: themeNames.light,
     icon: Sun,
   },
   {
-    value: "dark",
-    get title() {
-      return t("Тёмная");
-    },
+    value: "material",
+    title: themeNames.material,
     icon: Moon,
   },
 ] as const;
@@ -79,21 +81,23 @@ export function AppearanceSettings() {
 }
 
 export function AppearanceToggle() {
-  const { dark, setTheme } = useAppearance();
-  const label = dark ? t("Включить светлую тему") : t("Включить тёмную тему");
+  const { theme, setTheme } = useAppearance();
+  const next = nextTheme(theme);
+  const label = t(
+    "Тема: {0}. Включить {1}",
+    themeNames[theme],
+    themeNames[next],
+  );
+  const Icon = theme === "dark" ? Leaf : theme === "light" ? Sun : Moon;
   return (
     <button
       type="button"
       className="icon-button appearance-trigger"
       aria-label={label}
       title={label}
-      onClick={() => setTheme(dark ? "light" : "dark")}
+      onClick={() => setTheme(next)}
     >
-      {dark ? (
-        <Moon size={20} aria-hidden="true" />
-      ) : (
-        <Sun size={20} aria-hidden="true" />
-      )}
+      <Icon size={20} aria-hidden="true" />
     </button>
   );
 }

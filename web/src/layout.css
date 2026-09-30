@@ -1,0 +1,166 @@
+/* Intrinsic text and table widths must stay inside their workspace. */
+.workspace,
+.main-content,
+.panel,
+.stat-card,
+.field,
+.form,
+.table-scroll,
+.table-wrap,
+.page-heading > div,
+.receipt-card-lines > div,
+.settings-side,
+.receipt-layout > *,
+.dashboard-grid > *,
+.two-columns > * {
+  min-width: 0;
+}
+.main-content {
+  container-type: inline-size;
+}
+.page-heading {
+  flex-wrap: wrap;
+}
+.page-heading > div:first-child {
+  flex: 1 1 340px;
+}
+.page-heading h1,
+.account-card h2,
+.budget-card h2,
+.stat-card > strong,
+.notice,
+.error-box {
+  overflow-wrap: anywhere;
+}
+.heading-actions,
+.account-footer,
+.panel-heading {
+  flex-wrap: wrap;
+}
+.heading-actions {
+  flex-shrink: 1;
+}
+.table-scroll,
+.table-wrap {
+  max-width: 100%;
+  overscroll-behavior-x: contain;
+}
+.breadcrumb {
+  min-width: 0;
+}
+.breadcrumb-home {
+  max-width: 24ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.breadcrumb > svg,
+.topbar-actions {
+  flex-shrink: 0;
+}
+.receipt-toolbar {
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 16px 20px;
+}
+.receipt-toolbar > .search-field {
+  flex: 1 1 240px;
+  max-width: 420px;
+  min-width: min(100%, 240px);
+}
+.receipt-toolbar > .muted {
+  margin-left: auto;
+  margin-bottom: 0;
+  white-space: nowrap;
+  padding-bottom: 10px;
+}
+.receipts-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+}
+.receipt-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.receipt-card h2 {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+  min-height: 2.8em;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.receipt-card-lines > div {
+  align-items: flex-start;
+}
+.receipt-card-lines > div > span:first-child {
+  min-width: 0;
+  flex: 1;
+}
+.receipt-card-lines > div > span:last-child {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.receipt-card-total {
+  margin-top: auto;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.receipt-card-total strong {
+  margin-left: auto;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+.account-amount {
+  font-size: clamp(21px, 1.8vw, 27px);
+  overflow-wrap: anywhere;
+}
+.appearance-label {
+  min-height: 36px;
+  text-align: center;
+}
+.appearance-label svg {
+  flex-shrink: 0;
+}
+.appearance-choice,
+.provider-card,
+.model-card {
+  overflow-wrap: anywhere;
+}
+@container (max-width: 1120px) {
+  .receipts-grid,
+  .accounts-grid,
+  .budget-grid,
+  .insights-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@container (max-width: 660px) {
+  .receipts-grid,
+  .accounts-grid,
+  .budget-grid,
+  .insights-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .appearance-choices {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 1100px) {
+  .topbar-actions {
+    gap: 10px;
+  }
+}
+@media (max-width: 800px) {
+  .page-heading > div:first-child {
+    flex-basis: auto;
+  }
+  .receipt-toolbar > .search-field {
+    max-width: none;
+  }
+  .workspace-footer {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}

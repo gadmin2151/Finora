@@ -1058,7 +1058,7 @@ code {
 }
 .form-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
   margin: 18px 0;
 }
@@ -1297,7 +1297,7 @@ tbody tr:hover {
 .two-cards,
 .two-columns {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 22px;
   margin-bottom: 23px;
 }
@@ -1425,7 +1425,7 @@ tbody tr:hover {
 }
 .budget-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 19px;
 }
 .budget-card {
@@ -1564,7 +1564,7 @@ tbody tr:hover {
   flex: 1;
   min-width: 0;
   display: grid;
-  grid-template-columns: 1.3fr 1fr;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
   gap: 10px;
 }
 .item-fields .field {
@@ -1582,7 +1582,10 @@ tbody tr:hover {
 .item-numbers {
   grid-column: 1/-1;
   display: grid;
-  grid-template-columns: 1fr 0.7fr 1fr 1.1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.7fr) minmax(0, 1fr) minmax(
+      0,
+      1.1fr
+    );
   gap: 8px;
 }
 .receipt-item > .icon-button {
@@ -1619,7 +1622,7 @@ tbody tr:hover {
 }
 .receipts-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 25px 20px;
 }
 .receipt-card {
@@ -1767,7 +1770,7 @@ tbody tr:hover {
 }
 .prompt-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 13px;
   margin-top: 34px;
   width: 100%;
@@ -2001,7 +2004,7 @@ tbody tr:hover {
 }
 .insights-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px;
 }
 .insight-card {
@@ -2062,7 +2065,7 @@ tbody tr:hover {
 }
 .accounts-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 22px;
 }
 .account-card {
@@ -2161,7 +2164,7 @@ tbody tr:hover {
 }
 .provider-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 9px;
   margin: 23px 0;
 }
@@ -2284,7 +2287,7 @@ tbody tr:hover {
 }
 .model-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 15px;
   margin: 15px 0 17px;
 }
@@ -2478,7 +2481,7 @@ tbody tr:hover {
 .login-page {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 .login-story {
   background: var(--fill-accent, #193e34);

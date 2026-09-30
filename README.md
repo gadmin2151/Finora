@@ -67,7 +67,7 @@ The phone opens receipt websites through **its own network**, then sends the pag
 
 ## A workspace that feels like yours
 
-Mint, warm gold and a little more breathing room. Follow your system theme or choose light or dark, independently on each device.
+Mint, warm gold and a little more breathing room. On the web, choose Classic (signature green), White, or Material Black (neutral charcoal surfaces with mint accents). The toolbar cycles all three instantly; profile settings also offer the system appearance. Android retains its system, light and dark options. Preferences are saved independently on each device.
 
 <table>
   <tr>
