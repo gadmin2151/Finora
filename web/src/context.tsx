@@ -29,6 +29,7 @@ export type AppContextType = {
   accounts: Account[];
   categories: Category[];
   prefs?: Preferences;
+  page: Route;
   navigate: (route: Route) => void;
   open: (modal: ModalState) => void;
   toast: (message: string) => void;

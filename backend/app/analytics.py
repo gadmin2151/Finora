@@ -17,7 +17,22 @@ from .schemas import Currency, Strict
 
 
 class ReportQuery(Strict):
-    kind: Literal["summary", "categories", "merchants", "trend", "purchases", "prices"]
+    kind: Literal[
+        "summary",
+        "categories",
+        "merchants",
+        "trend",
+        "purchases",
+        "prices",
+        "accounts",
+        "debts",
+        "bills",
+        "income_plans",
+        "budgets",
+        "transactions",
+        "receipts",
+        "users",
+    ]
     date_from: date
     date_to: date
     search: str = Field(default="", max_length=100)
@@ -25,15 +40,49 @@ class ReportQuery(Strict):
     category_id: str = Field(default="", max_length=36)
     created_by: str = Field(default="", max_length=36)
     currency: Currency | None = None
+    transaction_kind: Literal[
+        "",
+        "income",
+        "expense",
+        "refund",
+        "transfer",
+        "adjustment",
+        "adjustment_out",
+        "debt_lend",
+        "debt_borrow",
+        "debt_repayment_in",
+        "debt_repayment_out",
+    ] = ""
 
     @model_validator(mode="after")
     def bounded_period(self):
         if not 1990 <= self.date_from.year <= self.date_to.year <= 2100:
             raise ValueError(t("Допустимы даты с 1990 по 2100 год"))
-        if not 0 <= (self.date_to - self.date_from).days <= 730:
+        if self.date_from > self.date_to:
+            raise ValueError(t("Начало периода должно быть не позже конца"))
+        if self.kind in {"bills", "income_plans"} and (self.date_to - self.date_from).days > 730:
             raise ValueError(t("Выберите период до двух лет, от начала к концу"))
-        if self.search and self.kind not in {"purchases", "prices"}:
-            raise ValueError(t("Поиск по названию доступен для товаров и цен"))
+        if self.search and self.kind not in {
+            "purchases",
+            "prices",
+            "accounts",
+            "debts",
+            "bills",
+            "income_plans",
+            "transactions",
+            "receipts",
+        }:
+            raise ValueError(t("Поиск по названию недоступен для этого отчёта"))
+        if self.transaction_kind and self.kind != "transactions":
+            raise ValueError(t("Тип операции доступен только для истории операций"))
+        if self.kind == "budgets" and (self.merchant or (self.currency and self.currency != "MDL")):
+            raise ValueError(t("Бюджеты задаются в MDL для всей организации"))
+        if self.kind in {"accounts", "debts", "bills", "income_plans"} and (
+            self.created_by
+            or self.merchant
+            or (self.category_id and self.kind in {"accounts", "debts"})
+        ):
+            raise ValueError(t("Этот фильтр недоступен для выбранного отчёта"))
         return self
 
 
@@ -56,6 +105,7 @@ class Report(Strict):
     rows: list[ReportRow]
     total_rows: int
     notices: list[str]
+    as_of: date | None = None
 
 
 def currency_value(value, currency="MDL") -> str:
@@ -66,7 +116,7 @@ def _purchase_report(db, organization_id: str, query: ReportQuery) -> Report:
     result = history(
         db,
         organization_id,
-        PurchaseFilters(**query.model_dump(exclude={"kind"}), limit=20),
+        PurchaseFilters(**query.model_dump(exclude={"kind", "transaction_kind"}), limit=20),
     )
     metrics = [
         ReportMetric(label=t("Найдено позиций"), value=str(result["total"])),
@@ -142,6 +192,19 @@ def report(db, organization_id: str, query: ReportQuery) -> Report:
         owned(db, m.Category, query.category_id, organization_id)
     if query.kind in {"purchases", "prices"}:
         return _purchase_report(db, organization_id, query)
+    if query.kind in {
+        "accounts",
+        "debts",
+        "bills",
+        "income_plans",
+        "budgets",
+        "transactions",
+        "receipts",
+        "users",
+    }:
+        from .workspace_reports import workspace_report
+
+        return workspace_report(db, organization_id, query)
     tx, allocation = m.Transaction, m.Allocation
     clauses = [
         tx.organization_id == organization_id,
@@ -290,10 +353,19 @@ def report(db, organization_id: str, query: ReportQuery) -> Report:
             extract("year", selected.c.occurred_on),
             extract("month", selected.c.occurred_on),
         )
-        values = db.execute(
-            select(year, month, func.sum(expense), func.sum(income))
+        grouped = (
+            select(
+                year.label("year"),
+                month.label("month"),
+                func.sum(expense).label("expense"),
+                func.sum(income).label("income"),
+            )
             .group_by(year, month)
-            .order_by(year, month)
+            .subquery()
+        )
+        total_rows = db.scalar(select(func.count()).select_from(grouped))
+        values = db.execute(
+            select(grouped).order_by(grouped.c.year, grouped.c.month).limit(120)
         ).all()
         rows = [
             ReportRow(
@@ -307,7 +379,6 @@ def report(db, organization_id: str, query: ReportQuery) -> Report:
             )
             for y, mo, ex, inc in values
         ]
-        total_rows = len(rows)
         notices.append(
             t("Показаны месяцы с операциями; первый и последний месяц могут быть неполными.")
         )

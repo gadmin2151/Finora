@@ -10,7 +10,11 @@ import {
   Plus,
   Target,
   Users,
+  List,
+  LayoutGrid,
+  ChevronRight,
 } from "lucide-react";
+import { categoryPurchasesHash } from "../purchaseNavigation";
 import { api, send, useAction } from "../api";
 import { useApp } from "../context";
 import type {
@@ -51,6 +55,23 @@ export function Budgets() {
   });
   const [editing, setEditing] = useState<string | null>(null);
   const [value, setValue] = useState("");
+  const [view, setView] = useState<"cards" | "list">(() => {
+    try {
+      return localStorage.getItem("finora.budgets.view") === "list"
+        ? "list"
+        : "cards";
+    } catch {
+      return "cards";
+    }
+  });
+  function changeView(next: "cards" | "list") {
+    setView(next);
+    try {
+      localStorage.setItem("finora.budgets.view", next);
+    } catch {
+      /* Storage can be unavailable in a private browser. */
+    }
+  }
   const save = useAction(
     () =>
       send("/budgets", { month, category_id: editing, amount: value }, "PUT"),
@@ -70,6 +91,12 @@ export function Budgets() {
   const total =
     data?.categories.reduce((s, c) => s + (c.budget_minor ?? 0), 0) ?? 0;
   const category = data?.categories.find((c) => c.id === editing);
+  const ranked = [...(data?.categories ?? [])].sort(
+    (a, b) =>
+      (b.spent_minor ?? 0) - (a.spent_minor ?? 0) ||
+      a.name.localeCompare(b.name),
+  );
+  const maxSpent = Math.max(1, ...ranked.map((c) => c.spent_minor ?? 0));
   return (
     <>
       <PageHeading
@@ -98,60 +125,140 @@ export function Budgets() {
         </p>
       </div>
       <ErrorBox error={query.error ?? remove.error} />
+      <div className="budget-view-toolbar">
+        <p>{t("Все категории · от больших расходов к меньшим")}</p>
+        <div
+          className="segmented compact"
+          role="group"
+          aria-label={t("Вид бюджетов")}
+        >
+          <button
+            type="button"
+            aria-pressed={view === "cards"}
+            className={view === "cards" ? "selected" : ""}
+            onClick={() => changeView("cards")}
+          >
+            <LayoutGrid size={17} />
+            {t("Карточки")}
+          </button>
+          <button
+            type="button"
+            aria-pressed={view === "list"}
+            className={view === "list" ? "selected" : ""}
+            onClick={() => changeView("list")}
+          >
+            <List size={17} />
+            {t("Список")}
+          </button>
+        </div>
+      </div>
       {query.isPending ? (
         <Loading />
+      ) : view === "list" ? (
+        <section className="panel budget-ranking">
+          <div className="panel-heading">
+            <div>
+              <h2>{t("Куда уходят деньги")}</h2>
+              <p>{t("Расходы по категориям")}</p>
+            </div>
+          </div>
+          <div className="category-ranking">
+            {ranked.map((c) => (
+              <div className="budget-ranking-item" key={c.id}>
+                <button
+                  className="ranking-row category-drilldown"
+                  aria-label={t("Посмотреть товары: {0}", c.name)}
+                  onClick={() => {
+                    location.hash = categoryPurchasesHash(c.id, month);
+                  }}
+                >
+                  <CategoryIcon category={c} />
+                  <div>
+                    <div className="between">
+                      <span title={c.name}>{c.name}</span>
+                      <strong>{amount(c.spent_minor, "MDL", true)}</strong>
+                    </div>
+                    <div className="meter">
+                      <span
+                        style={{
+                          width: `${Math.max(0, ((c.spent_minor ?? 0) / maxSpent) * 100)}%`,
+                          background: c.color,
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <ChevronRight size={18} aria-hidden="true" />
+                </button>
+                {c.id !== "uncategorized" && (
+                  <button
+                    className="text-button budget-list-limit"
+                    onClick={() => {
+                      setEditing(c.id);
+                      setValue(
+                        c.budget_minor != null ? decimal(c.budget_minor) : "",
+                      );
+                    }}
+                  >
+                    {c.budget_minor != null
+                      ? t("Лимит: {0}", amount(c.budget_minor, "MDL", true))
+                      : t("Задать лимит")}
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
       ) : (
         <div className="budget-grid">
-          {data?.categories
-            .filter((c) => c.id !== "uncategorized")
-            .map((c) => {
-              const spent = c.spent_minor ?? 0;
-              const budget = c.budget_minor;
-              const over = budget != null && spent > budget;
-              return (
-                <section key={c.id} className="panel budget-card">
-                  <div className="between">
-                    <CategoryIcon category={c} />
-                    {budget ? (
-                      <Badge status={over ? "overdue" : "posted"}>
-                        {over
-                          ? t("Лимит превышен")
-                          : t(
-                              "{0}% использовано",
-                              Math.round((spent / budget) * 100),
-                            )}
-                      </Badge>
-                    ) : (
-                      <Badge>{t("Без лимита")}</Badge>
-                    )}
-                  </div>
-                  <h2>{c.name}</h2>
-                  <div className="budget-amount">
-                    <strong>{amount(spent, "MDL", true)}</strong>
-                    <span>
-                      {budget
-                        ? t("из {0}", amount(budget, "MDL", true))
-                        : t("потрачено")}
-                    </span>
-                  </div>
-                  <div className="meter">
-                    <span
-                      style={{
-                        width: budget
-                          ? `${Math.min(100, Math.max(0, (spent / budget) * 100))}%`
-                          : "0%",
-                        background: over ? "#cc665e" : c.color,
-                      }}
-                    />
-                  </div>
-                  <div className="between">
-                    <small>
-                      {budget
-                        ? over
-                          ? t("Сверх лимита {0}", amount(spent - budget))
-                          : t("Осталось {0}", amount(budget - spent))
-                        : t("Вы решаете, сколько потратить")}
-                    </small>
+          {ranked.map((c) => {
+            const spent = c.spent_minor ?? 0;
+            const budget = c.budget_minor;
+            const over = budget != null && spent > budget;
+            return (
+              <section key={c.id} className="panel budget-card">
+                <div className="between">
+                  <CategoryIcon category={c} />
+                  {budget ? (
+                    <Badge status={over ? "overdue" : "posted"}>
+                      {over
+                        ? t("Лимит превышен")
+                        : t(
+                            "{0}% использовано",
+                            Math.round((spent / budget) * 100),
+                          )}
+                    </Badge>
+                  ) : (
+                    <Badge>{t("Без лимита")}</Badge>
+                  )}
+                </div>
+                <h2>{c.name}</h2>
+                <div className="budget-amount">
+                  <strong>{amount(spent, "MDL", true)}</strong>
+                  <span>
+                    {budget
+                      ? t("из {0}", amount(budget, "MDL", true))
+                      : t("потрачено")}
+                  </span>
+                </div>
+                <div className="meter">
+                  <span
+                    style={{
+                      width: budget
+                        ? `${Math.min(100, Math.max(0, (spent / budget) * 100))}%`
+                        : "0%",
+                      background: over ? "#cc665e" : c.color,
+                    }}
+                  />
+                </div>
+                <div className="between">
+                  <small>
+                    {budget
+                      ? over
+                        ? t("Сверх лимита {0}", amount(spent - budget))
+                        : t("Осталось {0}", amount(budget - spent))
+                      : t("Вы решаете, сколько потратить")}
+                  </small>
+                  {c.id !== "uncategorized" && (
                     <button
                       className="text-button"
                       onClick={() => {
@@ -161,10 +268,11 @@ export function Budgets() {
                     >
                       {budget ? t("Изменить") : t("Задать лимит")}
                     </button>
-                  </div>
-                </section>
-              );
-            })}
+                  )}
+                </div>
+              </section>
+            );
+          })}
         </div>
       )}
       {editing && (

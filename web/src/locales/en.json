@@ -1049,5 +1049,22 @@
   "Сбросить фильтры": "Clear filters",
   "Выбранный пользователь": "Selected user",
   "График показывает часть категорий. Уточните период или пользователя, чтобы увидеть полное распределение.": "The chart shows a subset of categories. Narrow the period or select a user to see the full breakdown.",
-  "Тема: {0}. Включить {1}": "Theme: {0}. Switch to {1}"
+  "Тема: {0}. Включить {1}": "Theme: {0}. Switch to {1}",
+  "Finora AI — помощник": "Finora AI assistant",
+  "Закрыть чат": "Close chat",
+  "Открыть Finora AI": "Open Finora AI",
+  "Спросите меня": "Ask me",
+  "Чат с Finora AI": "Chat with Finora AI",
+  "Контекст: {0}": "Context: {0}",
+  "Свернуть чат": "Exit expanded view",
+  "Развернуть чат": "Expand chat",
+  "Покупки, доходы, долги и планы — в одном разговоре.": "Purchases, income, debts and plans in one conversation.",
+  "Сравните расходы пользователей, найдите чек или попросите открыть нужный раздел.": "Compare spending by user, find a receipt or ask me to open a section.",
+  "Сравни расходы всех пользователей за выбранный месяц и покажи категории самых больших расходов": "Compare all users’ spending for the selected month and show the largest expense categories",
+  "По пользователям": "By user",
+  "Все категории · от больших расходов к меньшим": "All categories · largest expenses first",
+  "Вид бюджетов": "Budget view",
+  "Карточки": "Cards",
+  "Список": "List",
+  "По состоянию на {0}": "As of {0}"
 }

@@ -22,6 +22,7 @@ export default function Reports() {
     ["trend", t("По месяцам")],
     ["purchases", t("Товары")],
     ["prices", t("Сравнение цен")],
+    ["users", t("По пользователям")],
   ];
   const { month, categories } = useApp();
   const [year, number] = month.split("-").map(Number);

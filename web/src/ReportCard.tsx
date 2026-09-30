@@ -32,6 +32,14 @@ export function ReportCard({
   const category =
     categories.find((c) => c.id === report.query.category_id)?.name ??
     (report.query.category_id === "uncategorized" ? t("Без категории") : "");
+  const chart = ["categories", "merchants", "users"].includes(
+    report.query.kind,
+  );
+  const barValue = (value: string) =>
+    /^-?\d+\.\d{2} MDL$/.test(value) ? Number.parseFloat(value) : 0;
+  const maximum = chart
+    ? Math.max(0, ...report.rows.map((row) => barValue(row.value)))
+    : 0;
   return (
     <article className={`report-card ${compact ? "compact" : "panel"}`}>
       <header className="report-heading">
@@ -41,7 +49,9 @@ export function ReportCard({
         <div>
           <h2>{report.title}</h2>
           <p>
-            {report.query.date_from} — {report.query.date_to}
+            {report.as_of
+              ? t("По состоянию на {0}", report.as_of)
+              : `${report.query.date_from} — ${report.query.date_to}`}
           </p>
         </div>
         <span className="report-verified">{t("Из вашего учёта")}</span>
@@ -80,6 +90,18 @@ export function ReportCard({
               <div>
                 <strong>{row.label}</strong>
                 {row.detail && <small>{row.detail}</small>}
+                {maximum > 0 && (
+                  <div
+                    className="meter report-comparison-bar"
+                    aria-hidden="true"
+                  >
+                    <span
+                      style={{
+                        width: `${(Math.max(0, barValue(row.value)) / maximum) * 100}%`,
+                      }}
+                    />
+                  </div>
+                )}
               </div>
               <b>{displayValue(row.value)}</b>
               {row.receipt_id && (

@@ -93,7 +93,7 @@ def test_aggregates_cover_all_rows_not_just_top_twenty(client, accounts):
 
 def test_report_validation_and_foreign_categories(client):
     for params in [
-        {"date_from": "2020-01-01"},
+        {"date_from": "1980-01-01"},
         {"date_to": "2024-01-01"},
         {"kind": "sql"},
         {"search": "milk"},
@@ -330,4 +330,4 @@ def test_planner_rejects_write_tools_and_unbounded_queries():
     with pytest.raises(ValueError):
         assistant.QueryPlan.model_validate({"queries": [], "clarification": "", "sql": "SELECT 1"})
     with pytest.raises(ValueError):
-        ReportQuery(kind="summary", date_from="2020-01-01", date_to="2025-01-01")
+        ReportQuery(kind="bills", date_from="2020-01-01", date_to="2025-01-01")

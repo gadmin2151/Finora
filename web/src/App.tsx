@@ -62,6 +62,9 @@ const Transactions = lazy(() => import("./pages/Transactions"));
 const Assistant = lazy(() =>
   import("./pages/Assistant").then((m) => ({ default: m.Assistant })),
 );
+const AssistantDock = lazy(() =>
+  import("./pages/Assistant").then((m) => ({ default: m.AssistantDock })),
+);
 const Receipts = lazy(() =>
   import("./pages/Assistant").then((m) => ({ default: m.Receipts })),
 );
@@ -371,6 +374,7 @@ function ManagementLobby({
         user,
         organization: { id: "", name: t("Управление"), role: "user" },
         isAdmin: false,
+        page: "overview",
         switchOrganization,
         month: currentMonth(),
         accounts: [],
@@ -529,6 +533,7 @@ function Workspace({
         accounts: accounts.data ?? [],
         categories: categories.data ?? [],
         prefs: preferences.data,
+        page: activeRoute,
         navigate,
         open: (value) => {
           if (!isAdmin && value?.type === "transaction") return;
@@ -659,6 +664,9 @@ function Workspace({
           <span>{t("Учёт в MDL · Europe/Chisinau")}</span>
         </footer>
       </div>
+      <Suspense fallback={null}>
+        <AssistantDock key={organization.id} />
+      </Suspense>
       {isAdmin && modal?.type === "transaction" && (
         <TransactionForm {...modal} onClose={() => setModal(null)} />
       )}{" "}

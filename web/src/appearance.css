@@ -270,6 +270,7 @@
   background: #0009;
 }
 [data-theme="material"] .report-metrics > div,
+[data-theme="material"] .compact.report-card,
 [data-theme="material"] .report-highlight,
 [data-theme="material"] .chat-bottom,
 [data-theme="material"] .login-main {

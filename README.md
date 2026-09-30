@@ -112,6 +112,8 @@ The default **Device language** option uses Russian when the device's primary la
 
 Finora's assistant searches and explains **your own records**. The backend validates the request and calculates reports; the AI adds an explanation. Follow-up questions keep context, and purchase results link back to their receipts.
 
+**Finora AI** stays available in the lower-right corner of the web interface, knows the current page and can open a section on request. Expand the conversation for a full-height workspace. Ask about balances, debts, income plans, transactions and budgets, or compare receipt spending by user across the full recorded history. **Budgets** offers both cards and a compact category list, sorted by spending from largest to smallest.
+
 - **Useful without AI:** preset summaries, category reports and price comparisons work without a provider.
 - **Choose your provider:** OpenAI with an encrypted server-side key, or optional Ollama on your own hardware.
 - **Read-only by design:** the chat cannot move money, post expenses or delete records.

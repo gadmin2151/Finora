@@ -173,10 +173,24 @@ export type Message = {
     month?: string;
     reports?: AnalyticsReport[];
     job_id?: string;
+    navigate_to?: Route | null;
   };
 };
 export type ReportKind =
-  "summary" | "categories" | "merchants" | "trend" | "purchases" | "prices";
+  | "summary"
+  | "categories"
+  | "merchants"
+  | "trend"
+  | "purchases"
+  | "prices"
+  | "accounts"
+  | "debts"
+  | "bills"
+  | "income_plans"
+  | "budgets"
+  | "transactions"
+  | "receipts"
+  | "users";
 export type AnalyticsReport = {
   query: {
     kind: ReportKind;
@@ -198,6 +212,7 @@ export type AnalyticsReport = {
   }[];
   total_rows: number;
   notices: string[];
+  as_of?: string | null;
 };
 export type Job = {
   id: string;

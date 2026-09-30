@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { AssistantMarkdown } from "../AssistantMarkdown";
 import { t, getLocale } from "../i18n";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -13,11 +14,17 @@ import {
   Search,
   Send,
   Sparkles,
+  Maximize2,
+  Minimize2,
+  X,
+  MessageCircle,
 } from "lucide-react";
 import { api, queryClient, send, useAction } from "../api";
 import { ReportCard } from "../ReportCard";
 import { ReceiptAuthor, ReceiptAuthorFilter } from "../ReceiptAuthor";
 import { useApp } from "../context";
+import { BrandMark } from "../BrandMark";
+import { canAccessRoute, navigationItems } from "../navigation";
 import type { Insight, Job, Message, Receipt } from "../types";
 import {
   Badge,
@@ -30,25 +37,89 @@ import {
   counted,
 } from "../ui";
 
-function useJobs() {
+function useJobs(enabled = true) {
   return useQuery({
     queryKey: ["jobs"],
     queryFn: () => api<Job[]>("/jobs"),
     refetchInterval: 3000,
+    enabled,
   });
 }
 
-export function Assistant() {
-  const { month, prefs, open, navigate, isAdmin } = useApp();
+function AssistantMark() {
+  return (
+    <span className="assistant-mark" aria-hidden="true">
+      <BrandMark />
+      <span>
+        <Sparkles size={12} />
+        AI
+      </span>
+    </span>
+  );
+}
+
+export function AssistantDock() {
+  const { page } = useApp();
+  const [visible, setVisible] = useState(false);
+  const launcher = useRef<HTMLButtonElement>(null);
+  if (page === "assistant") return null;
+  function close() {
+    setVisible(false);
+    launcher.current?.focus();
+  }
+  return (
+    <aside className="assistant-dock" aria-label={t("Finora AI — помощник")}>
+      <div id="finora-ai-chat" hidden={!visible}>
+        <Assistant floating active={visible} onClose={close} />
+      </div>
+      <button
+        ref={launcher}
+        className="assistant-launcher"
+        type="button"
+        aria-label={visible ? t("Закрыть чат") : t("Открыть Finora AI")}
+        aria-expanded={visible}
+        aria-controls="finora-ai-chat"
+        onClick={() => (visible ? close() : setVisible(true))}
+      >
+        {visible ? (
+          <X size={25} />
+        ) : (
+          <>
+            <AssistantMark />
+            <span>
+              Finora AI<small>{t("Спросите меня")}</small>
+            </span>
+            <MessageCircle size={18} />
+          </>
+        )}
+      </button>
+    </aside>
+  );
+}
+
+export function Assistant({
+  floating = false,
+  onClose,
+  active = true,
+}: {
+  floating?: boolean;
+  onClose?: () => void;
+  active?: boolean;
+}) {
+  const { month, prefs, open, navigate, isAdmin, page, user } = useApp();
   const messages = useQuery({
     queryKey: ["chat"],
     queryFn: ({ signal }) => api<Message[]>("/chat", { signal }),
     refetchInterval: 3000,
+    enabled: active,
   });
-  const jobs = useJobs();
+  const jobs = useJobs(active);
   const [text, setText] = useState("");
   const [older, setOlder] = useState<Message[]>([]);
   const [hasOlder, setHasOlder] = useState(true);
+  const [expanded, setExpanded] = useState(false);
+  const textarea = useRef<HTMLTextAreaElement>(null);
+  const requestedJobs = useRef(new Set<string>());
   const body = useRef<HTMLDivElement>(null);
   const followLatest = useRef(true);
   const initialScroll = useRef(false);
@@ -66,8 +137,9 @@ export function Assistant() {
       text: string;
       report?: QuickReport;
       request_key: string;
-    }) => send("/chat", { ...value, month }),
-    onSuccess: async (_, value) => {
+    }) => send<{ job_id: string }>("/chat", { ...value, month, page }),
+    onSuccess: async (result, value) => {
+      requestedJobs.current.add(result.job_id);
       setText((current) => (current === value.text ? "" : current));
       draftRequest.current = { signature: "", key: "" };
       await queryClient.invalidateQueries({ queryKey: ["chat"] });
@@ -77,7 +149,7 @@ export function Assistant() {
   function submit(message = text, report?: QuickReport) {
     if (!message.trim() || action.isPending) return;
     followLatest.current = true;
-    const signature = JSON.stringify([message.trim(), report, month]);
+    const signature = JSON.stringify([message.trim(), report, month, page]);
     if (draftRequest.current.signature !== signature)
       draftRequest.current = { signature, key: crypto.randomUUID() };
     action.mutate({
@@ -114,6 +186,48 @@ export function Assistant() {
     },
   });
   const latestMessageId = messages.data?.at(-1)?.id;
+  useEffect(() => {
+    for (const message of messages.data ?? []) {
+      const job = message.details.job_id;
+      if (
+        message.role !== "assistant" ||
+        !job ||
+        !requestedJobs.current.has(job)
+      )
+        continue;
+      requestedJobs.current.delete(job);
+      const destination = message.details.navigate_to;
+      if (
+        destination &&
+        canAccessRoute(destination, isAdmin, user.is_server_admin)
+      ) {
+        // A response to this component's own submitted job is a one-off navigation event.
+        // Collapse the focus view before opening the requested page.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setExpanded(false);
+        navigate(destination);
+      }
+    }
+  }, [messages.data, navigate, isAdmin, user.is_server_admin]);
+  useLayoutEffect(() => {
+    if (!textarea.current) return;
+    textarea.current.style.height = "auto";
+    textarea.current.style.height = `${Math.min(textarea.current.scrollHeight, 140)}px`;
+  }, [text, expanded, active]);
+  useEffect(() => {
+    if (floating && active) textarea.current?.focus();
+  }, [active, floating, expanded]);
+  useEffect(() => {
+    if (!active) return;
+    const escape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || document.querySelector("dialog[open]"))
+        return;
+      if (expanded) setExpanded(false);
+      else onClose?.();
+    };
+    window.addEventListener("keydown", escape);
+    return () => window.removeEventListener("keydown", escape);
+  }, [active, expanded, onClose]);
   useLayoutEffect(() => {
     const element = body.current;
     if (!element || messages.isPending) return;
@@ -131,7 +245,14 @@ export function Assistant() {
       element.scrollTop = element.scrollHeight;
       initialScroll.current = true;
     }
-  }, [messages.isPending, latestMessageId, pending, older.length]);
+  }, [
+    messages.isPending,
+    latestMessageId,
+    pending,
+    older.length,
+    expanded,
+    active,
+  ]);
   useEffect(() => {
     const element = body.current;
     if (!element || !content.current) return;
@@ -145,26 +266,53 @@ export function Assistant() {
     });
     observer.observe(content.current);
     return () => observer.disconnect();
-  }, []);
-  return (
+  }, [expanded]);
+  const panel = (
     <>
-      <PageHeading
-        eyebrow={t("ЛИЧНЫЙ ПОМОЩНИК")}
-        title={t("Поговорим о ваших деньгах")}
-        text={t(
-          "Спросите о любом периоде, найдите покупку и сравните свои цены. Общий чат выбранной организации.",
-        )}
-        actions={
+      <section
+        className={`panel chat-panel ${floating ? "chat-floating" : ""} ${expanded ? "chat-expanded" : ""}`}
+        aria-label={t("Чат с Finora AI")}
+      >
+        <header className="chat-header">
+          <AssistantMark />
+          <div className="chat-header-copy">
+            {floating ? <h2>Finora AI</h2> : <h1>Finora AI</h1>}
+            <p>
+              {t(
+                "Контекст: {0}",
+                navigationItems.find((item) => item.id === page)?.label,
+              )}
+            </p>
+          </div>
           <Badge status={prefs?.provider === "disabled" ? "skipped" : "posted"}>
             {prefs?.provider === "ollama"
-              ? t("Локальный AI · CPU")
+              ? t("Локальная модель")
               : prefs?.provider === "openai"
                 ? "OpenAI"
-                : t("AI отключён")}
+                : t("Расчёт Finora")}
           </Badge>
-        }
-      />
-      <section className="panel chat-panel">
+          <button
+            className="icon-button"
+            type="button"
+            aria-label={expanded ? t("Свернуть чат") : t("Развернуть чат")}
+            onClick={() => setExpanded((value) => !value)}
+          >
+            {expanded ? <Minimize2 size={19} /> : <Maximize2 size={19} />}
+          </button>
+          {onClose && (
+            <button
+              className="icon-button"
+              type="button"
+              aria-label={t("Закрыть чат")}
+              onClick={() => {
+                setExpanded(false);
+                onClose();
+              }}
+            >
+              <X size={20} />
+            </button>
+          )}
+        </header>
         <div
           className="chat-body"
           ref={body}
@@ -184,14 +332,14 @@ export function Assistant() {
             ) : !messages.data?.length ? (
               <div className="chat-welcome">
                 <div className="assistant-orb">
-                  <Sparkles size={31} />
+                  <AssistantMark />
                 </div>
                 <h2>{t("Ваши финансы, понятным языком")}</h2>
                 <p>
-                  {t("Я помогу разобрать покупки и увидеть привычки.")}
+                  {t("Покупки, доходы, долги и планы — в одном разговоре.")}
                   <br />
                   {t(
-                    "Спросите «Сколько ушло на продукты в августе?» или «Найди LAPTE».",
+                    "Сравните расходы пользователей, найдите чек или попросите открыть нужный раздел.",
                   )}
                 </p>
                 <div className="prompt-grid">
@@ -250,7 +398,7 @@ export function Assistant() {
                     >
                       {message.role === "assistant" && (
                         <span className="bot-avatar">
-                          <Sparkles size={17} />
+                          <AssistantMark />
                         </span>
                       )}
                       <div className="message-content">
@@ -365,6 +513,19 @@ export function Assistant() {
             >
               {t("Мои цены")}
             </button>
+            <button
+              type="button"
+              disabled={action.isPending || prefs?.provider === "disabled"}
+              onClick={() =>
+                setText(
+                  t(
+                    "Сравни расходы всех пользователей за выбранный месяц и покажи категории самых больших расходов",
+                  ),
+                )
+              }
+            >
+              {t("По пользователям")}
+            </button>
           </div>
           <ErrorBox
             error={
@@ -407,8 +568,10 @@ export function Assistant() {
               <Paperclip size={23} />
             </button>
             <textarea
+              ref={textarea}
+              autoFocus={floating}
               aria-label={t("Сообщение помощнику")}
-              rows={2}
+              rows={1}
               maxLength={3000}
               placeholder={t("Спросите о расходах или прикрепите чек…")}
               value={text}
@@ -442,6 +605,7 @@ export function Assistant() {
       </section>
     </>
   );
+  return expanded && active ? createPortal(panel, document.body) : panel;
 }
 
 export function Receipts() {
