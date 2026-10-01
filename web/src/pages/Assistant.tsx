@@ -1,5 +1,6 @@
 import { createPortal } from "react-dom";
 import { AssistantMarkdown } from "../AssistantMarkdown";
+import assistantIcon from "../assets/finora-ai.svg?no-inline";
 import { t, getLocale } from "../i18n";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -48,7 +49,7 @@ function useJobs(enabled = true) {
 function AssistantMark() {
   return (
     <span className="assistant-mark" aria-hidden="true">
-      <img src="/finora-ai.svg" alt="" />
+      <img src={assistantIcon} alt="" />
     </span>
   );
 }
