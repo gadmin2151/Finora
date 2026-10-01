@@ -174,6 +174,18 @@ export type Message = {
     reports?: AnalyticsReport[];
     job_id?: string;
     navigate_to?: Route | null;
+    open_receipt_id?: string | null;
+    actor_id?: string;
+    actions?: {
+      operation: string;
+      label: string;
+      description: string;
+      parameters_json: string;
+      body_json: string;
+    }[];
+    action_status?:
+      "pending" | "executing" | "completed" | "cancelled" | "failed" | null;
+    action_results?: { label: string; status: number; detail: string }[];
   };
 };
 export type ReportKind =

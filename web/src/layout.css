@@ -319,30 +319,38 @@
   flex-direction: column;
   gap: 12px;
 }
-.assistant-launcher {
+.assistant-launch-controls {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 58px;
-  padding: 7px 16px 7px 8px;
+}
+.assistant-invitation {
   border: 1px solid var(--border);
-  border-radius: 30px;
+  border-radius: 24px 24px 6px 24px;
+  padding: 12px 18px;
+  color: var(--text);
+  background: var(--fill-subtle, var(--surface));
+  font-size: 14px;
+  box-shadow: 0 4px 20px #0001;
+  cursor: pointer;
+}
+.assistant-launcher {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
   background: var(--surface);
   color: var(--text);
   box-shadow: 0 8px 30px #0003;
   cursor: pointer;
 }
-.assistant-launcher > span:nth-child(2) {
-  font-weight: 750;
-  font-size: 14px;
-  text-align: left;
-}
-.assistant-launcher small {
-  display: block;
-  color: var(--muted);
-  font-size: 10px;
-  font-weight: 400;
-  margin-top: 3px;
+.assistant-launcher .origami-mark {
+  width: 46px;
+  height: 46px;
 }
 .assistant-launcher[aria-expanded="true"] {
   width: 48px;
@@ -421,7 +429,7 @@ body:has(.chat-expanded) {
 }
 body:has(.chat-expanded) .sidebar,
 body:has(.chat-expanded) .topbar,
-body:has(.chat-expanded) .assistant-launcher {
+body:has(.chat-expanded) .assistant-launch-controls {
   visibility: hidden;
 }
 .chat-expanded .message-content {
@@ -508,14 +516,10 @@ body:has(.chat-expanded) .assistant-launcher {
     right: 12px;
     gap: 8px;
   }
-  .assistant-launcher > span:nth-child(2),
-  .assistant-launcher > svg:last-child {
-    display: none;
-  }
-  .assistant-launcher {
-    padding: 4px;
-    min-height: 54px;
-    border-radius: 50%;
+  .assistant-invitation {
+    max-width: calc(100vw - 100px);
+    padding: 10px 14px;
+    font-size: 13px;
   }
   .chat-panel.chat-expanded {
     inset: 0;
@@ -527,4 +531,73 @@ body:has(.chat-expanded) .assistant-launcher {
   .budget-ranking-item .ranking-row .between {
     font-size: 14px;
   }
+}
+
+.chat-actions {
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+  margin-top: 12px;
+}
+.chat-actions article {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.chat-actions h3 {
+  font-size: 15px;
+  margin: 0 0 5px;
+}
+.chat-actions p {
+  margin: 5px 0;
+  overflow-wrap: anywhere;
+}
+.chat-actions dl {
+  margin: 12px 0;
+  max-height: 260px;
+  overflow: auto;
+}
+.chat-actions dl > div {
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 5px 0;
+}
+.chat-actions dt {
+  color: var(--muted);
+  min-width: 0;
+}
+.chat-actions dd {
+  margin: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.chat-actions summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 12px;
+}
+.chat-actions .button-row {
+  margin-top: 14px;
+}
+
+.assistant-invitation {
+  max-width: 240px;
+  white-space: nowrap;
+  overflow: hidden;
+  transition:
+    opacity 180ms ease,
+    max-width 180ms ease,
+    padding 180ms ease,
+    margin 180ms ease;
+}
+.assistant-invitation.assistant-invitation-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  max-width: 0;
+  padding-inline: 0;
+  border-width: 0;
+  margin-right: -12px;
 }

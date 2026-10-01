@@ -17,9 +17,9 @@ import {
   Maximize2,
   Minimize2,
   X,
-  MessageCircle,
 } from "lucide-react";
 import { api, queryClient, send, useAction } from "../api";
+import { ChatActions } from "../ChatActions";
 import { ReportCard } from "../ReportCard";
 import { ReceiptAuthor, ReceiptAuthorFilter } from "../ReceiptAuthor";
 import { useApp } from "../context";
@@ -62,6 +62,28 @@ export function AssistantDock() {
   const { page } = useApp();
   const [visible, setVisible] = useState(false);
   const launcher = useRef<HTMLButtonElement>(null);
+  const [invitationVisible, setInvitationVisible] = useState(true);
+  const invitationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    invitationTimer.current = setTimeout(
+      () => setInvitationVisible(false),
+      15_000,
+    );
+    return () => {
+      if (invitationTimer.current) clearTimeout(invitationTimer.current);
+    };
+  }, []);
+  function showInvitation() {
+    if (invitationTimer.current) clearTimeout(invitationTimer.current);
+    setInvitationVisible(true);
+  }
+  function hideInvitationLater() {
+    if (invitationTimer.current) clearTimeout(invitationTimer.current);
+    invitationTimer.current = setTimeout(
+      () => setInvitationVisible(false),
+      5_000,
+    );
+  }
   if (page === "assistant") return null;
   function close() {
     setVisible(false);
@@ -72,27 +94,45 @@ export function AssistantDock() {
       <div id="finora-ai-chat" hidden={!visible}>
         <Assistant floating active={visible} onClose={close} />
       </div>
-      <button
-        ref={launcher}
-        className="assistant-launcher"
-        type="button"
-        aria-label={visible ? t("Закрыть чат") : t("Открыть Finora AI")}
-        aria-expanded={visible}
-        aria-controls="finora-ai-chat"
-        onClick={() => (visible ? close() : setVisible(true))}
+      <div
+        className="assistant-launch-controls"
+        onPointerEnter={showInvitation}
+        onPointerLeave={hideInvitationLater}
+        onFocusCapture={showInvitation}
+        onBlurCapture={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget))
+            hideInvitationLater();
+        }}
       >
-        {visible ? (
-          <X size={25} />
-        ) : (
-          <>
-            <AssistantMark />
-            <span>
-              Finora AI<small>{t("Спросите меня")}</small>
-            </span>
-            <MessageCircle size={18} />
-          </>
+        {!visible && (
+          <button
+            className={`assistant-invitation ${invitationVisible ? "" : "assistant-invitation-hidden"}`}
+            aria-hidden={!invitationVisible}
+            tabIndex={invitationVisible ? 0 : -1}
+            type="button"
+            onClick={() => setVisible(true)}
+          >
+            {t("Спросите меня")}
+          </button>
         )}
-      </button>
+        <button
+          ref={launcher}
+          className="assistant-launcher"
+          type="button"
+          aria-label={visible ? t("Закрыть чат") : t("Открыть Finora AI")}
+          aria-expanded={visible}
+          aria-controls="finora-ai-chat"
+          onClick={() => (visible ? close() : setVisible(true))}
+        >
+          {visible ? (
+            <X size={25} />
+          ) : (
+            <>
+              <BrandMark />
+            </>
+          )}
+        </button>
+      </div>
     </aside>
   );
 }
@@ -174,6 +214,7 @@ export function Assistant({
     const receipt = await api<Receipt>(`/receipts/${id}`);
     open({ type: "receipt", receipt });
   });
+  const openReceipt = receiptAction.mutate;
   const reportAnswer = useMutation({
     mutationFn: (id: string) => send(`/chat/${id}/report`, {}),
     onSuccess: async (_, id) => {
@@ -196,6 +237,13 @@ export function Assistant({
       )
         continue;
       requestedJobs.current.delete(job);
+      if (message.details.open_receipt_id) {
+        // Only the requesting chat may execute this organization-checked action.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setExpanded(false);
+        openReceipt(message.details.open_receipt_id);
+        continue;
+      }
       const destination = message.details.navigate_to;
       if (
         destination &&
@@ -203,12 +251,12 @@ export function Assistant({
       ) {
         // A response to this component's own submitted job is a one-off navigation event.
         // Collapse the focus view before opening the requested page.
-        // eslint-disable-next-line react-hooks/set-state-in-effect
+
         setExpanded(false);
         navigate(destination);
       }
     }
-  }, [messages.data, navigate, isAdmin, user.is_server_admin]);
+  }, [messages.data, navigate, openReceipt, isAdmin, user.is_server_admin]);
   useLayoutEffect(() => {
     if (!textarea.current) return;
     textarea.current.style.height = "auto";
@@ -415,6 +463,9 @@ export function Assistant({
                             message.text
                           )}
                         </div>
+                        {!!message.details.actions?.length && (
+                          <ChatActions message={message} />
+                        )}
                         {message.details.reports?.map((report, index) => (
                           <ReportCard key={index} report={report} compact />
                         ))}

@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session, aliased
 
 from . import models as m
 from .analytics import Report, ReportMetric, ReportQuery, ReportRow, currency_value
-from .finance import occurrence_dates, today
+from .finance import occurrence_dates, owned, today
 from .i18n import t
 from .receipt_authors import creator_filter
 
@@ -294,7 +294,7 @@ def users(db: Session, org: str, q: ReportQuery) -> Report:
     )
 
 
-def receipts(db: Session, org: str, q: ReportQuery) -> Report:
+def receipt_source(org: str, q: ReportQuery):
     receipt = m.Receipt
     source = (
         select(receipt, m.User.name.label("author"))
@@ -344,6 +344,95 @@ def receipts(db: Session, org: str, q: ReportQuery) -> Report:
             else m.ReceiptItem.category_id == q.category_id
         )
         source = source.where(item.exists())
+    return source
+
+
+def select_receipt(db: Session, org: str, q: ReportQuery, order: str) -> Report:
+    """Select against the full matching scope, not the bounded chat preview."""
+    if q.category_id and q.category_id != "uncategorized":
+        owned(db, m.Category, q.category_id, org)
+    source = receipt_source(org, q)
+    count = db.scalar(select(func.count()).select_from(source.subquery()))
+    titles = {
+        "largest": "Самый дорогой чек",
+        "smallest": "Самый дешёвый чек",
+        "latest": "Последний чек",
+        "oldest": "Первый чек",
+    }
+    notices = []
+    if order in {"largest", "smallest"}:
+        source = source.where(m.Receipt.total_minor.is_not(None))
+        selected = source.subquery()
+        currencies = db.scalar(select(func.count(func.distinct(selected.c.currency))))
+        value = m.Receipt.total_minor
+        if currencies > 1:
+            source = source.outerjoin(
+                m.Transaction,
+                (m.Transaction.receipt_id == m.Receipt.id)
+                & (m.Transaction.organization_id == org)
+                & ~m.Transaction.voided,
+            )
+            value = case(
+                (m.Receipt.currency == "MDL", m.Receipt.total_minor),
+                else_=m.Transaction.base_minor,
+            )
+            if db.scalar(select(source.where(value.is_(None)).exists())):
+                return result(
+                    q,
+                    titles[order],
+                    [],
+                    [],
+                    0,
+                    "Укажите валюту: среди подходящих чеков есть разные валюты без сохранённого курса. Их суммы нельзя сравнить напрямую.",
+                )
+            notices.append(
+                t("Разные валюты сравниваются в MDL по сохранённым курсам подтверждённых чеков.")
+            )
+        notices.append(
+            t("Выбор по полной сумме чека; чеки без распознанного итога не участвуют в сравнении.")
+        )
+        source = source.order_by(value.desc() if order == "largest" else value.asc())
+    purchased = func.coalesce(m.Receipt.purchased_on, func.date(m.Receipt.created_at))
+    source = source.order_by(
+        purchased.asc() if order == "oldest" else purchased.desc(),
+        m.Receipt.created_at.desc(),
+        m.Receipt.id,
+    )
+    chosen = db.execute(source.limit(1)).first()
+    rows = []
+    if chosen:
+        receipt, author = chosen
+        rows.append(
+            ReportRow(
+                label=receipt.merchant or t("Без магазина"),
+                value=currency_value(receipt.total_minor, receipt.currency)
+                if receipt.total_minor is not None
+                else t("Не распознано"),
+                detail=" · ".join(
+                    str(v) for v in [receipt.purchased_on or receipt.created_at.date(), author] if v
+                ),
+                receipt_id=receipt.id,
+            )
+        )
+    else:
+        notices.append(
+            t(
+                "По этим условиям чек с подходящими данными не найден. Уточните период, магазин или валюту."
+            )
+        )
+    return result(
+        q,
+        titles[order],
+        [ReportMetric(label=t("Чеков в отборе"), value=str(count))],
+        rows,
+        len(rows),
+        *notices,
+    )
+
+
+def receipts(db: Session, org: str, q: ReportQuery) -> Report:
+    receipt = m.Receipt
+    source = receipt_source(org, q)
     selected = source.subquery()
     count = db.scalar(select(func.count()).select_from(selected))
     metrics = [ReportMetric(label=t("Чеков"), value=str(count))]

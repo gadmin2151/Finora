@@ -150,6 +150,7 @@ def current_organization(
         allowed_write = receipt_upload or path in {
             "/api/chat",
             "/api/chat/{key}/report",
+            "/api/chat/{key}/actions",
             "/api/receipts/{key}/comments",
             "/api/receipts/{key}/accept",
             "/api/receipts/{key}/review",

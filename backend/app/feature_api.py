@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -8,6 +8,7 @@ from . import income, moderation
 from . import models as m
 from . import schemas as s
 from .analytics import ReportQuery, report
+from .assistant_tools import ActionDecision, execute_actions
 from .db import get_db
 from .finance import audit, fail, lock_organization, owned, transaction_dict
 from .purchases import PurchaseFilters, history
@@ -161,3 +162,24 @@ def delete_item(
     moderation.remove_item(db, org.id, key, item_id, version)
     db.commit()
     return receipt_dict(db, owned(db, m.Receipt, key, org.id))
+
+
+@router.post("/chat/{key}/actions")
+async def apply_chat_actions(
+    key: str,
+    data: ActionDecision,
+    request: Request,
+    org: m.Organization = SCOPE,
+    actor: m.User = Depends(current_user),
+    db: Session = DB,
+):
+    return await execute_actions(
+        db,
+        org.id,
+        actor.id,
+        request.state.membership.role == "admin",
+        key,
+        data.confirm,
+        request.cookies.get("finance_session", ""),
+        request.headers.get("x-csrf-token", ""),
+    )
