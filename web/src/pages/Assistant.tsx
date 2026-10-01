@@ -23,7 +23,6 @@ import { ChatActions } from "../ChatActions";
 import { ReportCard } from "../ReportCard";
 import { ReceiptAuthor, ReceiptAuthorFilter } from "../ReceiptAuthor";
 import { useApp } from "../context";
-import { BrandMark } from "../BrandMark";
 import { canAccessRoute, navigationItems } from "../navigation";
 import type { Insight, Job, Message, Receipt } from "../types";
 import {
@@ -49,11 +48,7 @@ function useJobs(enabled = true) {
 function AssistantMark() {
   return (
     <span className="assistant-mark" aria-hidden="true">
-      <BrandMark />
-      <span>
-        <Sparkles size={12} />
-        AI
-      </span>
+      <img src="/finora-ai.svg" alt="" />
     </span>
   );
 }
@@ -124,13 +119,7 @@ export function AssistantDock() {
           aria-controls="finora-ai-chat"
           onClick={() => (visible ? close() : setVisible(true))}
         >
-          {visible ? (
-            <X size={25} />
-          ) : (
-            <>
-              <BrandMark />
-            </>
-          )}
+          {visible ? <X size={25} /> : <AssistantMark />}
         </button>
       </div>
     </aside>

@@ -37,6 +37,129 @@ def add_receipt(db, org, total, **fields):
     return row
 
 
+def test_history_keeps_five_messages_with_receipts_and_report_snapshots(client, owner):
+    org = client.headers["X-Organization-ID"]
+    job = queued_job(client, report="summary", text="А по категориям?")
+    stamp = datetime(2025, 3, 1, tzinfo=UTC)
+    with SessionLocal() as db:
+        current = db.get(m.Message, job.payload["message_id"])
+        current.created_at = stamp + timedelta(seconds=10)
+        receipt = add_receipt(db, org, 23508, source_url="https://private.example/secret")
+        deleted = add_receipt(db, org, 999, deleted_at=stamp)
+        foreign = m.Organization(name="Private")
+        db.add(foreign)
+        db.flush()
+        foreign_receipt = add_receipt(db, foreign.id, 999999)
+        for i in range(8):
+            db.add(
+                m.Message(
+                    id=f"{i:036}",
+                    organization_id=org,
+                    role="assistant" if i % 2 else "user",
+                    text=f"Message {i} " + "x" * 7000,
+                    created_at=stamp + timedelta(seconds=i),
+                    receipt_id=receipt.id if i == 7 else deleted.id if i == 6 else None,
+                    details={
+                        "actor_id": owner["id"],
+                        "action_status": "completed",
+                        "reports": [
+                            {
+                                "title": "Expenses",
+                                "query": {
+                                    "kind": "summary",
+                                    "date_from": "2025-02-01",
+                                    "date_to": "2025-02-28",
+                                },
+                                "metrics": [{"label": "Spent", "value": "235.08 MDL"}],
+                                "rows": [{"label": str(n), "value": "10 MDL"} for n in range(10)],
+                                "total_rows": 10,
+                            }
+                        ],
+                    },
+                )
+            )
+        db.add_all(
+            [
+                m.Message(
+                    organization_id=foreign.id,
+                    role="user",
+                    text="PRIVATE HISTORY",
+                    receipt_id=foreign_receipt.id,
+                    created_at=stamp + timedelta(seconds=9),
+                ),
+                m.Message(
+                    organization_id=org,
+                    role="user",
+                    text="FUTURE MESSAGE",
+                    created_at=stamp + timedelta(seconds=11),
+                ),
+            ]
+        )
+        db.commit()
+        history = assistant.history_context(db, job)
+        assert [entry["message_id"] for entry in history] == [f"{i:036}" for i in range(3, 8)]
+        assert all(len(entry["text"]) == 6000 for entry in history)
+        assert history[-1]["receipt"]["total_minor"] == 23508
+        assert history[-2]["receipt"] is None
+        assert history[-1]["previous_queries"][0]["date_from"] == "2025-02-01"
+        snapshot = history[-1]["previous_reports"][0]
+        assert snapshot["metrics"][0]["value"] == "235.08 MDL"
+        assert len(snapshot["rows"]) == 3 and snapshot["total_rows"] == 10
+        assert history[-1]["action_status"] == "completed"
+        assert not any(
+            value in json.dumps(history)
+            for value in ["PRIVATE HISTORY", "FUTURE MESSAGE", "private.example", "source_url"]
+        )
+
+
+def test_follow_up_passes_the_same_memory_to_planning_and_explanation(client, monkeypatch):
+    with SessionLocal() as db:
+        db.scalar(select(m.Preferences)).provider = "openai"
+        db.add(
+            m.Message(
+                organization_id=client.headers["X-Organization-ID"],
+                role="assistant",
+                text="За август расходы 235.08 MDL.",
+                details={
+                    "reports": [
+                        {
+                            "title": "August",
+                            "query": {
+                                "kind": "summary",
+                                "date_from": "2025-08-01",
+                                "date_to": "2025-08-31",
+                            },
+                            "metrics": [{"label": "Expenses", "value": "235.08 MDL"}],
+                        }
+                    ]
+                },
+            )
+        )
+        db.commit()
+    seen = []
+
+    async def generated(org, purpose, system, text, **kwargs):
+        context = json.loads(text)
+        seen.append(context["history"])
+        assert "235.08 MDL" in json.dumps(context["history"])
+        assert context["history"][-1]["previous_queries"][0]["date_from"] == "2025-08-01"
+        if purpose == "chat_plan":
+            assert context["selected_month"] == "2025-02"
+            return {
+                "queries": [
+                    {"kind": "categories", "date_from": "2025-08-01", "date_to": "2025-08-31"}
+                ],
+                "clarification": "",
+            }, "openai"
+        return "За август по категориям...", "openai"
+
+    monkeypatch.setattr(ai, "generate", generated)
+    asyncio.run(assistant.answer(queued_job(client, text="А по категориям?")))
+    assert len(seen) == 2 and seen[0] == seen[1]
+    answer = client.get("/api/chat").json()[-1]
+    assert answer["details"]["reports"][0]["query"]["date_from"] == "2025-08-01"
+
+
 def test_receipt_selection_uses_whole_scope_and_excludes_deleted_and_foreign(client, owner):
     org = client.headers["X-Organization-ID"]
     with SessionLocal() as db:

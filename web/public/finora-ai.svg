@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <defs>
+    <radialGradient id="halo" cx=".65" cy=".35" r=".8">
+      <stop stop-color="#294C41"/>
+      <stop offset="1" stop-color="#101A18"/>
+    </radialGradient>
+    <linearGradient id="front" x1="20" y1="47" x2="70" y2="89" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D2FFE8"/>
+      <stop offset="1" stop-color="#74D4AF"/>
+    </linearGradient>
+    <linearGradient id="fold" x1="85" y1="28" x2="63" y2="87" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#BBF7DC"/>
+      <stop offset="1" stop-color="#42AD8A"/>
+    </linearGradient>
+    <linearGradient id="coin" x1="36" y1="17" x2="65" y2="55" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF2BC"/>
+      <stop offset="1" stop-color="#E0AE4C"/>
+    </linearGradient>
+  </defs>
+  <circle cx="50" cy="50" r="49" fill="url(#halo)"/>
+  <circle cx="50" cy="50" r="48.5" stroke="#A9EDD2" stroke-opacity=".2"/>
+  <path d="M16 42V30a9 9 0 0 1 9-9h8M74 72h7a5 5 0 0 0 5-5v-9" stroke="#8FE5C3" stroke-opacity=".5" stroke-width="1.8" stroke-linecap="round"/>
+  <circle cx="16" cy="43" r="2.5" fill="#9AEACE"/>
+  <circle cx="86" cy="56" r="2.5" fill="#9AEACE"/>
+  <path d="m21 46 58-18-12 51-38-12Z" fill="#195244"/>
+  <circle cx="50" cy="36" r="22" fill="url(#coin)" stroke="#FFE9A1" stroke-width="1.5"/>
+  <circle cx="50" cy="36" r="18" stroke="#9B742B" stroke-opacity=".45"/>
+  <path d="m38 43 6-15 6 15m-10-5h8m8-10h7m-3.5 0v15M56 43h7" stroke="#214D3D" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M21 45c-3-1-6 1-6 5v16c0 5 2 8 7 10l34 12c5 2 9-1 9-6V67c0-5-2-8-7-10Z" fill="url(#front)" stroke="#C4F7DD" stroke-width="1.2"/>
+  <path d="m72 58 13-30c1-3 5-2 5 2l-2 33c0 6-3 10-7 14L69 88l3-23v-7Z" fill="url(#fold)" stroke="#B8F2D6" stroke-width="1.2"/>
+  <path d="m81 8 2.4 6.6L90 17l-6.6 2.4L81 26l-2.4-6.6L72 17l6.6-2.4Z" fill="#BFF8DF"/>
+</svg>

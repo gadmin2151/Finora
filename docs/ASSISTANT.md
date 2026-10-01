@@ -19,7 +19,9 @@ Examples:
 - `Найди доходы за 2023 год.`
 - `Переключи меня в чеки.`
 
-The selected month is the default when a question does not give dates. The web sends the current page as validated context, without reading page DOM, passwords or unfinished forms. The planner receives the requester, receipt-author catalogue, financial history date range, category names, the latest eight relevant messages and prior report queries. This is bounded conversational context, not permanent memory of every message. A plan can select up to six reports for comparisons.
+The selected month is the default for a new question without dates. Follow-up questions inherit the relevant previous period, topic, person and filters unless the new message changes them. For example, `А по категориям?` continues the previous report, and `А за август?` changes its period. The planner and answer writer receive the last **five messages** of the selected organization's shared chat, before the current question, in chronological order. Context includes up to 6,000 characters per message, previous report filters and bounded totals/rows, receipt references and basic receipt details, and proposed-action status. Originals and source URLs are not included. Old results are historical snapshots: new calculations and mutations reread current records. Other participants' requests do not authorize actions for the current requester. This context survives page refresh and applies to both web and Android requests; it is not permanent memory of every message. A plan can select up to six reports for comparisons.
+
+The web assistant has its own **Finora AI** mark: the mint origami wallet, a gold AI coin and a sparkle. The same icon appears in the launcher, chat header and assistant replies.
 
 ## What a number means
 
