@@ -106,3 +106,20 @@ export function saveManualReceiptDraft(
 export function clearManualReceiptDraft(storage: DraftStorage, key: string) {
   storage.removeItem(key);
 }
+
+export class ManualDraftPersistenceError extends Error {}
+
+// Persist the exact form and retry ID before any request can commit an expense.
+export async function submitManualReceiptDraft<T>(
+  storage: DraftStorage,
+  key: string,
+  draft: ManualReceiptDraft,
+  post: () => Promise<T>,
+): Promise<T> {
+  try {
+    saveManualReceiptDraft(storage, key, draft);
+  } catch {
+    throw new ManualDraftPersistenceError("Receipt draft was not saved");
+  }
+  return post();
+}

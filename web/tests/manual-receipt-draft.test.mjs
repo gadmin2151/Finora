@@ -7,6 +7,8 @@ import {
   readManualReceiptDraft,
   saveManualReceiptDraft,
   clearManualReceiptDraft,
+  submitManualReceiptDraft,
+  ManualDraftPersistenceError,
 } from "../src/manualReceiptDraft.ts";
 
 const draft = () => ({
@@ -118,4 +120,49 @@ test("unreadable stored drafts are preserved until explicit deletion", () => {
     clearManualReceiptDraft(storage, key);
     assert.equal(readManualReceiptDraft(storage, key), null);
   }
+});
+
+test("storage failure blocks expense POST before it can commit", async () => {
+  let posts = 0;
+  const storage = {
+    ...memoryStorage(),
+    setItem() {
+      throw new Error("quota");
+    },
+  };
+  await assert.rejects(
+    submitManualReceiptDraft(storage, "key", draft(), async () => {
+      posts++;
+    }),
+    ManualDraftPersistenceError,
+  );
+  assert.equal(posts, 0);
+});
+
+test("a lost committed response can resume the saved draft and retry without a second expense", async () => {
+  const storage = memoryStorage();
+  const key = manualReceiptDraftKey("synthetic-owner", "synthetic-org");
+  const original = draft();
+  const posted = new Map();
+  const firstPost = async () => {
+    assert.deepEqual(readManualReceiptDraft(storage, key), original);
+    posted.set(original.requestKey, "expense-1");
+    throw new Error("response lost after commit");
+  };
+  await assert.rejects(
+    submitManualReceiptDraft(storage, key, original, firstPost),
+    /response lost/,
+  );
+  const resumed = readManualReceiptDraft(storage, key);
+  const result = await submitManualReceiptDraft(
+    storage,
+    key,
+    resumed,
+    async () => {
+      assert.equal(resumed.requestKey, original.requestKey);
+      return posted.get(resumed.requestKey);
+    },
+  );
+  assert.equal(result, "expense-1");
+  assert.equal(posted.size, 1);
 });

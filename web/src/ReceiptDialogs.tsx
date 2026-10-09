@@ -8,6 +8,8 @@ import { useEffect, useRef, useState } from "react";
 import {
   clearManualReceiptDraft,
   manualReceiptDraftKey,
+  ManualDraftPersistenceError,
+  submitManualReceiptDraft,
   readManualReceiptDraft,
   saveManualReceiptDraft,
 } from "./manualReceiptDraft";
@@ -679,16 +681,15 @@ function ReceiptForm({
       ),
   });
   const action = useAction(
-    () => {
+    async () => {
       if (draftUnreadable)
         throw new Error(
           t(
             "Не удалось прочитать сохранённый черновик. Он не изменён. Закройте окно и попробуйте снова или явно удалите черновик, чтобы начать заново.",
           ),
         );
-      return send(
-        manual ? "/receipts/manual" : `/receipts/${receipt.id}/confirm`,
-        {
+      const post = () =>
+        send(manual ? "/receipts/manual" : `/receipts/${receipt.id}/confirm`, {
           merchant,
           merchant_address: address,
           purchased_on: date,
@@ -710,8 +711,39 @@ function ReceiptForm({
                 version: receipt.version,
                 transaction_id: transaction || null,
               }),
-        },
-      );
+        });
+      if (!manual) return post();
+      try {
+        return await submitManualReceiptDraft(
+          sessionStorage,
+          storageKey,
+          {
+            requestKey,
+            merchant,
+            address,
+            date,
+            currency,
+            account,
+            rate,
+            items,
+          },
+          () => {
+            setDraftSaved(true);
+            return post();
+          },
+        );
+      } catch (error) {
+        if (error instanceof ManualDraftPersistenceError) {
+          setDraftSaved(false);
+          throw new Error(
+            t(
+              "Браузер не сохранил черновик. Не обновляйте страницу и не закрывайте окно до сохранения расхода.",
+            ),
+            { cause: error },
+          );
+        }
+        throw error;
+      }
     },
     () => {
       if (manual) {
