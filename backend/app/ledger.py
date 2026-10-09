@@ -18,6 +18,7 @@ from .finance import (
     owned,
     payment_account,
     rate_for,
+    validate_occurrence_retry,
 )
 from .schemas import (
     BalanceAdjustment,
@@ -259,6 +260,7 @@ def pay_bill(db, organization_id: str, occurrence_id: str, data: BillPayment):
         )
     )
     if existing:
+        validate_occurrence_retry(db, organization_id, existing, data)
         return existing
     account = payment_account(db, organization_id, data.account_id)
     if account.currency != occurrence.currency:

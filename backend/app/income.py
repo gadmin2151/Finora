@@ -16,6 +16,7 @@ from .finance import (
     owned,
     payment_account,
     rate_for,
+    validate_occurrence_retry,
 )
 from .ledger import save_bill
 from .schemas import BillPayment, IncomePlanInput, TransactionInput
@@ -172,6 +173,7 @@ def receive(db, organization_id: str, key: str, data: BillPayment):
         select(m.Transaction).where(m.Transaction.occurrence_id == key, ~m.Transaction.voided)
     )
     if existing:
+        validate_occurrence_retry(db, organization_id, existing, data)
         return existing
     account = payment_account(db, organization_id, data.account_id)
     if account.currency != occurrence.currency or account.archived:

@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from . import models as m
 from .category_catalog import DEFAULT_CATEGORIES
 from .i18n import t, unit_label
-from .schemas import SplitInput, TransactionInput
+from .schemas import BillPayment, SplitInput, TransactionInput
 
 
 def today() -> date:
@@ -236,6 +236,8 @@ def create_transaction(
     if old:
         if old.request_hash != fingerprint:
             fail("Этот запрос уже использован для другой операции", 409)
+        if old.voided:
+            fail("Операция этого запроса отменена. Создайте новую с новым ключом", 409)
         return old
     if data.occurred_on > today():
         fail("Будущие расходы добавляйте в план платежей")
@@ -401,6 +403,30 @@ def transaction_dict(tx: m.Transaction):
         "occurred_on": tx.occurred_on.isoformat(),
         "fx_rate": str(tx.fx_rate),
     }
+
+
+def validate_occurrence_retry(
+    db: Session, organization_id: str, transaction: m.Transaction, data: BillPayment
+) -> None:
+    """A retry may acknowledge an existing posting, but never different payment values."""
+    account = (
+        owned(db, m.Account, data.account_id, organization_id)
+        if data.account_id == transaction.account_id
+        else payment_account(db, organization_id, data.account_id)
+    )
+    # Linking an existing transaction preserves its original exchange rate.
+    requested_rate = (
+        transaction.fx_rate if data.transaction_id else rate_for(account.currency, data.fx_rate)
+    )
+    if (
+        transaction.account_id != account.id
+        or transaction.amount_minor != minor(data.amount)
+        or transaction.occurred_on != data.occurred_on
+        or transaction.currency != account.currency
+        or transaction.fx_rate != requested_rate
+        or (data.transaction_id is not None and data.transaction_id != transaction.id)
+    ):
+        fail("План уже исполнен с другими данными. Откройте связанную операцию", 409)
 
 
 def debt_remaining(db: Session, debt: m.Debt) -> int:
