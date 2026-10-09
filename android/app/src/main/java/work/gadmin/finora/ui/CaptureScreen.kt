@@ -37,6 +37,7 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
     var manualQr by rememberSaveable { mutableStateOf(false) }
     var qrText by rememberSaveable { mutableStateOf("") }
     var discard by remember { mutableStateOf(false) }
+    var discardManual by remember { mutableStateOf(false) }
     var preview by remember { mutableStateOf<File?>(null) }
     var accountMenu by remember { mutableStateOf(false) }
     val picker =
@@ -312,20 +313,32 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
                     }
                 }
             }
+        if (state.organization?.isAdmin == true)
+            item {
+                OutlinedButton(
+                    vm::createManualReceipt,
+                    Modifier.fillMaxWidth(),
+                    enabled = available && !state.manualDraftUnreadable,
+                ) {
+                    LineIcon(Glyph.RECEIPT, size = 18.dp)
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        tr(
+                            if (state.manualReceiptDraft != null) Message.RESUME_MANUAL_DRAFT
+                            else Message.MANUAL_RECEIPT
+                        )
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+                if (state.manualDraftUnreadable) {
+                    InfoCard(tr(Message.MANUAL_DRAFT_UNREADABLE), Glyph.RECEIPT)
+                    TextButton({ discardManual = true }, enabled = available) {
+                        Text(tr(Message.DELETE_MANUAL_DRAFT))
+                    }
+                }
+            }
         if (!state.draft.hasContent)
             item {
-                if (state.organization?.isAdmin == true) {
-                    OutlinedButton(
-                        vm::createManualReceipt,
-                        Modifier.fillMaxWidth(),
-                        enabled = available,
-                    ) {
-                        LineIcon(Glyph.RECEIPT, size = 18.dp)
-                        Spacer(Modifier.width(8.dp))
-                        Text(tr(Message.MANUAL_RECEIPT))
-                    }
-                    Spacer(Modifier.height(8.dp))
-                }
                 TextButton({ manualQr = true }, Modifier.fillMaxWidth(), enabled = available) {
                     LineIcon(Glyph.LINK, size = 18.dp)
                     Spacer(Modifier.width(8.dp))
@@ -388,6 +401,21 @@ fun CaptureScreen(state: AppState, vm: FinoraViewModel) {
                 }
             },
             dismissButton = { TextButton({ discard = false }) { Text(tr(Message.KEEP)) } },
+        )
+    if (discardManual)
+        AlertDialog(
+            onDismissRequest = { discardManual = false },
+            title = { Text(tr(Message.DELETE_MANUAL_DRAFT)) },
+            text = { Text(tr(Message.DISCARD_MANUAL_RECEIPT)) },
+            confirmButton = {
+                TextButton({
+                    discardManual = false
+                    vm.discardManualDraft()
+                }) {
+                    Text(tr(Message.DELETE))
+                }
+            },
+            dismissButton = { TextButton({ discardManual = false }) { Text(tr(Message.KEEP)) } },
         )
     preview?.let { file -> PhotoDialog(file) { preview = null } }
 }

@@ -12,6 +12,8 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import work.gadmin.finora.data.*
 import work.gadmin.finora.localization.AppLanguage
 import work.gadmin.finora.localization.LanguageRuntime
@@ -44,6 +46,9 @@ data class AppState(
     val receiptPageUrl: String? = null,
     val editingReceipt: Boolean = false,
     val manualReceiptKey: String? = null,
+    val manualReceiptDraft: ManualReceiptDraft? = null,
+    val manualDraftSaved: Boolean = true,
+    val manualDraftUnreadable: Boolean = false,
     val busy: Boolean = false,
     val workspaceLoading: Boolean = false,
     val refreshing: Boolean = false,
@@ -90,6 +95,8 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
 
     private var api: ApiClient? = null
     private var drafts: DraftStore? = null
+    private var manualDrafts: ManualReceiptDraftStore? = null
+    private val manualDraftLock = Mutex()
     private var workspaceJob: Job? = null
     private var receiptsJob: Job? = null
     private var detailJob: Job? = null
@@ -205,6 +212,7 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
             sessions.clear()
             cancelWorkspace()
             drafts = null
+            manualDrafts = null
             mutable.update { AppState(starting = false, server = it.server, error = error.message) }
             return
         }
@@ -292,6 +300,12 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
                 getApplication(),
                 scopeKey(current.server, requireNotNull(current.user).id, org.id),
             )
+        val manualStore =
+            ManualReceiptDraftStore(
+                getApplication(),
+                scopeKey(current.server, requireNotNull(current.user).id, org.id),
+            )
+        manualDrafts = manualStore
         mutable.value =
             AppState(
                 starting = false,
@@ -304,6 +318,21 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
             try {
                 val draft = withContext(Dispatchers.IO) { requireNotNull(drafts).read() }
                 mutable.update { it.copy(draft = draft) }
+                try {
+                    val manualDraft =
+                        withContext(Dispatchers.IO) {
+                            manualDraftLock.withLock { manualStore.read() }
+                        }
+                    mutable.update { it.copy(manualReceiptDraft = manualDraft) }
+                } catch (error: Exception) {
+                    if (error is CancellationException) throw error
+                    mutable.update {
+                        it.copy(
+                            manualDraftUnreadable = true,
+                            error = tr(Message.MANUAL_DRAFT_UNREADABLE),
+                        )
+                    }
+                }
                 fetchWorkspace(org.id)
             } catch (error: Exception) {
                 handleError(error)
@@ -543,12 +572,90 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
         val current = mutable.value
         if (current.busy || current.workspaceLoading || current.organization?.isAdmin != true)
             return
+        if (current.manualDraftUnreadable) {
+            mutable.update { it.copy(error = tr(Message.MANUAL_DRAFT_UNREADABLE)) }
+            return
+        }
+        val draft =
+            current.manualReceiptDraft
+                ?: ManualReceiptDraft(
+                    UUID.randomUUID().toString(),
+                    ReceiptForm.manual(current.paymentAccounts, current.draft.accountId),
+                )
         refresh.cancel()
         mutable.update {
             it.copy(
                 editingReceipt = true,
-                manualReceiptKey = UUID.randomUUID().toString(),
+                manualReceiptKey = draft.requestKey,
+                manualReceiptDraft = draft,
                 error = null,
+            )
+        }
+    }
+
+    fun saveManualDraft(requestKey: String, form: ReceiptForm) {
+        val store = manualDrafts ?: return
+        if (mutable.value.manualReceiptKey != requestKey) return
+        val draft = ManualReceiptDraft(requestKey, form)
+        mutable.update { it.copy(manualReceiptDraft = draft, manualDraftSaved = false) }
+        viewModelScope.launch {
+            try {
+                val saved =
+                    withContext(Dispatchers.IO) {
+                        manualDraftLock.withLock {
+                            if (
+                                manualDrafts === store &&
+                                    mutable.value.manualReceiptKey == requestKey &&
+                                    mutable.value.manualReceiptDraft == draft
+                            ) {
+                                store.save(draft)
+                                true
+                            } else false
+                        }
+                    }
+                if (saved && manualDrafts === store && mutable.value.manualReceiptDraft == draft)
+                    mutable.update { it.copy(manualDraftSaved = true) }
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                if (manualDrafts === store && mutable.value.manualReceiptDraft == draft)
+                    mutable.update {
+                        it.copy(
+                            manualDraftSaved = false,
+                            error = tr(Message.MANUAL_DRAFT_NOT_SAVED),
+                        )
+                    }
+            }
+        }
+    }
+
+    fun closeManualDraft(form: ReceiptForm) = writeAction {
+        val key = requireNotNull(mutable.value.manualReceiptKey)
+        val draft = ManualReceiptDraft(key, form)
+        withContext(Dispatchers.IO) {
+            manualDraftLock.withLock { requireNotNull(manualDrafts).save(draft) }
+        }
+        mutable.update {
+            it.copy(
+                editingReceipt = false,
+                manualReceiptKey = null,
+                manualReceiptDraft = draft,
+                manualDraftSaved = true,
+                notice = tr(Message.MANUAL_DRAFT_SAVED),
+            )
+        }
+    }
+
+    fun discardManualDraft() = writeAction {
+        withContext(Dispatchers.IO) {
+            manualDraftLock.withLock { requireNotNull(manualDrafts).clear() }
+        }
+        mutable.update {
+            it.copy(
+                editingReceipt = false,
+                manualReceiptKey = null,
+                manualReceiptDraft = null,
+                manualDraftSaved = true,
+                manualDraftUnreadable = false,
             )
         }
     }
@@ -558,12 +665,27 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
         val org = requireNotNull(current.organization)
         if (current.manualReceiptKey != null) {
             require(org.isAdmin) { tr(Message.AVAILABLE_TO_ADMINISTRATORS) }
+            val store = requireNotNull(manualDrafts)
+            withContext(Dispatchers.IO) {
+                manualDraftLock.withLock {
+                    store.save(ManualReceiptDraft(current.manualReceiptKey, form))
+                }
+            }
             val confirmed =
                 requireNotNull(api).manualReceipt(org.id, form, current.manualReceiptKey).receipt
+            // Clear only after server acknowledgement. If local deletion fails,
+            // retaining the same request ID makes a later retry idempotent.
+            val cleared =
+                withContext(Dispatchers.IO) {
+                    manualDraftLock.withLock { runCatching { store.clear() }.isSuccess }
+                }
             mutable.update {
                 it.copy(
                     editingReceipt = false,
                     manualReceiptKey = null,
+                    manualReceiptDraft =
+                        if (cleared) null else ManualReceiptDraft(current.manualReceiptKey, form),
+                    manualDraftSaved = true,
                     page = Page.RECEIPTS,
                     notice = tr(Message.RECEIPT_CONFIRMED_EXPENSE_ADDED),
                 )
@@ -1127,6 +1249,7 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
         api = null
         avatarCache = null
         drafts = null
+        manualDrafts = null
         mutable.update {
             AppState(
                 starting = false,

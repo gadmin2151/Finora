@@ -44,3 +44,11 @@ Successful posting clears the draft. An explicit, confirmed deletion starts a
 new draft next time. Browser storage failures remain visible in the form.
 This draft storage does not post an expense or replace server validation.
 
+Android keeps a separate `manual-receipt.json` AtomicFile in the existing
+backup-excluded app-private workspace directory. A manual draft does not erase
+the photo draft. Returning from the editor flushes it to disk; Capture offers
+Continue manual receipt. The form and request UUID are saved before posting and
+cleared only after acknowledgement. An unreadable draft is retained until the
+user explicitly deletes it. Drafts remain local and require the same server,
+user and organization to resume.
+

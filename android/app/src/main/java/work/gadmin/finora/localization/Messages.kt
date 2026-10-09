@@ -36,8 +36,23 @@ enum class Message(val english: String, val russian: String) {
     ),
     SAVE_MANUAL_RECEIPT("Save this receipt and expense?", "Сохранить чек и расход?"),
     DISCARD_MANUAL_RECEIPT(
-        "The entered receipt has not been saved. Leave and discard it?",
-        "Введённый чек ещё не сохранён. Выйти и отменить ввод?",
+        "Delete the entered items? Saved expenses will stay unchanged.",
+        "Удалить введённые товары? Сохранённые расходы не изменятся.",
+    ),
+    DELETE_MANUAL_DRAFT("Delete draft", "Удалить черновик"),
+    RESUME_MANUAL_DRAFT("Continue manual receipt", "Продолжить ручной чек"),
+    MANUAL_DRAFT_SAVED(
+        "Draft saved on this device. You can leave and continue later.",
+        "Черновик сохранён на устройстве. Можно выйти и продолжить позже.",
+    ),
+    MANUAL_DRAFT_SAVING("Saving draft on this device…", "Сохраняем черновик на устройстве…"),
+    MANUAL_DRAFT_NOT_SAVED(
+        "Could not save the draft on this device. Keep the editor open and try again.",
+        "Не удалось сохранить черновик на устройстве. Не закрывайте редактор и попробуйте ещё раз.",
+    ),
+    MANUAL_DRAFT_UNREADABLE(
+        "The saved manual draft cannot be read. It has been retained; delete it explicitly to start again.",
+        "Не удалось прочитать ручной черновик. Он сохранён; удалите его явно, чтобы начать заново.",
     ),
     ARCHIVED_ACCOUNT("Archived · balance retained", "Архивный · остаток сохранён"),
     CATEGORY_TAP_HINT(

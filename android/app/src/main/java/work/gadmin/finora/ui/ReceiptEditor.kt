@@ -37,14 +37,22 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
                 ),
         ) {
             mutableStateOf(
-                if (manual) ReceiptForm.manual(state.paymentAccounts, state.draft.accountId)
+                if (manual)
+                    state.manualReceiptDraft?.form
+                        ?: ReceiptForm.manual(state.paymentAccounts, state.draft.accountId)
                 else ReceiptForm.from(requireNotNull(receipt), state.paymentAccounts)
             )
         }
     var error by remember { mutableStateOf<String?>(null) }
     var confirm by remember { mutableStateOf(false) }
     var discard by remember { mutableStateOf(false) }
-    BackHandler { if (!state.busy) discard = true }
+    LaunchedEffect(form, state.manualReceiptKey) {
+        state.manualReceiptKey?.let { vm.saveManualDraft(it, form) }
+    }
+    fun leaveEditor() {
+        if (manual) vm.closeManualDraft(form) else discard = true
+    }
+    BackHandler { if (!state.busy) leaveEditor() }
     val sum = form.lineSum()
     val enabled = !state.busy
     fun changeItems(items: List<ReceiptLineForm>) {
@@ -66,7 +74,7 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
                 Modifier.statusBarsPadding().fillMaxWidth().padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                IconButton({ discard = true }, enabled = enabled) {
+                IconButton({ leaveEditor() }, enabled = enabled) {
                     LineIcon(Glyph.BACK, tr(Message.BACK_TO_REVIEW))
                 }
                 Column {
@@ -110,6 +118,19 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
                         Modifier.fillMaxWidth(),
                         enabled = enabled,
                     )
+                    if (manual) {
+                        Text(
+                            tr(
+                                if (state.manualDraftSaved) Message.MANUAL_DRAFT_SAVED
+                                else Message.MANUAL_DRAFT_SAVING
+                            ),
+                            color = Muted,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        TextButton({ discard = true }, enabled = enabled) {
+                            Text(tr(Message.DELETE_MANUAL_DRAFT))
+                        }
+                    }
                     (error ?: state.error)?.let {
                         Text(
                             it,
@@ -352,7 +373,9 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
     if (discard)
         AlertDialog(
             onDismissRequest = { discard = false },
-            title = { Text(tr(Message.LEAVE_THE_EDITOR)) },
+            title = {
+                Text(tr(if (manual) Message.DELETE_MANUAL_DRAFT else Message.LEAVE_THE_EDITOR))
+            },
             text = {
                 Text(
                     tr(
@@ -364,9 +387,9 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
             confirmButton = {
                 TextButton({
                     discard = false
-                    vm.editReceipt(false)
+                    if (manual) vm.discardManualDraft() else vm.editReceipt(false)
                 }) {
-                    Text(tr(Message.SIGN_OUT_026AB))
+                    Text(tr(if (manual) Message.DELETE_MANUAL_DRAFT else Message.SIGN_OUT_026AB))
                 }
             },
             dismissButton = { TextButton({ discard = false }) { Text(tr(Message.CONTINUE)) } },
