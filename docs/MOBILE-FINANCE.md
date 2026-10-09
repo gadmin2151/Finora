@@ -35,3 +35,12 @@
 Повторная отправка формы использует тот же ключ запроса: при потере ответа повторите с теми же данными. Сервер отклоняет несовпадающие повторы и устаревшие версии. После сохранения обновляются список, остатки и обзор. Жест сверху вниз и кнопка обновления заново запрашивают сервер.
 
 Изменения финансов требуют связи с сервером; очереди автономных денежных операций нет. Открытая форма сохраняется при повороте экрана, но ещё не является постоянным черновиком. Для создания/архивации счетов используйте веб-версию. API и схема базы данных совместимы с сервером Finora 1.6 — новых миграций нет.
+# Unfinished manual receipts
+
+The web manual receipt form saves incomplete inputs and its request UUID in
+`sessionStorage`, scoped by user and organization. Closing the form or reloading
+the same tab resumes the draft; closing the tab ends that browser session.
+Successful posting clears the draft. An explicit, confirmed deletion starts a
+new draft next time. Browser storage failures remain visible in the form.
+This draft storage does not post an expense or replace server validation.
+

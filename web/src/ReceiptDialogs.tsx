@@ -4,7 +4,13 @@ import { ReceiptOriginals } from "./ReceiptOriginals";
 import { ReceiptAuthor } from "./ReceiptAuthor";
 import { receiptLineTotal } from "./receiptAmounts";
 import { moneyMinor, minorDecimal } from "./wallet";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import {
+  clearManualReceiptDraft,
+  manualReceiptDraftKey,
+  readManualReceiptDraft,
+  saveManualReceiptDraft,
+} from "./manualReceiptDraft";
 import { useQuery } from "@tanstack/react-query";
 import {
   Camera,
@@ -37,7 +43,8 @@ import {
 } from "./ui";
 
 export function UploadReceipt({ onClose }: { onClose: () => void }) {
-  const { accounts, prefs, toast, navigate, organization, isAdmin } = useApp();
+  const { accounts, prefs, toast, navigate, organization, isAdmin, user } =
+    useApp();
   const [mode, setMode] = useState("photo");
   const [files, setFiles] = useState<File[]>([]);
   const [url, setUrl] = useState("");
@@ -98,6 +105,7 @@ export function UploadReceipt({ onClose }: { onClose: () => void }) {
   if (mode === "manual" && isAdmin)
     return (
       <ReceiptForm
+        key={manualReceiptDraftKey(user.id, organization.id)}
         manual
         receipt={{
           id: "manual",
@@ -508,18 +516,42 @@ function ReceiptForm({
   manual?: boolean;
   onBack?: () => void;
 }) {
-  const { accounts, categories, toast, isAdmin, organization, navigate } =
+  const { accounts, categories, toast, isAdmin, organization, navigate, user } =
     useApp();
-  const [requestKey] = useState(() => crypto.randomUUID());
-  const [merchant, setMerchant] = useState(receipt.merchant);
-  const [address, setAddress] = useState(receipt.merchant_address ?? "");
-  const [date, setDate] = useState(receipt.purchased_on ?? today());
-  const [currency, setCurrency] = useState<string>(receipt.currency);
+  const storageKey = manualReceiptDraftKey(user.id, organization.id);
+  const [savedDraft] = useState(() => {
+    if (!manual) return null;
+    try {
+      return readManualReceiptDraft(sessionStorage, storageKey);
+    } catch {
+      return null;
+    }
+  });
+  const draftCleared = useRef(false);
+  const [draftSaved, setDraftSaved] = useState(false);
+  const [discarding, setDiscarding] = useState(false);
+  const [requestKey] = useState(
+    () => savedDraft?.requestKey ?? crypto.randomUUID(),
+  );
+  const [merchant, setMerchant] = useState(
+    savedDraft?.merchant ?? receipt.merchant,
+  );
+  const [address, setAddress] = useState(
+    savedDraft?.address ?? receipt.merchant_address ?? "",
+  );
+  const [date, setDate] = useState(
+    savedDraft?.date ?? receipt.purchased_on ?? today(),
+  );
+  const [currency, setCurrency] = useState<string>(
+    savedDraft?.currency ?? receipt.currency,
+  );
   const [enteredTotal, setTotal] = useState(
     receipt.total_minor ? decimal(receipt.total_minor) : "",
   );
-  const [account, setAccount] = useState(receipt.account_id ?? "");
-  const [rate, setRate] = useState(receipt.fx_rate);
+  const [account, setAccount] = useState(
+    savedDraft?.account ?? receipt.account_id ?? "",
+  );
+  const [rate, setRate] = useState(savedDraft?.rate ?? receipt.fx_rate);
   const [transaction, setTransaction] = useState("");
   const blank = () => ({
     name: "",
@@ -531,18 +563,51 @@ function ReceiptForm({
     category_selected: false,
   });
   const [items, setItems] = useState(
-    receipt.items.length
-      ? receipt.items.map((i) => ({
-          name: i.name,
-          quantity: i.quantity,
-          unit: i.unit,
-          unit_price: decimal(i.unit_price_minor),
-          total: decimal(i.total_minor),
-          category_id: i.category_id ?? "",
-          category_selected: false,
-        }))
-      : [blank()],
+    savedDraft?.items ??
+      (receipt.items.length
+        ? receipt.items.map((i) => ({
+            name: i.name,
+            quantity: i.quantity,
+            unit: i.unit,
+            unit_price: decimal(i.unit_price_minor),
+            total: decimal(i.total_minor),
+            category_id: i.category_id ?? "",
+            category_selected: false,
+          }))
+        : [blank()]),
   );
+  useEffect(() => {
+    if (!manual || draftCleared.current) return;
+    try {
+      saveManualReceiptDraft(sessionStorage, storageKey, {
+        requestKey,
+        merchant,
+        address,
+        date,
+        currency,
+        account,
+        rate,
+        items,
+      });
+      // Publish the external storage result so quota/permission failures are
+      // visible. Status is not an effect dependency and cannot trigger a loop.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setDraftSaved(true);
+    } catch {
+      setDraftSaved(false);
+    }
+  }, [
+    manual,
+    storageKey,
+    requestKey,
+    merchant,
+    address,
+    date,
+    currency,
+    account,
+    rate,
+    items,
+  ]);
   const readonly =
     !isAdmin || ["posted", "queued", "processing"].includes(receipt.status);
   const sum = items.reduce(
@@ -581,6 +646,15 @@ function ReceiptForm({
           : { version: receipt.version, transaction_id: transaction || null }),
       }),
     () => {
+      if (manual) {
+        draftCleared.current = true;
+        try {
+          clearManualReceiptDraft(sessionStorage, storageKey);
+        } catch {
+          // Preserve the same request ID if a blocked store retains a stale draft;
+          // replaying it cannot create another expense.
+        }
+      }
       toast(t("Чек и товары сохранены в учёте"));
       if (manual) navigate("receipts");
       onClose();
@@ -653,6 +727,17 @@ function ReceiptForm({
           </a>
         )}
       </div>
+      {manual && (
+        <div className={`notice${draftSaved ? "" : " warning"}`} role="status">
+          {draftSaved
+            ? t(
+                "Черновик сохраняется в этой вкладке. Можно закрыть окно и продолжить позже. Закрытие вкладки удалит черновик.",
+              )
+            : t(
+                "Браузер не сохранил черновик. Не обновляйте страницу и не закрывайте окно до сохранения расхода.",
+              )}
+        </div>
+      )}
       {!manual && <ReceiptAuthor creator={receipt.creator} />}
       {receipt.error && <div className="notice warning">{receipt.error}</div>}
       {receipt.warnings.map((w, i) => (
@@ -916,8 +1001,18 @@ function ReceiptForm({
             onClick={onClose}
             disabled={action.isPending}
           >
-            {t("Закрыть")}
+            {manual ? t("Закрыть и оставить черновик") : t("Закрыть")}
           </button>
+          {manual && (
+            <button
+              type="button"
+              className="text-button negative"
+              disabled={action.isPending}
+              onClick={() => setDiscarding(true)}
+            >
+              {t("Удалить черновик")}
+            </button>
+          )}
           {manual && onBack && (
             <button
               type="button"
@@ -933,6 +1028,45 @@ function ReceiptForm({
           )}
         </footer>
       </Form>
+      {discarding && (
+        <Modal
+          title={t("Удалить черновик?")}
+          description={t(
+            "Введённые товары будут удалены. Сохранённые расходы не изменятся.",
+          )}
+          onClose={() => setDiscarding(false)}
+        >
+          <footer className="modal-footer">
+            <button
+              type="button"
+              className="button secondary"
+              onClick={() => setDiscarding(false)}
+            >
+              {t("Отмена")}
+            </button>
+            <button
+              type="button"
+              className="button negative"
+              onClick={() => {
+                try {
+                  clearManualReceiptDraft(sessionStorage, storageKey);
+                  draftCleared.current = true;
+                  onClose();
+                } catch {
+                  toast(
+                    t(
+                      "Не удалось удалить черновик из браузера. Попробуйте ещё раз.",
+                    ),
+                  );
+                  setDiscarding(false);
+                }
+              }}
+            >
+              {t("Удалить черновик")}
+            </button>
+          </footer>
+        </Modal>
+      )}
       {!manual &&
         isAdmin &&
         !["queued", "processing"].includes(receipt.status) && (
