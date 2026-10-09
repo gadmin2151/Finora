@@ -519,14 +519,19 @@ function ReceiptForm({
   const { accounts, categories, toast, isAdmin, organization, navigate, user } =
     useApp();
   const storageKey = manualReceiptDraftKey(user.id, organization.id);
-  const [savedDraft] = useState(() => {
-    if (!manual) return null;
+  const [loadedDraft] = useState(() => {
+    if (!manual) return { draft: null, unreadable: false };
     try {
-      return readManualReceiptDraft(sessionStorage, storageKey);
+      return {
+        draft: readManualReceiptDraft(sessionStorage, storageKey),
+        unreadable: false,
+      };
     } catch {
-      return null;
+      return { draft: null, unreadable: true };
     }
   });
+  const savedDraft = loadedDraft.draft;
+  const draftUnreadable = loadedDraft.unreadable;
   const draftCleared = useRef(false);
   const [draftSaved, setDraftSaved] = useState(false);
   const [discarding, setDiscarding] = useState(false);
@@ -577,7 +582,7 @@ function ReceiptForm({
         : [blank()]),
   );
   useEffect(() => {
-    if (!manual || draftCleared.current) return;
+    if (!manual || draftUnreadable || draftCleared.current) return;
     try {
       saveManualReceiptDraft(sessionStorage, storageKey, {
         requestKey,
@@ -598,6 +603,7 @@ function ReceiptForm({
     }
   }, [
     manual,
+    draftUnreadable,
     storageKey,
     requestKey,
     merchant,
@@ -610,7 +616,7 @@ function ReceiptForm({
   ]);
   function leaveManualDraft(close: () => void) {
     if (action.isPending) return;
-    if (manual) {
+    if (manual && !draftUnreadable) {
       try {
         saveManualReceiptDraft(sessionStorage, storageKey, {
           requestKey,
@@ -635,7 +641,9 @@ function ReceiptForm({
     close();
   }
   const readonly =
-    !isAdmin || ["posted", "queued", "processing"].includes(receipt.status);
+    draftUnreadable ||
+    !isAdmin ||
+    ["posted", "queued", "processing"].includes(receipt.status);
   const sum = items.reduce(
     (value, item) => value + (moneyMinor(item.total) ?? 0),
     0,
@@ -650,27 +658,40 @@ function ReceiptForm({
       ),
   });
   const action = useAction(
-    () =>
-      send(manual ? "/receipts/manual" : `/receipts/${receipt.id}/confirm`, {
-        merchant,
-        merchant_address: address,
-        purchased_on: date,
-        currency,
-        total,
-        account_id: account,
-        fx_rate: currency === "MDL" ? null : rate,
-        items: items.map((i) => ({
-          name: i.name,
-          quantity: i.quantity,
-          unit: i.unit,
-          unit_price: i.unit_price,
-          total: i.total,
-          category_id: i.category_id || null,
-        })),
-        ...(manual
-          ? { request_key: requestKey }
-          : { version: receipt.version, transaction_id: transaction || null }),
-      }),
+    () => {
+      if (draftUnreadable)
+        throw new Error(
+          t(
+            "Не удалось прочитать сохранённый черновик. Он не изменён. Закройте окно и попробуйте снова или явно удалите черновик, чтобы начать заново.",
+          ),
+        );
+      return send(
+        manual ? "/receipts/manual" : `/receipts/${receipt.id}/confirm`,
+        {
+          merchant,
+          merchant_address: address,
+          purchased_on: date,
+          currency,
+          total,
+          account_id: account,
+          fx_rate: currency === "MDL" ? null : rate,
+          items: items.map((i) => ({
+            name: i.name,
+            quantity: i.quantity,
+            unit: i.unit,
+            unit_price: i.unit_price,
+            total: i.total,
+            category_id: i.category_id || null,
+          })),
+          ...(manual
+            ? { request_key: requestKey }
+            : {
+                version: receipt.version,
+                transaction_id: transaction || null,
+              }),
+        },
+      );
+    },
     () => {
       if (manual) {
         draftCleared.current = true;
@@ -715,6 +736,68 @@ function ReceiptForm({
       }),
     );
   }
+  const discardDialog = discarding && (
+    <Modal
+      title={t("Удалить черновик?")}
+      description={t(
+        "Введённые товары будут удалены. Сохранённые расходы не изменятся.",
+      )}
+      onClose={() => setDiscarding(false)}
+    >
+      <footer className="modal-footer">
+        <button
+          type="button"
+          className="button secondary"
+          onClick={() => setDiscarding(false)}
+        >
+          {t("Отмена")}
+        </button>
+        <button
+          type="button"
+          className="button negative"
+          onClick={() => {
+            try {
+              clearManualReceiptDraft(sessionStorage, storageKey);
+              draftCleared.current = true;
+              onClose();
+            } catch {
+              toast(
+                t(
+                  "Не удалось удалить черновик из браузера. Попробуйте ещё раз.",
+                ),
+              );
+              setDiscarding(false);
+            }
+          }}
+        >
+          {t("Удалить черновик")}
+        </button>
+      </footer>
+    </Modal>
+  );
+  if (draftUnreadable) {
+    return (
+      <Modal title={t("Создать чек вручную")} onClose={onClose}>
+        <div className="notice warning" role="alert">
+          {t(
+            "Не удалось прочитать сохранённый черновик. Он не изменён. Закройте окно и попробуйте снова или явно удалите черновик, чтобы начать заново.",
+          )}
+        </div>
+        <footer className="modal-footer">
+          <button className="button secondary" onClick={onClose}>
+            {t("Закрыть")}
+          </button>
+          <button
+            className="button negative"
+            onClick={() => setDiscarding(true)}
+          >
+            {t("Удалить черновик")}
+          </button>
+        </footer>
+        {discardDialog}
+      </Modal>
+    );
+  }
   return (
     <Modal
       wide
@@ -755,13 +838,17 @@ function ReceiptForm({
       </div>
       {manual && (
         <div className={`notice${draftSaved ? "" : " warning"}`} role="status">
-          {draftSaved
+          {draftUnreadable
             ? t(
-                "Черновик сохраняется в этой вкладке. Можно закрыть окно и продолжить позже. Закрытие вкладки удалит черновик.",
+                "Не удалось прочитать сохранённый черновик. Он не изменён. Закройте окно и попробуйте снова или явно удалите черновик, чтобы начать заново.",
               )
-            : t(
-                "Браузер не сохранил черновик. Не обновляйте страницу и не закрывайте окно до сохранения расхода.",
-              )}
+            : draftSaved
+              ? t(
+                  "Черновик сохраняется в этой вкладке. Можно закрыть окно и продолжить позже. Закрытие вкладки удалит черновик.",
+                )
+              : t(
+                  "Браузер не сохранил черновик. Не обновляйте страницу и не закрывайте окно до сохранения расхода.",
+                )}
         </div>
       )}
       {!manual && <ReceiptAuthor creator={receipt.creator} />}
@@ -1054,45 +1141,7 @@ function ReceiptForm({
           )}
         </footer>
       </Form>
-      {discarding && (
-        <Modal
-          title={t("Удалить черновик?")}
-          description={t(
-            "Введённые товары будут удалены. Сохранённые расходы не изменятся.",
-          )}
-          onClose={() => setDiscarding(false)}
-        >
-          <footer className="modal-footer">
-            <button
-              type="button"
-              className="button secondary"
-              onClick={() => setDiscarding(false)}
-            >
-              {t("Отмена")}
-            </button>
-            <button
-              type="button"
-              className="button negative"
-              onClick={() => {
-                try {
-                  clearManualReceiptDraft(sessionStorage, storageKey);
-                  draftCleared.current = true;
-                  onClose();
-                } catch {
-                  toast(
-                    t(
-                      "Не удалось удалить черновик из браузера. Попробуйте ещё раз.",
-                    ),
-                  );
-                  setDiscarding(false);
-                }
-              }}
-            >
-              {t("Удалить черновик")}
-            </button>
-          </footer>
-        </Modal>
-      )}
+      {discardDialog}
       {!manual &&
         isAdmin &&
         !["queued", "processing"].includes(receipt.status) && (

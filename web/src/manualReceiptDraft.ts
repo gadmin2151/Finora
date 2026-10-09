@@ -87,7 +87,11 @@ export function parseManualReceiptDraft(
 }
 
 export function readManualReceiptDraft(storage: DraftStorage, key: string) {
-  return parseManualReceiptDraft(storage.getItem(key));
+  const raw = storage.getItem(key);
+  if (raw === null) return null;
+  const draft = parseManualReceiptDraft(raw);
+  if (!draft) throw new Error("Unreadable receipt draft");
+  return draft;
 }
 export function saveManualReceiptDraft(
   storage: DraftStorage,

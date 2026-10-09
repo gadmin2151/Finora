@@ -1098,5 +1098,6 @@
   "Курс": "Exchange rate",
   "Месяц": "Month",
   "Да": "Yes",
-  "Нет": "No"
+  "Нет": "No",
+  "Не удалось прочитать сохранённый черновик. Он не изменён. Закройте окно и попробуйте снова или явно удалите черновик, чтобы начать заново.": "Could not read the saved draft. It has been left unchanged. Close this window and try again, or explicitly delete the draft to start over."
 }

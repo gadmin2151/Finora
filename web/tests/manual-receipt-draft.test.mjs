@@ -103,3 +103,19 @@ test("storage denial and quota errors stay visible to the caller", () => {
   );
   assert.throws(() => clearManualReceiptDraft(unavailable, "key"), /blocked/);
 });
+
+test("unreadable stored drafts are preserved until explicit deletion", () => {
+  const storage = memoryStorage();
+  const key = manualReceiptDraftKey("owner", "organization");
+  for (const raw of [
+    "",
+    "bad JSON",
+    JSON.stringify({ ...draft(), requestKey: "corrupted" }),
+  ]) {
+    storage.setItem(key, raw);
+    assert.throws(() => readManualReceiptDraft(storage, key), /Unreadable/);
+    assert.equal(storage.getItem(key), raw);
+    clearManualReceiptDraft(storage, key);
+    assert.equal(readManualReceiptDraft(storage, key), null);
+  }
+});
