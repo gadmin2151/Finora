@@ -1,7 +1,9 @@
 package work.gadmin.finora
 
 import android.app.Application
+import android.content.Intent
 import android.net.Uri
+import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import java.io.File
@@ -1081,6 +1083,45 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
                         },
                     notice = tr(Message.AI_ANSWER_REPORTED),
                 )
+        }
+    }
+
+    fun openChatDestination(destination: ChatDestination) {
+        val current = mutable.value
+        if (
+            current.busy ||
+                !destination.available(
+                    current.organization?.isAdmin == true,
+                    current.user?.is_server_admin == true,
+                )
+        )
+            return
+        when (destination) {
+            ChatDestination.OVERVIEW -> navigate(Page.OVERVIEW)
+            ChatDestination.RECEIPTS -> navigate(Page.RECEIPTS)
+            ChatDestination.SETTINGS -> navigate(Page.PROFILE)
+            ChatDestination.ASSISTANT -> navigate(Page.CHAT)
+            ChatDestination.ORGANIZATIONS -> chooseOrganization()
+            ChatDestination.INCOME,
+            ChatDestination.DEBTS -> {
+                finance.tab(
+                    if (destination == ChatDestination.INCOME) FinanceTab.INCOME
+                    else FinanceTab.DEBTS
+                )
+                navigate(Page.FINANCES)
+            }
+            else -> {
+                try {
+                    val url = serverOrigin(current.server) + "/#" + destination.route
+                    getApplication<Application>()
+                        .startActivity(
+                            Intent(Intent.ACTION_VIEW, url.toUri())
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        )
+                } catch (_: Exception) {
+                    mutable.update { it.copy(error = tr(Message.AI_NAV_OPEN_FAILED)) }
+                }
+            }
         }
     }
 

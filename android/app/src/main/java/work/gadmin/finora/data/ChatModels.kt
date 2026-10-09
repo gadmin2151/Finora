@@ -44,6 +44,8 @@ data class ChatDetails(
     val actor_id: String? = null,
     val action_status: String? = null,
     val action_results: List<ChatActionResult>? = null,
+    val navigate_to: String? = null,
+    val open_receipt_id: String? = null,
 )
 
 @Serializable
