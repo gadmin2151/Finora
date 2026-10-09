@@ -608,6 +608,32 @@ function ReceiptForm({
     rate,
     items,
   ]);
+  function leaveManualDraft(close: () => void) {
+    if (action.isPending) return;
+    if (manual) {
+      try {
+        saveManualReceiptDraft(sessionStorage, storageKey, {
+          requestKey,
+          merchant,
+          address,
+          date,
+          currency,
+          account,
+          rate,
+          items,
+        });
+      } catch {
+        setDraftSaved(false);
+        toast(
+          t(
+            "Браузер не сохранил черновик. Не обновляйте страницу и не закрывайте окно до сохранения расхода.",
+          ),
+        );
+        return;
+      }
+    }
+    close();
+  }
   const readonly =
     !isAdmin || ["posted", "queued", "processing"].includes(receipt.status);
   const sum = items.reduce(
@@ -707,7 +733,7 @@ function ReceiptForm({
             )
       }
       onClose={() => {
-        if (!action.isPending) onClose();
+        leaveManualDraft(onClose);
       }}
     >
       <div className="receipt-status">
@@ -998,7 +1024,7 @@ function ReceiptForm({
           <button
             type="button"
             className="button secondary"
-            onClick={onClose}
+            onClick={() => leaveManualDraft(onClose)}
             disabled={action.isPending}
           >
             {manual ? t("Закрыть и оставить черновик") : t("Закрыть")}
@@ -1018,7 +1044,7 @@ function ReceiptForm({
               type="button"
               className="button secondary"
               disabled={action.isPending}
-              onClick={onBack}
+              onClick={() => leaveManualDraft(onBack)}
             >
               {t("Назад")}
             </button>

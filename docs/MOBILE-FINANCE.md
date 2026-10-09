@@ -1,4 +1,4 @@
-# Доходы и долги в Android · 1.7
+# Доходы, долги и ручные чеки в Android · 1.15
 
 Повтор подтверждения планового дохода или платежа после обрыва связи возвращает
 ту же операцию, если сумма, счёт, дата и курс не изменились. Если значения другие,
@@ -34,21 +34,22 @@
 
 Повторная отправка формы использует тот же ключ запроса: при потере ответа повторите с теми же данными. Сервер отклоняет несовпадающие повторы и устаревшие версии. После сохранения обновляются список, остатки и обзор. Жест сверху вниз и кнопка обновления заново запрашивают сервер.
 
-Изменения финансов требуют связи с сервером; очереди автономных денежных операций нет. Открытая форма сохраняется при повороте экрана, но ещё не является постоянным черновиком. Для создания/архивации счетов используйте веб-версию. API и схема базы данных совместимы с сервером Finora 1.6 — новых миграций нет.
-# Unfinished manual receipts
+Изменения финансов требуют связи с сервером; очереди автономных денежных операций нет. Формы доходов и долгов сохраняются при повороте экрана, но ещё не являются постоянными черновиками. Для создания/архивации счетов используйте веб-версию. API и схема базы данных совместимы с сервером Finora 1.6 — новых миграций нет.
 
-The web manual receipt form saves incomplete inputs and its request UUID in
-`sessionStorage`, scoped by user and organization. Closing the form or reloading
-the same tab resumes the draft; closing the tab ends that browser session.
-Successful posting clears the draft. An explicit, confirmed deletion starts a
-new draft next time. Browser storage failures remain visible in the form.
-This draft storage does not post an expense or replace server validation.
+## Незавершённые ручные чеки
 
-Android keeps a separate `manual-receipt.json` AtomicFile in the existing
-backup-excluded app-private workspace directory. A manual draft does not erase
-the photo draft. Returning from the editor flushes it to disk; Capture offers
-Continue manual receipt. The form and request UUID are saved before posting and
-cleared only after acknowledgement. An unreadable draft is retained until the
-user explicitly deletes it. Drafts remain local and require the same server,
-user and organization to resume.
+Веб-форма сохраняет незавершённые поля и UUID запроса в `sessionStorage`, отдельно
+для пользователя и организации. Можно закрыть форму или обновить ту же вкладку,
+затем продолжить ввод. Закрытие вкладки завершает эту браузерную сессию. Успешное
+сохранение расхода очищает черновик. Для начала заново удалите его отдельной
+кнопкой с подтверждением. Если браузер не смог сохранить ввод, редактор сообщает
+об ошибке и не закрывается по кнопке «Закрыть и оставить черновик».
+
+Android хранит отдельный `manual-receipt.json` через AtomicFile в приватном
+каталоге, исключённом из системного резервного копирования. Ручной черновик
+сохраняется независимо от фотографий. Возврат из редактора сохраняет поля;
+кнопка «Продолжить ручной чек» открывает их снова. Перед отправкой сохраняется и
+UUID, очистка выполняется после подтверждения сервера. Повреждённый черновик
+остаётся на устройстве до явного удаления. Для продолжения нужны тот же сервер,
+пользователь и организация. Само сохранение черновика не проводит расход.
 

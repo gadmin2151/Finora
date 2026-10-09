@@ -485,7 +485,12 @@ export function Modal({
       ref={ref}
       className={`modal ${wide ? "modal-wide" : ""}`}
       aria-labelledby={id}
-      onCancel={onClose}
+      onCancel={(event) => {
+        // Closing is controlled by the caller, which may be saving a request
+        // or preserving a draft. Native Escape must not bypass that decision.
+        event.preventDefault();
+        onClose();
+      }}
       onClick={(e) => {
         if (e.target === ref.current) onClose();
       }}
