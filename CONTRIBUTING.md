@@ -9,6 +9,7 @@ Use Python 3.12+, Node.js 24, pnpm 11.25.0 and PostgreSQL 17. Docker is the simp
 ```bash
 python3 -m venv .venv
 .venv/bin/pip install -r backend/requirements.txt
+.venv/bin/python scripts/check-dependency-lock.py
 .venv/bin/ruff check backend scripts
 .venv/bin/ruff format --check backend scripts
 .venv/bin/pytest -q backend/tests scripts/tests
