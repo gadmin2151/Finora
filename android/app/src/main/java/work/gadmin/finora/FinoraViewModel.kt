@@ -1099,7 +1099,6 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
         when (destination) {
             ChatDestination.OVERVIEW -> navigate(Page.OVERVIEW)
             ChatDestination.RECEIPTS -> navigate(Page.RECEIPTS)
-            ChatDestination.SETTINGS -> navigate(Page.PROFILE)
             ChatDestination.ASSISTANT -> navigate(Page.CHAT)
             ChatDestination.ORGANIZATIONS -> chooseOrganization()
             ChatDestination.INCOME,

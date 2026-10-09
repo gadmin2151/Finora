@@ -6,7 +6,7 @@ enum class ChatDestination(val route: String, val native: Boolean = false) {
     INCOME("income", true),
     DEBTS("debts", true),
     RECEIPTS("receipts", true),
-    SETTINGS("settings", true),
+    SETTINGS("settings"),
     ASSISTANT("assistant", true),
     ORGANIZATIONS("organizations", true),
     ACCOUNTS("accounts"),

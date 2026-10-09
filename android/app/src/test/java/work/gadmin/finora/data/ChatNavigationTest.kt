@@ -60,6 +60,7 @@ class ChatNavigationTest {
     fun webOnlyDestinationsCannotSilentlyOpenAnUnrelatedNativeScreen() {
         for (route in
             listOf(
+                "settings",
                 "transactions",
                 "purchases",
                 "reports",
@@ -73,7 +74,6 @@ class ChatNavigationTest {
                 "income",
                 "debts",
                 "receipts",
-                "settings",
                 "organizations",
             )) assertTrue(requireNotNull(message(route).destination(true, true)).native)
     }
