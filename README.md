@@ -116,7 +116,7 @@ Finora's assistant searches and explains **your own records**. The backend valid
 
 - **Useful without AI:** preset summaries, category reports and price comparisons work without a provider.
 - **Choose your provider:** OpenAI with an encrypted server-side key, or optional Ollama on your own hardware.
-- **Read-only by design:** the chat cannot move money, post expenses or delete records.
+- **Explicit approval for changes:** the chat can prepare record changes with exact amounts and targets. Only the requester can confirm them; financial actions use the existing validated APIs and audit history.
 - **Clear data boundaries:** only the selected organization's data is used. Recognition content and context needed for an answer are sent to the configured provider when AI is enabled.
 
 Price comparisons use historical purchases, not live shop offers. [How the assistant works →](docs/ASSISTANT.md)

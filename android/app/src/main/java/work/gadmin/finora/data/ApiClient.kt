@@ -407,6 +407,22 @@ class ApiClient(val server: String, savedCookie: String? = null) {
         execute(request("/api/chat/$id/report", org, "POST", jsonBody(buildJsonObject {})))
     }
 
+    suspend fun decideChatActions(
+        org: String,
+        id: String,
+        confirm: Boolean,
+    ): ChatActionDecisionResult =
+        json.decodeFromString(
+            execute(
+                request(
+                    "/api/chat/$id/actions",
+                    org,
+                    "POST",
+                    jsonBody(buildJsonObject { put("confirm", confirm) }),
+                )
+            )
+        )
+
     suspend fun sendChat(
         org: String,
         text: String,

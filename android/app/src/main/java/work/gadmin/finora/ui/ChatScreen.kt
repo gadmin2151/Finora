@@ -158,6 +158,8 @@ fun ChatScreen(state: AppState, vm: FinoraViewModel) {
                     }
                 items(state.chat, key = ChatMessage::id) { message ->
                     ChatBubble(message, vm::openReceipt, vm::reportChatAnswer, state.busy)
+                    if (!message.details.actions.isNullOrEmpty())
+                        ChatActions(message, state, vm::decideChatActions)
                 }
             }
             if (pending != null)

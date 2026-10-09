@@ -63,6 +63,16 @@ On **Бюджеты**, switch between **Карточки / Список**. Both 
 
 ## Request cost and failure behavior
 
+Android displays the same immutable action proposals as the web. Exact stored
+values are shown before a separate confirmation dialog; unknown or unreadable
+values disable execution. Only the original requester sees execution controls.
+Expired proposals can be cancelled but require a new request to execute. A
+proposal changed while its dialog is open cannot be approved from that snapshot.
+After a network failure, the app blocks local repeat until the current server
+status arrives. Completed, cancelled, executing and failed batches have distinct
+statuses, and successful/partial actions refresh the finance views. Existing
+servers and clients keep the same `{ "confirm": true/false }` API contract.
+
 A free question normally uses two requests: query planning and explanation. A quick report needs no planning request and at most one explanation request. The monthly cap is a request count, not a monetary spending cap. A failed provider attempt also consumes a reservation to prevent unbounded retries.
 
 If explanation fails, exact reports are returned. If the question cannot produce a valid report, the assistant requests clarification or shows an actionable error. Retry after a network failure retains the request key to avoid duplicate chat submissions. Draft text survives polling and refresh; changing organizations starts a separate context.

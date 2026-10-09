@@ -40,6 +40,27 @@ data class ChatDetails(
     val month: String? = null,
     val job_id: String? = null,
     val reports: List<AnalyticsReport> = emptyList(),
+    val actions: List<ChatAction>? = null,
+    val actor_id: String? = null,
+    val action_status: String? = null,
+    val action_results: List<ChatActionResult>? = null,
+)
+
+@Serializable
+data class ChatAction(
+    val operation: String,
+    val parameters_json: String = "{}",
+    val body_json: String = "{}",
+    val label: String,
+    val description: String,
+)
+
+@Serializable data class ChatActionResult(val label: String, val status: Int, val detail: String)
+
+@Serializable
+data class ChatActionDecisionResult(
+    val status: String,
+    val results: List<ChatActionResult> = emptyList(),
 )
 
 @Serializable

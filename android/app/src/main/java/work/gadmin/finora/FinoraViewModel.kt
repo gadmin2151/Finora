@@ -1084,6 +1084,69 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    fun decideChatActions(reviewed: ChatMessage, confirm: Boolean) = writeAction {
+        val current = mutable.value
+        val org = requireNotNull(current.organization).id
+        val message = current.chat.firstOrNull { it.id == reviewed.id }
+        require(
+            message != null &&
+                message.sameProposal(reviewed) &&
+                message.ownsPendingActions(current.user?.id)
+        ) {
+            tr(Message.AI_ACTIONS_CHANGED)
+        }
+        if (confirm)
+            require(message.canConfirmActions(current.user?.id)) {
+                tr(Message.AI_ACTIONS_EXPIRED_OR_INVALID)
+            }
+        val result =
+            try {
+                requireNotNull(api).decideChatActions(org, message.id, confirm)
+            } catch (error: Exception) {
+                // A timeout can follow a committed action. Block local repeat until
+                // the server supplies the current once-only proposal status.
+                if (error is CancellationException) throw error
+                mutable.update { state ->
+                    state.copy(
+                        chat =
+                            state.chat.map {
+                                if (it.id == message.id)
+                                    it.copy(details = it.details.copy(action_status = "uncertain"))
+                                else it
+                            }
+                    )
+                }
+                loadChat(background = true)
+                throw error
+            }
+        mutable.update { state ->
+            state.copy(
+                chat =
+                    state.chat.map {
+                        if (it.id == message.id)
+                            it.copy(
+                                details =
+                                    it.details.copy(
+                                        action_status = result.status,
+                                        action_results = result.results,
+                                    )
+                            )
+                        else it
+                    },
+                notice = tr(Message.AI_ACTIONS_STATUS_UPDATED),
+            )
+        }
+        if (confirm) {
+            finance.reset()
+            wallet.reset()
+            purchases.reset()
+            loadReceipts()
+            loadDashboard()
+            fetchWorkspace(org)
+        }
+        loadChat(background = true)
+    }
+
     fun sendChat(report: String? = null) = writeAction {
         val current = mutable.value
         val org = requireNotNull(current.organization).id
