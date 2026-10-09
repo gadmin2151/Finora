@@ -1,6 +1,5 @@
 package work.gadmin.finora.ui
 
-import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -13,21 +12,17 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
 import work.gadmin.finora.AppState
 import work.gadmin.finora.FinoraViewModel
 import work.gadmin.finora.data.Organization
-import work.gadmin.finora.data.PRIVACY_POLICY_URL
 import work.gadmin.finora.localization.Message
 import work.gadmin.finora.localization.tr
 
 @Composable
 fun LoginScreen(state: AppState, vm: FinoraViewModel) {
-    val context = LocalContext.current
     var server by rememberSaveable { mutableStateOf(state.server) }
     var username by rememberSaveable { mutableStateOf(vm.lastUsername) }
     // Password is intentionally neither saved across process death nor persisted.
@@ -128,7 +123,7 @@ fun LoginScreen(state: AppState, vm: FinoraViewModel) {
         InfoCard(tr(Message.A_SECURE_CONNECTION_TO_YOUR_SERVER_USE_THE_SAME_USERNAME_A))
         TextButton(
             {
-                context.startActivity(Intent(Intent.ACTION_VIEW, PRIVACY_POLICY_URL.toUri()))
+                vm.openPrivacyPolicy()
             },
             modifier = Modifier.align(Alignment.CenterHorizontally),
         ) {

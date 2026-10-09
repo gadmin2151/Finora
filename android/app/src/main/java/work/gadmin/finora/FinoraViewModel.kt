@@ -1113,18 +1113,36 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
                 )
                 navigate(Page.FINANCES)
             }
-            else -> {
-                try {
-                    val url = serverOrigin(current.server) + "/#" + destination.route
-                    getApplication<Application>()
-                        .startActivity(
-                            Intent(Intent.ACTION_VIEW, url.toUri())
-                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        )
-                } catch (_: Exception) {
-                    mutable.update { it.copy(error = tr(Message.AI_NAV_OPEN_FAILED)) }
-                }
-            }
+            else -> openWebsite(destination)
+        }
+    }
+
+    fun openWebsite(destination: ChatDestination? = null) {
+        val current = mutable.value
+        if (
+            destination != null &&
+                !destination.available(
+                    current.organization?.isAdmin == true,
+                    current.user?.is_server_admin == true,
+                )
+        )
+            return
+        openBrowser {
+            serverOrigin(current.server) + (destination?.let { "/#" + it.route } ?: "")
+        }
+    }
+
+    fun openPrivacyPolicy() = openBrowser { PRIVACY_POLICY_URL }
+
+    private fun openBrowser(url: () -> String) {
+        try {
+            getApplication<Application>()
+                .startActivity(
+                    Intent(Intent.ACTION_VIEW, url().toUri())
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                )
+        } catch (_: Exception) {
+            mutable.update { it.copy(error = tr(Message.AI_NAV_OPEN_FAILED)) }
         }
     }
 

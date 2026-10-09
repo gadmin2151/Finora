@@ -1,6 +1,5 @@
 package work.gadmin.finora.ui
 
-import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -11,20 +10,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
 import work.gadmin.finora.AppState
 import work.gadmin.finora.BuildConfig
 import work.gadmin.finora.FinoraViewModel
-import work.gadmin.finora.data.PRIVACY_POLICY_URL
 import work.gadmin.finora.localization.Message
 import work.gadmin.finora.localization.tr
 
 @Composable
 fun ProfileScreen(state: AppState, vm: FinoraViewModel) {
-    val context = LocalContext.current
     var logout by remember { mutableStateOf(false) }
     val picker =
         rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -130,19 +125,14 @@ fun ProfileScreen(state: AppState, vm: FinoraViewModel) {
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     OutlinedButton(
-                        { context.startActivity(Intent(Intent.ACTION_VIEW, state.server.toUri())) },
+                        { vm.openWebsite() },
                         Modifier.fillMaxWidth(),
                     ) {
                         Text(tr(Message.OPEN_WEBSITE))
                     }
                     TextButton(
                         {
-                            context.startActivity(
-                                Intent(
-                                    Intent.ACTION_VIEW,
-                                    PRIVACY_POLICY_URL.toUri(),
-                                )
-                            )
+                            vm.openPrivacyPolicy()
                         },
                         Modifier.fillMaxWidth(),
                     ) {

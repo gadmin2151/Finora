@@ -1,6 +1,5 @@
 package work.gadmin.finora.ui
 
-import android.content.Intent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -11,12 +10,10 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
 import work.gadmin.finora.*
 import work.gadmin.finora.data.*
 import work.gadmin.finora.localization.Message
@@ -171,7 +168,6 @@ fun ReceiptDetailScreen(state: AppState, vm: FinoraViewModel) {
     var search by rememberSaveable(state.detailId) { mutableStateOf("") }
     var category by rememberSaveable(state.detailId) { mutableStateOf<String?>(null) }
     var categoriesOpen by remember { mutableStateOf(false) }
-    val context = LocalContext.current
     val receipt = state.detail
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -335,9 +331,7 @@ fun ReceiptDetailScreen(state: AppState, vm: FinoraViewModel) {
             item {
                 OutlinedButton(
                     {
-                        context.startActivity(
-                            Intent(Intent.ACTION_VIEW, (state.server + "/#receipts").toUri())
-                        )
+                        vm.openWebsite(ChatDestination.RECEIPTS)
                     },
                     Modifier.fillMaxWidth(),
                 ) {
