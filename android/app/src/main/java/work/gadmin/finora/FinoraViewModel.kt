@@ -597,7 +597,7 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
 
     fun saveManualDraft(requestKey: String, form: ReceiptForm) {
         val store = manualDrafts ?: return
-        if (mutable.value.manualReceiptKey != requestKey) return
+        if (mutable.value.busy || mutable.value.manualReceiptKey != requestKey) return
         val draft = ManualReceiptDraft(requestKey, form)
         mutable.update { it.copy(manualReceiptDraft = draft, manualDraftSaved = false) }
         viewModelScope.launch {
@@ -607,6 +607,7 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
                         manualDraftLock.withLock {
                             if (
                                 manualDrafts === store &&
+                                    !mutable.value.busy &&
                                     mutable.value.manualReceiptKey == requestKey &&
                                     mutable.value.manualReceiptDraft == draft
                             ) {
