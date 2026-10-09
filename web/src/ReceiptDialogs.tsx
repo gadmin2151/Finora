@@ -92,6 +92,7 @@ export function UploadReceipt({ onClose }: { onClose: () => void }) {
     },
   );
   function selectFiles(selected: File[]) {
+    if (action.isPending) return;
     if (
       selected.length > 4 ||
       selected.some((f) => f.size > 15 * 1024 * 1024)
@@ -136,7 +137,9 @@ export function UploadReceipt({ onClose }: { onClose: () => void }) {
       description={t(
         "Фото или QR молдавского чека. Товары и категории — в одном месте.",
       )}
-      onClose={onClose}
+      onClose={() => {
+        if (!action.isPending) onClose();
+      }}
     >
       <div className="notice">
         <strong>
@@ -148,173 +151,191 @@ export function UploadReceipt({ onClose }: { onClose: () => void }) {
           )}
         </p>
       </div>
-      <Form onSubmit={() => action.mutate(undefined)}>
-        <div className="segmented receipt-input-modes">
-          <button
-            type="button"
-            className={mode === "photo" ? "selected" : ""}
-            onClick={() => setMode("photo")}
-          >
-            <Camera size={17} />
-            {t("Фото чека")}
-          </button>
-          <button
-            type="button"
-            className={mode === "link" ? "selected" : ""}
-            onClick={() => setMode("link")}
-          >
-            <Link2 size={17} />
-            {t("QR-ссылка")}
-          </button>
-          {isAdmin && (
-            <button type="button" onClick={() => setMode("manual")}>
-              <PenLine size={17} />
-              {t("Вручную")}
-            </button>
-          )}
-        </div>
-        {mode === "photo" ? (
-          <>
-            <div
-              role="button"
-              tabIndex={0}
-              aria-label={t("Выбрать фотографии чека")}
-              className={`dropzone ${drag ? "dragging" : ""}`}
-              onClick={() => input.current?.click()}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  input.current?.click();
-                }
-              }}
-              onDragOver={(e) => {
-                e.preventDefault();
-                setDrag(true);
-              }}
-              onDragLeave={() => setDrag(false)}
-              onDrop={(e) => {
-                e.preventDefault();
-                setDrag(false);
-                selectFiles(Array.from(e.dataTransfer.files));
-              }}
-            >
-              <UploadCloud size={34} />
-              <strong>
-                {files.length
-                  ? t("Выбрано фото: {0}", files.length)
-                  : t("Перетащите чек сюда")}
-              </strong>
-              <span>{t("или нажмите, чтобы выбрать фотографии")}</span>
-              <small>
-                {t("JPEG, PNG, WebP, HEIC · до 15 МБ · до 4 фото одного чека")}
-              </small>
-            </div>
-            <input
-              ref={input}
-              hidden
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
-              multiple
-              onChange={(e) => selectFiles(Array.from(e.target.files ?? []))}
-            />
-            <input
-              ref={camera}
-              hidden
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={(e) => selectFiles(Array.from(e.target.files ?? []))}
-            />
+      <Form
+        onSubmit={() => {
+          if (!action.isPending) action.mutate(undefined);
+        }}
+      >
+        <fieldset disabled={action.isPending}>
+          <div className="segmented receipt-input-modes">
             <button
               type="button"
-              className="text-button camera-button"
-              onClick={() => camera.current?.click()}
+              className={mode === "photo" ? "selected" : ""}
+              onClick={() => setMode("photo")}
             >
-              <Camera size={18} />
-              {t("Снять чек или его QR камерой")}
+              <Camera size={17} />
+              {t("Фото чека")}
             </button>
-            {files.map((f, i) => (
-              <div className="file-chip" key={i}>
-                <FileImage size={18} />
-                <span>{f.name}</span>
-                <button
-                  type="button"
-                  className="icon-button"
-                  aria-label={t("Убрать {0}", f.name)}
-                  onClick={() => setFiles(files.filter((_, n) => n !== i))}
-                >
-                  <Trash2 size={16} />
-                </button>
+            <button
+              type="button"
+              className={mode === "link" ? "selected" : ""}
+              onClick={() => setMode("link")}
+            >
+              <Link2 size={17} />
+              {t("QR-ссылка")}
+            </button>
+            {isAdmin && (
+              <button type="button" onClick={() => setMode("manual")}>
+                <PenLine size={17} />
+                {t("Вручную")}
+              </button>
+            )}
+          </div>
+          {mode === "photo" ? (
+            <>
+              <div
+                role="button"
+                tabIndex={action.isPending ? -1 : 0}
+                aria-disabled={action.isPending}
+                aria-label={t("Выбрать фотографии чека")}
+                className={`dropzone ${drag ? "dragging" : ""}`}
+                onClick={() => {
+                  if (!action.isPending) input.current?.click();
+                }}
+                onKeyDown={(e) => {
+                  if (
+                    !action.isPending &&
+                    (e.key === "Enter" || e.key === " ")
+                  ) {
+                    e.preventDefault();
+                    input.current?.click();
+                  }
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  if (!action.isPending) setDrag(true);
+                }}
+                onDragLeave={() => setDrag(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDrag(false);
+                  selectFiles(Array.from(e.dataTransfer.files));
+                }}
+              >
+                <UploadCloud size={34} />
+                <strong>
+                  {files.length
+                    ? t("Выбрано фото: {0}", files.length)
+                    : t("Перетащите чек сюда")}
+                </strong>
+                <span>{t("или нажмите, чтобы выбрать фотографии")}</span>
+                <small>
+                  {t(
+                    "JPEG, PNG, WebP, HEIC · до 15 МБ · до 4 фото одного чека",
+                  )}
+                </small>
               </div>
-            ))}
-          </>
-        ) : (
-          <Field
-            label={t("Ссылка из QR-кода")}
-            hint={t("HTTPS-ссылка на электронный чек любого магазина")}
-          >
-            <input
-              type="url"
-              required
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder={t("Вставьте ссылку из QR-кода")}
-              maxLength={1000}
-            />
-          </Field>
-        )}
-        <div className="form-grid">
-          <Field label={t("Оплачено со счёта")}>
-            <AccountSelect
-              accounts={accounts}
-              value={account}
-              onChange={setAccount}
-              optional
-            />
-          </Field>
-          {currency !== "MDL" && (
-            <Field label={t("Курс 1 {0} в MDL", currency)}>
               <input
-                type="number"
+                ref={input}
+                hidden
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+                multiple
+                onChange={(e) => selectFiles(Array.from(e.target.files ?? []))}
+              />
+              <input
+                ref={camera}
+                hidden
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={(e) => selectFiles(Array.from(e.target.files ?? []))}
+              />
+              <button
+                type="button"
+                className="text-button camera-button"
+                onClick={() => camera.current?.click()}
+              >
+                <Camera size={18} />
+                {t("Снять чек или его QR камерой")}
+              </button>
+              {files.map((f, i) => (
+                <div className="file-chip" key={i}>
+                  <FileImage size={18} />
+                  <span>{f.name}</span>
+                  <button
+                    type="button"
+                    className="icon-button"
+                    aria-label={t("Убрать {0}", f.name)}
+                    onClick={() => setFiles(files.filter((_, n) => n !== i))}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))}
+            </>
+          ) : (
+            <Field
+              label={t("Ссылка из QR-кода")}
+              hint={t("HTTPS-ссылка на электронный чек любого магазина")}
+            >
+              <input
+                type="url"
                 required
-                min="0.00000001"
-                step="0.00000001"
-                value={rate}
-                onChange={(e) => setRate(e.target.value)}
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder={t("Вставьте ссылку из QR-кода")}
+                maxLength={1000}
               />
             </Field>
           )}
-        </div>
-        <div className="notice">
-          {prefs?.auto_post
-            ? t(
-                "Проверенный чек запишется автоматически на выбранный счёт. Спорные суммы и возможные дубликаты останутся на проверке.",
-              )
-            : t(
-                "Распознанный чек останется черновиком до вашего подтверждения.",
-              )}
-          {prefs?.provider === "disabled" && (
-            <p>
-              {t(
-                "Доступны MEV и локальный OCR. Для сложных фотографий подключите модель с поддержкой изображений в настройках.",
-              )}
-            </p>
-          )}
-          {prefs?.provider === "openai" && (
-            <p>
-              {t(
-                "Если локальный OCR не справится, фото будет отправлено в OpenAI.",
-              )}
-            </p>
-          )}
-        </div>
-        <ErrorBox error={fileError || action.error} />
-        <footer className="modal-footer">
-          <button type="button" className="button secondary" onClick={onClose}>
-            {t("Отмена")}
-          </button>
-          <Submit pending={action.isPending}>{t("Распознать чек")}</Submit>
-        </footer>
+          <div className="form-grid">
+            <Field label={t("Оплачено со счёта")}>
+              <AccountSelect
+                accounts={accounts}
+                value={account}
+                onChange={setAccount}
+                optional
+              />
+            </Field>
+            {currency !== "MDL" && (
+              <Field label={t("Курс 1 {0} в MDL", currency)}>
+                <input
+                  type="number"
+                  required
+                  min="0.00000001"
+                  step="0.00000001"
+                  value={rate}
+                  onChange={(e) => setRate(e.target.value)}
+                />
+              </Field>
+            )}
+          </div>
+          <div className="notice">
+            {prefs?.auto_post
+              ? t(
+                  "Проверенный чек запишется автоматически на выбранный счёт. Спорные суммы и возможные дубликаты останутся на проверке.",
+                )
+              : t(
+                  "Распознанный чек останется черновиком до вашего подтверждения.",
+                )}
+            {prefs?.provider === "disabled" && (
+              <p>
+                {t(
+                  "Доступны MEV и локальный OCR. Для сложных фотографий подключите модель с поддержкой изображений в настройках.",
+                )}
+              </p>
+            )}
+            {prefs?.provider === "openai" && (
+              <p>
+                {t(
+                  "Если локальный OCR не справится, фото будет отправлено в OpenAI.",
+                )}
+              </p>
+            )}
+          </div>
+          <ErrorBox error={fileError || action.error} />
+          <footer className="modal-footer">
+            <button
+              type="button"
+              className="button secondary"
+              onClick={onClose}
+            >
+              {t("Отмена")}
+            </button>
+            <Submit pending={action.isPending}>{t("Распознать чек")}</Submit>
+          </footer>
+        </fieldset>
       </Form>
     </Modal>
   );
