@@ -1,4 +1,5 @@
 {
+  "Чек уже подтверждён с другими данными. Откройте сохранённый чек": "This receipt was already confirmed with different values. Open the saved receipt",
   "Операция этого запроса отменена. Создайте новую с новым ключом": "This request's transaction was cancelled. Start a new operation with a new request key",
   "План уже исполнен с другими данными. Откройте связанную операцию": "This plan was already completed with different values. Open the linked transaction",
   "Источник дохода не найден": "Income source not found",

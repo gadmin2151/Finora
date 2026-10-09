@@ -867,11 +867,55 @@ def receipt_dict(db, receipt: m.Receipt, preloaded=None):
     }
 
 
+def validate_posted_confirmation(db, organization_id, receipt, data, saved):
+    """A lost-response retry acknowledges saved values; it cannot silently discard edits."""
+    account = (
+        owned(db, m.Account, data.account_id, organization_id)
+        if data.account_id == receipt.account_id
+        else payment_account(db, organization_id, data.account_id)
+    )
+    same = (
+        receipt.merchant == data.merchant
+        and receipt.purchased_on == data.purchased_on
+        and receipt.currency == data.currency
+        and receipt.total_minor == minor(data.total)
+        and receipt.account_id == account.id
+        and (data.merchant_address is None or saved["merchant_address"] == data.merchant_address)
+        and (data.transaction_id is None or data.transaction_id == saved["transaction_id"])
+    )
+    if same and data.transaction_id is None:
+        same = receipt.fx_rate == rate_for(data.currency, data.fx_rate)
+    remaining = list(saved["items"])
+    for item in sorted(data.items, key=lambda line: line.category_id is None):
+        match = next(
+            (
+                row
+                for row in remaining
+                if row["name"] == item.name
+                and Decimal(row["quantity"]) == item.quantity
+                and normalized_unit(row["unit"]) == normalized_unit(item.unit)
+                and row["unit_price_minor"] == minor(item.unit_price)
+                and row["total_minor"] == minor(item.total)
+                # Automatic categorization can fill a category the requester left empty.
+                and (item.category_id is None or row["category_id"] == item.category_id)
+            ),
+            None,
+        )
+        if match is None:
+            same = False
+            break
+        remaining.remove(match)
+    if not same or remaining:
+        fail("Чек уже подтверждён с другими данными. Откройте сохранённый чек", 409)
+
+
 def confirm_receipt(db, organization_id: str, receipt: m.Receipt, data: ReceiptConfirm):
     lock_organization(db, organization_id)
     db.refresh(receipt)
     if receipt.status == "posted":
-        return receipt_dict(db, receipt)
+        saved = receipt_dict(db, receipt)
+        validate_posted_confirmation(db, organization_id, receipt, data, saved)
+        return saved
     if receipt.status in {"queued", "processing"}:
         fail("Дождитесь окончания распознавания", 409)
     if data.version != receipt.version:
@@ -951,7 +995,7 @@ def confirm_receipt(db, organization_id: str, receipt: m.Receipt, data: ReceiptC
                 splits=[
                     SplitInput(category_id=c, amount=money(v)) for c, v in splits.items() if v > 0
                 ],
-                idempotency_key="receipt-" + receipt.id,
+                idempotency_key=f"receipt-{receipt.id}-v{data.version}",
             ),
             receipt_id=receipt.id,
         )
