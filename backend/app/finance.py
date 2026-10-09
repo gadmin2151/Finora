@@ -53,12 +53,24 @@ def money(amount: int) -> str:
     return format(Decimal(amount) / 100, ".2f")
 
 
-def rate_for(currency: str, rate: Decimal | None) -> Decimal:
+def normalize_rate(rate: Decimal | int, *, acknowledge_stored: bool = False) -> Decimal:
+    # PostgreSQL Numeric(18, 8) rounds ties away from zero. Calculate and compare
+    # using that same value before writing, rather than letting persistence change it.
+    rate = Decimal(rate)
+    if not rate.is_finite() or not Decimal(0) < rate <= Decimal(100000):
+        fail("Укажите положительный курс, сохраняемый с точностью до восьми знаков")
+    value = rate.quantize(Decimal("0.00000001"), rounding=ROUND_HALF_UP)
+    if value == 0 and not acknowledge_stored:
+        fail("Укажите положительный курс, сохраняемый с точностью до восьми знаков")
+    return value
+
+
+def rate_for(currency: str, rate: Decimal | None, *, acknowledge_stored: bool = False) -> Decimal:
     if currency == "MDL":
         return Decimal(1)
     if rate is None:
         fail("Для иностранной валюты укажите курс к MDL на дату операции")
-    return rate
+    return normalize_rate(rate, acknowledge_stored=acknowledge_stored)
 
 
 def owned(db: Session, model, key: str, organization_id: str, lock: bool = False):
@@ -416,7 +428,9 @@ def validate_occurrence_retry(
     )
     # Linking an existing transaction preserves its original exchange rate.
     requested_rate = (
-        transaction.fx_rate if data.transaction_id else rate_for(account.currency, data.fx_rate)
+        transaction.fx_rate
+        if data.transaction_id
+        else rate_for(account.currency, data.fx_rate, acknowledge_stored=True)
     )
     if (
         transaction.account_id != account.id

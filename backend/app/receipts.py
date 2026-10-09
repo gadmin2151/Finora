@@ -884,7 +884,7 @@ def validate_posted_confirmation(db, organization_id, receipt, data, saved):
         and (data.transaction_id is None or data.transaction_id == saved["transaction_id"])
     )
     if same and data.transaction_id is None:
-        same = receipt.fx_rate == rate_for(data.currency, data.fx_rate)
+        same = receipt.fx_rate == rate_for(data.currency, data.fx_rate, acknowledge_stored=True)
     remaining = list(saved["items"])
     for item in sorted(data.items, key=lambda line: line.category_id is None):
         match = next(

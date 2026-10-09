@@ -33,6 +33,7 @@
   "MEV не отдал чек. Загрузите его фотографию или заполните данные вручную.": "MEV did not return the receipt. Upload a photo or enter the details manually.",
   "Укажите сумму с точностью до двух знаков после запятой": "Enter an amount with no more than two decimal places",
   "Для иностранной валюты укажите курс к MDL на дату операции": "Enter the foreign currency exchange rate to MDL on the transaction date",
+  "Укажите положительный курс, сохраняемый с точностью до восьми знаков": "Enter a positive exchange rate that remains positive when rounded to eight decimal places",
   "Запись не найдена": "Record not found",
   "Будущие расходы добавляйте в план платежей": "Add future expenses to scheduled payments",
   "Счёт находится в архиве": "The account is archived",

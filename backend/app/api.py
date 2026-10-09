@@ -36,6 +36,7 @@ from .finance import (
     lock_organization,
     minor,
     month_range,
+    normalize_rate,
     owned,
     payment_account,
     recommendations,
@@ -703,6 +704,7 @@ def register_receipt(
                     audit(db, organization_id, "receipt.originals_added", prior.id)
                 db.commit()
             return {"receipt": receipt_dict(db, prior), "duplicate": True}
+    fx_rate = normalize_rate(fx_rate)
     receipt = prior or m.Receipt(
         organization_id=organization_id,
         source=source,
