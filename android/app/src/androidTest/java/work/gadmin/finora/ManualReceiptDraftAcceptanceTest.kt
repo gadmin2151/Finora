@@ -73,6 +73,80 @@ class ManualReceiptDraftAcceptanceTest {
     }
 
     @Test
+    fun closingFlushesLatestFormAndExplicitDeletionDoesNotRecreateIt() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val context = instrumentation.targetContext
+        assumeTrue(Build.MODEL.startsWith("sdk_gphone"))
+        assumeTrue(!File(context.noBackupFilesDir, "session.enc").exists())
+        val scope =
+            scopeKey("https://synthetic.invalid", "close-race", UUID.randomUUID().toString())
+        val disk = ManualReceiptDraftStore(context, scope)
+        val original =
+            ManualReceiptDraft(UUID.randomUUID().toString(), ReceiptForm.manual(emptyList()))
+        val latest =
+            original.form.copy(
+                merchant = "Latest unfinished store",
+                items = listOf(ReceiptLineForm(name = "Incomplete final item", quantity = "1,")),
+            )
+        val vm = FinoraViewModel(context.applicationContext as Application)
+        val holder = ViewModelStore().apply { put("close-race", vm) }
+        try {
+            runBlocking { withTimeout(10_000) { vm.state.first { !it.starting } } }
+            @Suppress("UNCHECKED_CAST")
+            val mutable =
+                FinoraViewModel::class.java.getDeclaredField("mutable").let {
+                    it.isAccessible = true
+                    it.get(vm) as MutableStateFlow<AppState>
+                }
+            FinoraViewModel::class.java.getDeclaredField("manualDrafts").let {
+                it.isAccessible = true
+                it.set(vm, disk)
+            }
+            disk.save(original)
+            instrumentation.runOnMainSync {
+                mutable.value =
+                    AppState(
+                        starting = false,
+                        editingReceipt = true,
+                        manualReceiptKey = original.requestKey,
+                        manualReceiptDraft = original,
+                    )
+                vm.saveManualDraft(
+                    original.requestKey,
+                    original.form.copy(merchant = "Earlier edit"),
+                )
+                vm.closeManualDraft(latest)
+            }
+            runBlocking {
+                withTimeout(10_000) { vm.state.first { !it.busy && !it.editingReceipt } }
+            }
+            assertEquals(ManualReceiptDraft(original.requestKey, latest), disk.read())
+            assertEquals(latest, vm.state.value.manualReceiptDraft?.form)
+            assertTrue(vm.state.value.manualDraftSaved)
+            instrumentation.runOnMainSync {
+                mutable.value =
+                    mutable.value.copy(
+                        editingReceipt = true,
+                        manualReceiptKey = original.requestKey,
+                    )
+                vm.saveManualDraft(
+                    original.requestKey,
+                    latest.copy(merchant = "Obsolete queued edit"),
+                )
+                vm.discardManualDraft()
+            }
+            runBlocking {
+                withTimeout(10_000) { vm.state.first { !it.busy && it.manualReceiptDraft == null } }
+            }
+            assertNull(disk.read())
+            assertNull(vm.state.value.manualReceiptKey)
+        } finally {
+            instrumentation.runOnMainSync { holder.clear() }
+            File(context.noBackupFilesDir, "drafts/$scope").deleteRecursively()
+        }
+    }
+
+    @Test
     fun atomicDraftSurvivesStoreRecreationWithoutErasingPhotosOrChangingRequestId() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val scope = scopeKey("https://synthetic.invalid", "test-user", UUID.randomUUID().toString())

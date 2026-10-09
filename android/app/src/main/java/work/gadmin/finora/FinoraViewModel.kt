@@ -634,6 +634,8 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
     fun closeManualDraft(form: ReceiptForm) = writeAction {
         val key = requireNotNull(mutable.value.manualReceiptKey)
         val draft = ManualReceiptDraft(key, form)
+        // Invalidate queued snapshots before the final write, including failures.
+        mutable.update { it.copy(manualReceiptDraft = draft, manualDraftSaved = false) }
         withContext(Dispatchers.IO) {
             manualDraftLock.withLock { requireNotNull(manualDrafts).save(draft) }
         }
@@ -669,11 +671,12 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
         if (current.manualReceiptKey != null) {
             require(org.isAdmin) { tr(Message.AVAILABLE_TO_ADMINISTRATORS) }
             val store = requireNotNull(manualDrafts)
+            val snapshot = ManualReceiptDraft(current.manualReceiptKey, form)
+            mutable.update { it.copy(manualReceiptDraft = snapshot, manualDraftSaved = false) }
             withContext(Dispatchers.IO) {
-                manualDraftLock.withLock {
-                    store.save(ManualReceiptDraft(current.manualReceiptKey, form))
-                }
+                manualDraftLock.withLock { store.save(snapshot) }
             }
+            mutable.update { it.copy(manualDraftSaved = true) }
             val confirmed =
                 requireNotNull(api).manualReceipt(org.id, form, current.manualReceiptKey).receipt
             // Clear only after server acknowledgement. If local deletion fails,
