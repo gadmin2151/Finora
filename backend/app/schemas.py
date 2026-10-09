@@ -268,7 +268,7 @@ class ChatInput(Strict):
 
 class ReceiptLineInput(Strict):
     name: str = Field(min_length=1, max_length=300)
-    quantity: Decimal = Field(gt=0, le=100000)
+    quantity: Decimal = Field(gt=0, le=100000, decimal_places=6)
     unit: str = Field(default="шт", max_length=12)
     unit_price: Money = Field(ge=0, le=1000000000)
     total: Money = Field(ge=0, le=1000000000)

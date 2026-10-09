@@ -52,8 +52,9 @@ def test_local_ocr_posts_without_ai(client, owner, accounts, monkeypatch, fuzzy)
 
 
 @pytest.mark.parametrize("uncertain", [False, True])
+@pytest.mark.parametrize("quantity", ["1", "1.0000001"])
 def test_photo_pipeline_validates_before_automatic_post(
-    client, owner, accounts, monkeypatch, uncertain
+    client, owner, accounts, monkeypatch, uncertain, quantity
 ):
     async def extract(*args, **kwargs):
         return {
@@ -66,7 +67,7 @@ def test_photo_pipeline_validates_before_automatic_post(
             "items": [
                 {
                     "name": "LAPTE",
-                    "quantity": "1",
+                    "quantity": quantity,
                     "unit": "шт",
                     "unit_price": "10.00",
                     "total": "10.00",
@@ -95,10 +96,14 @@ def test_photo_pipeline_validates_before_automatic_post(
     Image.new("RGB", (100, 200), "white").save(directory / "photo.jpg", "JPEG")
     asyncio.run(process_receipt(rid))
     result = client.get(f"/api/receipts/{rid}").json()
-    assert result["status"] == ("review" if uncertain else "posted")
-    assert len(result["items"]) == 1
-    assert client.get("/api/transactions").json()["total"] == (0 if uncertain else 1)
-    if not uncertain:
+    supported = quantity == "1"
+    posts = supported and not uncertain
+    assert result["status"] == ("posted" if posts else "review")
+    assert len(result["items"]) == (1 if supported else 0)
+    assert client.get("/api/transactions").json()["total"] == (1 if posts else 0)
+    if not supported:
+        assert any("Не удалось разобрать строку" in warning for warning in result["warnings"])
+    if posts:
         asyncio.run(process_receipt(rid))
         assert client.get("/api/transactions").json()["total"] == 1
 

@@ -1349,6 +1349,7 @@ async def process_receipt(receipt_id: str):
                     not quantity.is_finite()
                     or quantity <= 0
                     or quantity > 100000
+                    or quantity != quantity.quantize(Decimal("0.000001"))
                     or price < 0
                     or total < 0
                     or not line.name

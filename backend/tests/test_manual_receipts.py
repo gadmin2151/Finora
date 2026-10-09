@@ -1,5 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from datetime import date, timedelta
+from decimal import Decimal
 from threading import Event
 from uuid import uuid4
 
@@ -188,4 +189,26 @@ def test_parallel_retry_waits_for_first_commit_and_posts_only_once(client, accou
     assert not initial["duplicate"] and retry["duplicate"]
     assert initial["receipt"]["id"] == retry["receipt"]["id"]
     assert client.get("/api/receipts").json()["total"] == 1
+    assert client.get("/api/transactions").json()["total"] == 1
+
+
+@pytest.mark.parametrize("quantity", ["0.0000001", "1.0000001", "1.23456789"])
+def test_manual_receipt_rejects_quantity_that_database_would_round(client, accounts, quantity):
+    body = entry(accounts[0])
+    body["items"][0]["quantity"] = quantity
+    response = client.post("/api/receipts/manual", json=body)
+    assert response.status_code == 422, response.text
+    assert_no_receipts()
+    assert all(account["balance_minor"] == 0 for account in client.get("/api/accounts").json())
+
+
+@pytest.mark.parametrize("quantity", ["1.312345", "1.312345000", "1.312345e0"])
+def test_manual_receipt_preserves_supported_quantity_and_matching_retry(client, accounts, quantity):
+    body = entry(accounts[0])
+    body["items"][0]["quantity"] = quantity
+    result = client.post("/api/receipts/manual", json=body)
+    assert result.status_code == 200, result.text
+    assert Decimal(result.json()["receipt"]["items"][0]["quantity"]) == Decimal(quantity)
+    repeat = client.post("/api/receipts/manual", json=body)
+    assert repeat.status_code == 200 and repeat.json()["duplicate"]
     assert client.get("/api/transactions").json()["total"] == 1
