@@ -181,4 +181,91 @@ class ManualReceiptDraftAcceptanceTest {
             File(context.noBackupFilesDir, "drafts/$other").deleteRecursively()
         }
     }
+
+    @Test
+    fun organizationSwitchRejectsOldEditorAndViewModelRecreationRestoresExactOwnerDraft() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val context = instrumentation.targetContext
+        assumeTrue(Build.MODEL.startsWith("sdk_gphone"))
+        assumeTrue(!File(context.noBackupFilesDir, "session.enc").exists())
+        val server = "https://synthetic.invalid"
+        val userId = UUID.randomUUID().toString()
+        val firstOrg = Organization(UUID.randomUUID().toString(), "Synthetic A", "admin")
+        val secondOrg = Organization(UUID.randomUUID().toString(), "Synthetic B", "admin")
+        val user =
+            User(userId, "synthetic-scope", "Synthetic", "synthetic", listOf(firstOrg, secondOrg))
+        val scopes =
+            listOf(
+                scopeKey(server, userId, firstOrg.id),
+                scopeKey(server, userId, secondOrg.id),
+                scopeKey(server, "other-user", firstOrg.id),
+                scopeKey("https://other-synthetic.invalid", userId, firstOrg.id),
+            )
+        val original =
+            ManualReceiptDraft(
+                UUID.randomUUID().toString(),
+                ReceiptForm.manual(emptyList()).copy(merchant = "Synthetic unfinished A"),
+            )
+        val disk = ManualReceiptDraftStore(context, scopes[0])
+        val holders = mutableListOf<ViewModelStore>()
+        fun create(): FinoraViewModel {
+            val vm = FinoraViewModel(context.applicationContext as Application)
+            holders.add(ViewModelStore().apply { put("scope", vm) })
+            runBlocking { withTimeout(10_000) { vm.state.first { !it.starting } } }
+            @Suppress("UNCHECKED_CAST")
+            val mutable =
+                FinoraViewModel::class.java.getDeclaredField("mutable").let {
+                    it.isAccessible = true
+                    it.get(vm) as MutableStateFlow<AppState>
+                }
+            instrumentation.runOnMainSync {
+                mutable.value = AppState(starting = false, server = server, user = user)
+            }
+            return vm
+        }
+        try {
+            disk.save(original)
+            val first = create()
+            instrumentation.runOnMainSync { first.selectOrganization(firstOrg) }
+            runBlocking {
+                withTimeout(10_000) {
+                    first.state.first { !it.workspaceLoading && it.organization?.id == firstOrg.id }
+                }
+            }
+            assertEquals(original, first.state.value.manualReceiptDraft)
+            instrumentation.runOnMainSync { first.selectOrganization(secondOrg) }
+            runBlocking {
+                withTimeout(10_000) {
+                    first.state.first {
+                        !it.workspaceLoading && it.organization?.id == secondOrg.id
+                    }
+                }
+            }
+            assertNull(first.state.value.manualReceiptDraft)
+            instrumentation.runOnMainSync {
+                first.saveManualDraft(
+                    original.requestKey,
+                    original.form.copy(merchant = "Stale editor A callback"),
+                )
+            }
+            assertNull(ManualReceiptDraftStore(context, scopes[1]).read())
+            assertEquals(original, disk.read())
+            instrumentation.runOnMainSync { holders[0].clear() }
+            val recreated = create()
+            instrumentation.runOnMainSync { recreated.selectOrganization(firstOrg) }
+            runBlocking {
+                withTimeout(10_000) {
+                    recreated.state.first {
+                        !it.workspaceLoading && it.organization?.id == firstOrg.id
+                    }
+                }
+            }
+            assertEquals(original, recreated.state.value.manualReceiptDraft)
+            assertNull(ManualReceiptDraftStore(context, scopes[2]).read())
+            assertNull(ManualReceiptDraftStore(context, scopes[3]).read())
+        } finally {
+            instrumentation.runOnMainSync { holders.forEach { it.clear() } }
+            scopes.forEach { File(context.noBackupFilesDir, "drafts/$it").deleteRecursively() }
+        }
+    }
 }
