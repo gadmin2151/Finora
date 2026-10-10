@@ -51,9 +51,9 @@ def owned_plan(db, organization_id, key):
 
 def save_plan(db, organization_id: str, data: IncomePlanInput, key: str | None = None):
     lock_organization(db, organization_id)
-    rate = rate_for(data.currency, data.fx_rate)
     fingerprint = hashlib.sha256(data.model_dump_json(exclude={"version"}).encode()).hexdigest()
     if key:
+        rate = rate_for(data.currency, data.fx_rate)
         row = owned_plan(db, organization_id, key)
         if row.version != data.version:
             fail("Источник изменился. Обновите страницу", 409)

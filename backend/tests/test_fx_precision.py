@@ -1,5 +1,8 @@
 """Exchange rates must have their persisted precision before calculation or retry."""
 
+import hashlib
+import json
+from datetime import date
 from decimal import Decimal
 from uuid import uuid4
 
@@ -8,6 +11,7 @@ from sqlalchemy import select
 from test_scheduled_retries import schedule
 
 from app import models as m
+from app import schemas as s
 from app.db import SessionLocal
 from app.finance import base_value
 
@@ -59,7 +63,7 @@ def test_scheduled_retry_uses_stored_precision_without_rewriting_history(client,
     assert changed.status_code == 409
 
 
-@pytest.mark.parametrize("legacy", [False, True])
+@pytest.mark.parametrize("legacy", ["current", "raw", "zero"])
 def test_receipt_confirmation_retry_uses_stored_precision(client, categories, legacy):
     account = foreign_account(client)
     body = {
@@ -90,8 +94,19 @@ def test_receipt_confirmation_retry_uses_stored_precision(client, categories, le
         assert tx.fx_rate == STORED
         assert tx.base_minor == base_value(tx.amount_minor, STORED)
         assert tx.base_minor != base_value(tx.amount_minor, Decimal(RAW))
-        if legacy:
+        if legacy == "raw":
             tx.base_minor = base_value(tx.amount_minor, Decimal(RAW))
+            db.commit()
+        elif legacy == "zero":
+            row.fx_rate, tx.fx_rate, tx.base_minor = Decimal(0), Decimal(0), 0
+            body["fx_rate"] = "0.000000001"
+            original = s.ManualReceipt(**body).model_dump(mode="json", exclude={"request_key"})
+            row.original = {
+                **row.original,
+                "manual_signature": hashlib.sha256(
+                    json.dumps(original, sort_keys=True).encode()
+                ).hexdigest(),
+            }
             db.commit()
         original_base = tx.base_minor
     confirm = {key: value for key, value in body.items() if key != "request_key"}
@@ -171,3 +186,69 @@ def test_uploaded_receipt_stores_rate_before_processing(owner, rate, expected):
         )
         assert db.get(m.Receipt, result["receipt"]["id"]).fx_rate == expected
         assert len(list(db.scalars(select(m.Transaction)))) == 0
+
+
+def test_legacy_income_creation_retry_acknowledges_without_rewriting_zero_rate(client, owner):
+    account = foreign_account(client)
+    body = {
+        "name": "Synthetic legacy precision plan",
+        "amount": "25",
+        "currency": "EUR",
+        "start_date": "2025-02-28",
+        "recurrence": "monthly",
+        "account_id": account["id"],
+        "fx_rate": "0.000000001",
+        "idempotency_key": uuid4().hex,
+    }
+    payload = s.IncomePlanInput(**body)
+    fingerprint = hashlib.sha256(payload.model_dump_json(exclude={"version"}).encode()).hexdigest()
+    with SessionLocal() as db:
+        row = m.Bill(
+            organization_id=owner["id"],
+            kind="income",
+            name=body["name"],
+            amount_minor=2500,
+            currency="EUR",
+            start_date=date(2025, 2, 28),
+            recurrence="monthly",
+            account_id=account["id"],
+            fx_rate=Decimal(0),
+            creation_key=body["idempotency_key"],
+            request_hash=fingerprint,
+        )
+        db.add(row)
+        db.commit()
+        plan_id = row.id
+    retry = client.post("/api/income/templates", json=body)
+    assert retry.status_code == 200 and retry.json()["id"] == plan_id
+    with SessionLocal() as db:
+        assert db.get(m.Bill, plan_id).fx_rate == 0
+        assert len(list(db.scalars(select(m.Bill)))) == 1
+        assert db.scalar(select(m.Transaction.id)) is None
+    changed = client.post("/api/income/templates", json={**body, "amount": "26"})
+    assert changed.status_code == 409
+
+
+@pytest.mark.parametrize("income", [False, True])
+def test_legacy_zero_rate_payment_acknowledgement_does_not_recalculate(client, income):
+    account = foreign_account(client)
+    path = schedule(client, [account], income, currency="EUR")
+    body = {
+        "account_id": account["id"],
+        "amount": "25",
+        "fx_rate": RAW,
+        "occurred_on": "2025-02-28",
+        "idempotency_key": uuid4().hex,
+    }
+    posted = client.post(path, json=body)
+    assert posted.status_code == 200
+    with SessionLocal() as db:
+        row = db.get(m.Transaction, posted.json()["id"])
+        row.fx_rate, row.base_minor = Decimal(0), 0
+        db.commit()
+    before = client.get("/api/accounts").json()
+    retry = client.post(path, json={**body, "fx_rate": "0.000000001"})
+    assert retry.status_code == 200 and retry.json()["id"] == posted.json()["id"]
+    assert client.get("/api/accounts").json() == before
+    with SessionLocal() as db:
+        assert db.get(m.Transaction, posted.json()["id"]).base_minor == 0
