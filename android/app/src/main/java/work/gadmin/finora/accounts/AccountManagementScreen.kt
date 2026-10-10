@@ -233,7 +233,7 @@ fun AccountManagementScreen(
         AlertDialog(
             onDismissRequest = { if (!locked) actions.cancelConfirmation() },
             title = { Text(accountText("Подтвердить изменение", "Confirm change")) },
-            text = { Text(confirmation.description) },
+            text = { work.gadmin.finora.ui.ScrollableDialogText(confirmation.description) },
             confirmButton = {
                 TextButton(actions::confirm, enabled = !locked && !data.uncertain) {
                     Text(accountText("Подтвердить", "Confirm"))

@@ -2,14 +2,13 @@ package work.gadmin.finora
 
 import android.graphics.Bitmap
 import android.os.Build
-import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performScrollTo
 import androidx.lifecycle.ViewModelProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import java.io.File
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assume.assumeTrue
@@ -153,11 +152,18 @@ class ShowcaseScreenshotsTest {
                         state.value = data
                     }
                     rule.waitForIdle()
+                    if (name == "debts" || name == "profile")
+                        rule.onNodeWithText(text).performScrollTo()
                     rule.onNodeWithText(text).assertIsDisplayed()
                     // Wait for the real navigation transition to finish before the frame capture.
                     rule.mainClock.advanceTimeBy(700)
                     rule.waitForIdle()
-                    val bitmap = rule.onRoot().captureToImage().asAndroidBitmap()
+                    val bitmap =
+                        requireNotNull(
+                            InstrumentationRegistry.getInstrumentation()
+                                .uiAutomation
+                                .takeScreenshot()
+                        )
                     File(context.filesDir, "showcase-${language.tag}-$name.png")
                         .outputStream()
                         .use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
@@ -236,6 +242,7 @@ class ShowcaseScreenshotsTest {
                 ThemePreferences(context).save(previousTheme)
                 state.value = AppState(starting = false)
             }
+            InstrumentationRegistry.getInstrumentation().runOnMainSync { context.finish() }
         }
     }
 }

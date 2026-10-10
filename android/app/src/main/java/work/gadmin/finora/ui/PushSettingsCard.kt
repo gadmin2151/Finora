@@ -74,6 +74,7 @@ fun PushSettingsCard(host: PushHost) {
                         "Allow notifications",
                         "Android settings",
                         "Retry",
+                        enabledLabel = "Notifications on this device",
                     ),
             )
             val editable =
@@ -82,40 +83,34 @@ fun PushSettingsCard(host: PushHost) {
             val p = data.preferences
             listOf(
                     text("Payment reminders", "Напоминания о платежах") to p.payments,
-                    text("Receipt status", "Статус чеков") to p.receipts,
+                    text("New receipts from other participants", "Новые чеки других участников") to
+                        p.receipts,
                     text("Important events", "Важные события") to p.important,
                 )
                 .forEachIndexed { index, (label, checked) ->
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(label)
-                        Switch(
-                            checked,
-                            enabled = editable,
-                            onCheckedChange = { value ->
-                                host.setCategories(
-                                    if (index == 0) value else p.payments,
-                                    if (index == 1) value else p.receipts,
-                                    if (index == 2) value else p.important,
-                                )
-                            },
-                        )
-                    }
+                    PreferenceSwitchRow(
+                        label,
+                        checked,
+                        enabled = editable,
+                        onCheckedChange = { value ->
+                            host.setCategories(
+                                if (index == 0) value else p.payments,
+                                if (index == 1) value else p.receipts,
+                                if (index == 2) value else p.important,
+                            )
+                        },
+                    )
                 }
             if (data.receiptAllOrganizationsSupported) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(
-                        text(
-                            "Receipts from all subscribed organizations",
-                            "Чеки из всех подключённых организаций",
-                        ),
-                        modifier = Modifier.weight(1f),
-                    )
-                    Switch(
-                        data.receiptAllOrganizations,
-                        enabled = editable,
-                        onCheckedChange = host::setReceiptAllOrganizations,
-                    )
-                }
+                PreferenceSwitchRow(
+                    text(
+                        "Receipts from all subscribed organizations",
+                        "Чеки из всех подключённых организаций",
+                    ),
+                    data.receiptAllOrganizations,
+                    host::setReceiptAllOrganizations,
+                    enabled = editable,
+                )
                 Text(
                     text(
                         "Uses existing receipt subscriptions; does not enable another organization's notifications.",
@@ -125,10 +120,12 @@ fun PushSettingsCard(host: PushHost) {
                 )
             }
             if (data.updateNotificationsSupported) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(text("App updates", "Обновления приложения"))
-                    Switch(p.updates, enabled = editable, onCheckedChange = host::setUpdates)
-                }
+                PreferenceSwitchRow(
+                    text("App updates", "Обновления приложения"),
+                    p.updates,
+                    host::setUpdates,
+                    enabled = editable,
+                )
             }
             Text(
                 text(

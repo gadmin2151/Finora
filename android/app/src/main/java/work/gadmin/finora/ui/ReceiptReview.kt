@@ -130,7 +130,7 @@ fun ReceiptReview(state: AppState, receipt: Receipt, vm: FinoraViewModel) {
             onDismissRequest = { confirm = false },
             title = { Text(tr(Message.ADD_THIS_EXPENSE)) },
             text = {
-                Text(
+                ScrollableDialogText(
                     tr(
                         Message.TEXT_1_S_2_S_3_S_ITEMS_4_S_ACCOUNT_5_S,
                         receipt.title,

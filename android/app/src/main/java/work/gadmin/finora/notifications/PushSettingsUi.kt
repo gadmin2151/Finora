@@ -2,9 +2,10 @@ package work.gadmin.finora.notifications
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Button
-import androidx.compose.material3.Switch
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import work.gadmin.finora.ui.PreferenceSwitchRow
 
 /** Labels may be supplied by the app's localization owner without changing common resources. */
 data class PushSettingsCopy(
@@ -21,6 +22,7 @@ data class PushSettingsCopy(
     val allow: String = "Разрешить уведомления",
     val settings: String = "Настройки Android",
     val retry: String = "Повторить",
+    val enabledLabel: String = "Уведомления на этом устройстве",
 )
 
 @Composable
@@ -34,8 +36,9 @@ fun PushSettingsUi(
     copy: PushSettingsCopy = PushSettingsCopy(),
 ) {
     Column {
-        Text(copy.title)
-        Switch(
+        Text(copy.title, style = MaterialTheme.typography.titleMedium)
+        PreferenceSwitchRow(
+            label = copy.enabledLabel,
             checked = enabled,
             onCheckedChange = onEnabled,
             enabled =

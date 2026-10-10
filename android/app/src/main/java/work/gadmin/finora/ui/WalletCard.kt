@@ -70,12 +70,11 @@ fun WalletCard(state: AppState, vm: FinoraViewModel) {
                     )
                 }
             (if (combined && !details) emptyList() else accounts).forEach { account ->
-                Row(
+                Column(
                     Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Column(Modifier.weight(1f)) {
+                    Column(Modifier.fillMaxWidth()) {
                         Text(account.name, color = HeroInk, fontWeight = FontWeight.Medium)
                         if (account.archived)
                             Text(
@@ -86,7 +85,11 @@ fun WalletCard(state: AppState, vm: FinoraViewModel) {
                         Text(money(account.balance_minor, account.currency), color = Mint)
                     }
                     if (state.organization?.isAdmin == true && !account.archived)
-                        OutlinedButton({ vm.wallet.open(account) }, enabled = !state.busy) {
+                        OutlinedButton(
+                            { vm.wallet.open(account) },
+                            enabled = !state.busy,
+                            modifier = Modifier.align(Alignment.End),
+                        ) {
                             Text(tr(Message.ADJUST_BALANCE), color = HeroInk)
                         }
                 }
@@ -230,18 +233,12 @@ private fun WalletEditor(
                         Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                tr(Message.COUNT_DIFFERENCE_AS_INCOME_EXPENSE),
-                                Modifier.weight(1f),
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                            Switch(
-                                form.countAsIncomeExpense,
-                                { controller.change(form.copy(countAsIncomeExpense = it)) },
-                                enabled = enabled,
-                            )
-                        }
+                        PreferenceSwitchRow(
+                            tr(Message.COUNT_DIFFERENCE_AS_INCOME_EXPENSE),
+                            form.countAsIncomeExpense,
+                            { controller.change(form.copy(countAsIncomeExpense = it)) },
+                            enabled = enabled,
+                        )
                         Text(
                             tr(
                                 if (form.countAsIncomeExpense) Message.BALANCE_INCOME_EXPENSE_HINT

@@ -180,7 +180,9 @@ fun ProfileScreen(state: AppState, vm: FinoraViewModel) {
             onDismissRequest = { logout = false },
             title = { Text(tr(Message.SIGN_OUT_OF_FINORA)) },
             text = {
-                Text(tr(Message.YOU_WILL_NEED_YOUR_PASSWORD_TO_SIGN_IN_AGAIN_UNSENT_DRAFTS))
+                ScrollableDialogText(
+                    tr(Message.YOU_WILL_NEED_YOUR_PASSWORD_TO_SIGN_IN_AGAIN_UNSENT_DRAFTS)
+                )
             },
             confirmButton = {
                 TextButton({

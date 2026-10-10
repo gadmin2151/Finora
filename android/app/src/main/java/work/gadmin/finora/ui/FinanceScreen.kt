@@ -97,7 +97,15 @@ fun FinanceScreen(app: AppState, vm: FinoraViewModel) {
                             )
                         vm.month(difference)
                     }
-                else -> FinanceContent(data, admin, app.busy, vm.finance, vm::month)
+                else ->
+                    FinanceContent(
+                        data,
+                        admin,
+                        app.busy,
+                        vm.finance,
+                        vm::month,
+                        showTabSelector = false,
+                    )
             }
         }
     }
@@ -124,6 +132,7 @@ fun FinanceContent(
     actions: FinanceController,
     changeMonth: (Long) -> Unit,
     openPlanning: ((ChatDestination) -> Unit)? = null,
+    showTabSelector: Boolean = true,
 ) {
     var incomeSection by rememberSaveable { mutableStateOf("schedule") }
     var direction by rememberSaveable { mutableStateOf("all") }
@@ -147,27 +156,29 @@ fun FinanceContent(
     ) {
         item {
             SectionTitle(tr(Message.YOUR_FINANCES), tr(Message.INCOME_AND_DEBTS_IN_ONE_PLACE))
-            Spacer(Modifier.height(14.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                listOf(
-                        FinanceTab.INCOME to tr(Message.INCOME),
-                        FinanceTab.DEBTS to tr(Message.DEBTS),
-                    )
-                    .forEach { (tab, title) ->
-                        FilterChip(
-                            data.tab == tab,
-                            { actions.tab(tab) },
-                            { Text(title) },
-                            Modifier.weight(1f),
-                            enabled = !busy,
-                            leadingIcon = {
-                                LineIcon(
-                                    if (tab == FinanceTab.INCOME) Glyph.WALLET else Glyph.USER,
-                                    size = 18.dp,
-                                )
-                            },
+            if (showTabSelector) {
+                Spacer(Modifier.height(14.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    listOf(
+                            FinanceTab.INCOME to tr(Message.INCOME),
+                            FinanceTab.DEBTS to tr(Message.DEBTS),
                         )
-                    }
+                        .forEach { (tab, title) ->
+                            FilterChip(
+                                data.tab == tab,
+                                { actions.tab(tab) },
+                                { Text(title) },
+                                Modifier.weight(1f),
+                                enabled = !busy,
+                                leadingIcon = {
+                                    LineIcon(
+                                        if (tab == FinanceTab.INCOME) Glyph.WALLET else Glyph.USER,
+                                        size = 18.dp,
+                                    )
+                                },
+                            )
+                        }
+                }
             }
         }
         if (openPlanning != null) item { FinancePlanningLinks(admin, busy, openPlanning) }
@@ -627,7 +638,7 @@ fun FinanceContent(
             onDismissRequest = { if (!busy) cancelling = null },
             title = { Text(tr(Message.REVERSE_THIS_INCOME_ENTRY)) },
             text = {
-                Text(
+                ScrollableDialogText(
                     tr(
                         Message.TEXT_1_S_2_S_THE_ACCOUNT_BALANCE_WILL_DECREASE_IF_THIS_INCOME_I,
                         tx.merchant.ifBlank { tr(Message.INCOME_40B65) },

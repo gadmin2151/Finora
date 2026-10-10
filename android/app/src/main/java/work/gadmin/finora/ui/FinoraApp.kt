@@ -337,7 +337,11 @@ fun FinoraApp(vm: FinoraViewModel) {
                                                 fontWeight =
                                                     if (selected || capture) FontWeight.SemiBold
                                                     else FontWeight.Normal,
-                                                maxLines = 1,
+                                                maxLines = 2,
+                                                minLines = 2,
+                                                textAlign =
+                                                    androidx.compose.ui.text.style.TextAlign.Center,
+                                                overflow = TextOverflow.Ellipsis,
                                             )
                                         }
                                     }

@@ -190,7 +190,7 @@ fun LedgerScreen(
             onDismissRequest = controller::cancelConfirmation,
             title = { Text(ledgerText("Подтвердите операцию", "Confirm transaction")) },
             text = {
-                Text(
+                ScrollableDialogText(
                     state.organizationName +
                         "\n" +
                         if (state.voiding != null)
