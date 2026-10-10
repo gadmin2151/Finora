@@ -1,0 +1,66 @@
+{
+  "sourceCommit": "b3ee1e95c120a3a8f76a13997c938f9fc86f8a07",
+  "image": "sha256:1a6969bbf9fa3ffb3f75db670c7878df57202110ef70f4e336d0deeb7333aaaf",
+  "approvedConfigDigest": "sha256:c4d78a39ee6237fc8f7421c5addc2287392781131976e581b22f887c986e0bc8",
+  "schema": "d81ac57e09f2",
+  "backup": {
+    "path": "/opt/finora-cutover-system-settings-20261010T164626Z/database-and-documents.tar.age",
+    "bytes": 29293736,
+    "sha256": "c44890239877188548aceb2dd362074ae20e0c42acaef589c898de092e2e1098",
+    "consistent": true,
+    "decryptionHashVerified": true
+  },
+  "baselineFinancialRowsPreserved": true,
+  "currencyDigestPreserved": true,
+  "documentBytesPreserved": true,
+  "databaseTunnelNetworkVolumesUnchanged": true,
+  "privateConfigurationUnchanged": true,
+  "pushConfigured": true,
+  "firebaseCredentialsTouched": false,
+  "controllerFinancialDMLExecuted": false,
+  "apiHealthy": true,
+  "workerRunning": true,
+  "acceptedOverride": "/opt/finora-system-settings-20261010/compose.accepted-image.yaml",
+  "rollbackOverride": "/opt/finora-system-settings-20261010/compose.rollback-image.yaml",
+  "page": "https://finora.gadmin.work/#system-settings",
+  "sourceArchiveSha256": "9d4ec270c75381394ca80a3f8537802835ed791118d172a868d7db9abd79b590",
+  "imageArchiveSha256": "8918a72e3057b5363885a89abb608545dfc53084eb3ee4a7fa09214efc939406",
+  "encryptedBackupHashRechecked": true,
+  "plaintextRemoved": true,
+  "settingsInitialMetadata": {
+    "revision": 0,
+    "inherits": true,
+    "no_overrides": true,
+    "no_secret_copies": true
+  },
+  "runtimeObservations": [
+    {
+      "service": "api",
+      "revision": 0
+    },
+    {
+      "service": "worker",
+      "revision": 0
+    }
+  ],
+  "allRuntimeStaticFilesMatch": 31,
+  "publicStaticFilesMatch": [
+    "assets/SystemSettings-CsGzaiTZ.css",
+    "assets/SystemSettings-nM8zfmAl.js",
+    "assets/index-VN8KC-wH.js",
+    "assets/index-oNbu6cq9.css",
+    "assets/ui-DH8TIsCy.js"
+  ],
+  "unauthenticatedSystemSettings": 401,
+  "apkUnchanged": {
+    "versionName": "1.20.0",
+    "versionCode": 34,
+    "sha256": "5ec789d5d5b4de81b54156b86dfb733052586c8ce57f0f11f74927ccaba400e5"
+  },
+  "htmlVerification": "Cloudflare challenge script; raw index hash intentionally not claimed",
+  "postgresTests": 608,
+  "webNodeTests": 37,
+  "browserScreenshots": 9,
+  "productionSettingsWrites": false,
+  "secretMigration": false
+}
