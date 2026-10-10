@@ -23,13 +23,15 @@
 
 ---
 
-## Development checkpoint · 10 October 2026
+## Release checkpoint · 10 October 2026
 
-The `codex/nightly-reliability-20261009` branch contains locally verified reliability changes. **The new backend and web UI have not been deployed.** Budget copying requires the new backend; updating Android alone does not enable it or update the website.
+The `codex/nightly-reliability-20261009` branch contains the verified reliability changes. **The production backend and web UI were updated from reviewed source `e21bda28ce656a32a527ae4753329e5797e4f7c6`.** Budget copying, receipt retries and the clearer financial forms are now available on the website.
+
+This deployment uses the immutable local image `sha256:c8218c3371dbf352ababf4f70b4272b7804c0f2dbf0ad110c36568e63ae98f7f`, pinned by a persistent image-only Compose override. API and worker were updated; the database, tunnel, schema, volumes and private configuration were retained. A fresh encrypted database/document snapshot and preservation checks passed. The server's source checkout remains `8329916`; the running version is identified by its image digest and OCI revision. The image has not been published to a registry.
 
 **Android 1.15.1 (`versionCode 29`) is published**, using the existing certificate. Its manual receipt draft survives process restart; financial retries preserve their request, AI actions require confirmation, and receipt/debt/plan screens provide clearer review. [Download the signed APK](https://finora.gadmin.work/assets/mobile/finora-1.15.1.apk). A full HTTPS download verified SHA-256 `8b7fed54b715640a761cfae418786142d8b3da24ae4b893f54ee2f498af1efb4`. The previous 1.14.1 file remains available. Library delivery is unavailable. [Candidate details and verification limits →](android/README.md#кандидат-1151--черновики-и-проверка-финансов)
 
-Local validation: **474 backend/scripts tests plus 11 subtests, 30 web tests, and 81 Android unit tests**. The full Linux/amd64 release image also passed **474 tests plus 11 subtests under Python 3.12**, followed by isolated API, web-asset and worker checks using synthetic data. Production API/worker have not been switched. Android financial flows were checked with synthetic data in debug; signed release checks covered upgrade, signature/hash, offline login, ML Kit and OpenCV. A real phone and production login were not tested. [Delivery boundaries →](docs/MOBILE-FINANCE.md#ночная-версия-2026-10-10-границы-поставки)
+Local validation: **474 backend/scripts tests plus 11 subtests, 30 web tests, and 81 Android unit tests**. The full Linux/amd64 release image also passed **474 tests plus 11 subtests under Python 3.12**, followed by isolated API, web-asset and worker checks using synthetic data. Post-deployment health, schema, HTTPS assets, the anonymous login form and APK hash were verified. Android financial flows were checked with synthetic data in debug; signed release checks covered upgrade, signature/hash, offline login, ML Kit and OpenCV. A real phone and authenticated production financial flows were not tested. [Delivery boundaries →](docs/MOBILE-FINANCE.md#ночная-версия-2026-10-10-границы-поставки)
 
 The **current wallet** includes debt repayments and shows balances separately from monthly income. Adjust an account with an auditable add/subtract/set action, and open spending categories to explore their receipt items. [Wallet and chat guide →](docs/WALLET.md)
 
