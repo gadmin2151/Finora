@@ -23,6 +23,14 @@
 
 ---
 
+## Development checkpoint · 10 October 2026
+
+The `codex/nightly-reliability-20261009` branch contains locally verified reliability changes. **The new backend and web UI have not been deployed.** Budget copying requires the new backend; updating Android alone does not enable it or update the website.
+
+**Android 1.15.1 (`versionCode 29`) is a local signed candidate**, using the existing certificate. Its manual receipt draft survives process restart; financial retries preserve their request, AI actions require confirmation, and receipt/debt/plan screens provide clearer review. The published download still points to **1.14.1**. The candidate has not been published or saved to Library; delivery remains pending. [Candidate details and verification limits →](android/README.md#кандидат-1151--черновики-и-проверка-финансов)
+
+Local validation: **474 backend/scripts tests plus 11 subtests, 30 web tests, and 81 Android unit tests**. Android financial flows were checked with synthetic data in debug; signed release checks covered upgrade, signature/hash, offline login, ML Kit and OpenCV. A real phone and production login were not tested. The full release container still requires build and isolated acceptance after the infrastructure issue is resolved. [Delivery boundaries →](docs/MOBILE-FINANCE.md#ночная-версия-2026-10-10-границы-поставки)
+
 The **current wallet** includes debt repayments and shows balances separately from monthly income. Adjust an account with an auditable add/subtract/set action, and open spending categories to explore their receipt items. [Wallet and chat guide →](docs/WALLET.md)
 
 **Know who added each receipt.** Filter receipts and purchases by their author, and compare category spending for each participant. Missing item categories are assigned when you confirm a manual or corrected receipt; your explicit category choices stay intact. [Receipt authors and categories →](docs/RECEIPT-AUTHORS.md)
