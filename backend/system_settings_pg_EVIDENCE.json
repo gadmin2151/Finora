@@ -135,5 +135,88 @@
   "production_reads": 0,
   "production_mutations": 0,
   "provider_calls": 0,
-  "transport": "private /tmp Unix socket; TCP disabled"
+  "transport": "private /tmp Unix socket; TCP disabled",
+  "targeted_settings": {
+    "passed": 29,
+    "failed": 0,
+    "duration_seconds": 3.69
+  },
+  "runtime_consumers": {
+    "passed": 14,
+    "failed": 0,
+    "duration_seconds": 0.76
+  },
+  "full_backend": {
+    "passed": 608,
+    "failed": 0,
+    "duration_seconds": 65.03
+  },
+  "new_tables": [
+    "system_runtime_observations",
+    "system_settings_audit",
+    "system_settings_state"
+  ],
+  "service_state": "stopped after QA",
+  "ruff": "passed",
+  "browser_fixture_before_after_restart_equal": true,
+  "browser_fixture_financial_transactions": 0,
+  "browser_fixture_external_calls": 0,
+  "secret_validation": "synthetic RSA/key data only; existing real credential files never read",
+  "artifacts": {
+    "backend/app/system_settings_models.py": {
+      "sha256": "025d44b7d4d49ce939fabe49cb0ebd305b37c2117bb64c974068fbb18cce01a5"
+    },
+    "backend/app/system_settings_service.py": {
+      "sha256": "5be69619f4ef3daefb2aaff22d2a7c1b002332701f39e09235811637b1631d05"
+    },
+    "backend/app/system_settings_api.py": {
+      "sha256": "22aa7d5bd9571b2b0ec76777a4dd48b271fffd4db9d8a8b0cd4c3e042f89853e"
+    },
+    "backend/migrations/versions/d81ac57e09f2_system_settings.py": {
+      "sha256": "83d8794bde051e9e6a4a5b0c44607aa8e3f3716b8c0ab7cf7c7ebe745d63d48f"
+    },
+    "backend/tests/test_system_settings.py": {
+      "sha256": "1b9cfebce8e622e600dc2bc2d7974cfa9b027333b94c011ca7034e8d0cbb6ad7"
+    },
+    "backend/system_settings_pg_verify.py": {
+      "sha256": "ba09bb22458dc531bd5fe918b39dcf681eaa578317482d5f9614733621e4e1a2"
+    },
+    "/tmp/finora-push-pg-20261010/system-settings-migration.log": {
+      "sha256": "3ae59e36e9835e019b259f04ec7f3a863de2572fac8773b2b2d751dbd83acd7b"
+    },
+    "/tmp/finora-push-pg-20261010/system-settings-targeted.log": {
+      "sha256": "be602aa2212c43b42fd14bd1e2e8f0d7224443013bc79f8954321547ee7e27d0"
+    },
+    "/tmp/finora-push-pg-20261010/system-settings-consumers.log": {
+      "sha256": "44850389bfc6cb0826a5f78017d8f518483af2a6f3291f28d62501c8a19e2984"
+    },
+    "/tmp/finora-push-pg-20261010/system-settings-full-backend.log": {
+      "sha256": "9e1cca432457a442fc675ee668093febaa9f37645b6c9f2cc11060776195ce07"
+    },
+    "/tmp/finora-push-pg-20261010/system-settings-tables.log": {
+      "sha256": "be34c005c5852f673c5b521c7f0925f9f87b84c669f53a9e6b74af061a6ab089"
+    },
+    "/tmp/finora-system-settings-before-restart.json": {
+      "sha256": "338a18ed878d77402a98de0368f4d1dc4b7b82816549dd54094e75ff7615d25f"
+    },
+    "/tmp/finora-system-settings-after-restart.json": {
+      "sha256": "338a18ed878d77402a98de0368f4d1dc4b7b82816549dd54094e75ff7615d25f"
+    }
+  },
+  "browser_fixture_final": {
+    "revision": 5,
+    "ai_timeout": 43,
+    "ai_cpu_threads": 2,
+    "secret_modes": {
+      "global_openai_key": "inherit",
+      "firebase_service_account": "inherit"
+    },
+    "worker_ack": 5,
+    "provider_sends": 0,
+    "external_calls": 0,
+    "financial_transactions": 0,
+    "browser_acceptance": "frontendworker confirmed exit0 final after-restart and9viewports; independently checked finalDBstate",
+    "state": "stopped",
+    "listener_closed": true
+  }
 }

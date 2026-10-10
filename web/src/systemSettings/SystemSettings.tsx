@@ -9,7 +9,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { useApp } from "../context";
-import { useLanguage } from "../i18n";
+import { t, useLanguage } from "../i18n";
 import { ManagementTabs } from "../ManagementTabs";
 import { Loading, Modal, PageHeading } from "../ui";
 import {
@@ -19,7 +19,7 @@ import {
   failureFields,
   type FailureKind,
 } from "./api";
-import { groups as groupCopy, fields as fieldCopy } from "./copy";
+import { localizedCopy } from "./copy";
 import {
   buildPatch,
   clearSecrets,
@@ -61,9 +61,8 @@ export default function SystemSettings() {
 }
 function SettingsForm() {
   const { user, organization, navigate } = useApp();
-  const { language } = useLanguage();
-  const ru = language === "ru";
-  const text = (russian: string, english: string) => (ru ? russian : english);
+  useLanguage();
+  const { groups: groupCopy, fields: fieldCopy } = localizedCopy();
   const [snapshot, setSnapshot] = useState<SettingsSnapshot | null>(null);
   const [drafts, setDrafts] = useState<Record<string, GroupDraft>>({});
   const [busy, setBusy] = useState<string | null>(null);
@@ -80,42 +79,45 @@ function SettingsForm() {
   const alive = useRef(true);
   const allowed = user.is_server_admin === true;
 
-  const load = useCallback(async (force = false) => {
-    if (operation.current && !force) return;
-    controller.current?.abort();
-    const request = ++epoch.current;
-    const abort = new AbortController();
-    controller.current = abort;
-    operation.current = true;
-    setBusy("load");
-    setFailure(null);
-    setSaved(null);
-    setFieldErrors({});
-    try {
-      const result = await readSettings(abort.signal);
-      if (!alive.current || epoch.current !== request) return;
-      setSnapshot(result);
-      setDrafts({});
-      setSecretsCleared(false);
-    } catch (error: unknown) {
-      if (!alive.current || epoch.current !== request) return;
-      setFailure(failureKind(error));
-      setDrafts((previous) =>
-        Object.fromEntries(
-          Object.entries(previous).map(([id, draft]) => [
-            id,
-            clearSecrets(draft),
-          ]),
-        ),
-      );
-      setSecretsCleared(true);
-    } finally {
-      if (alive.current && epoch.current === request) {
-        operation.current = false;
-        setBusy(null);
+  const load = useCallback(
+    async (force = false) => {
+      if (operation.current && !force) return;
+      controller.current?.abort();
+      const request = ++epoch.current;
+      const abort = new AbortController();
+      controller.current = abort;
+      operation.current = true;
+      setBusy("load");
+      setFailure(null);
+      setSaved(null);
+      setFieldErrors({});
+      try {
+        const result = await readSettings(abort.signal);
+        if (!alive.current || epoch.current !== request) return;
+        setSnapshot(result);
+        setDrafts({});
+        setSecretsCleared(false);
+      } catch (error: unknown) {
+        if (!alive.current || epoch.current !== request) return;
+        setFailure(failureKind(error));
+        setDrafts((previous) =>
+          Object.fromEntries(
+            Object.entries(previous).map(([id, draft]) => [
+              id,
+              clearSecrets(draft),
+            ]),
+          ),
+        );
+        setSecretsCleared(true);
+      } finally {
+        if (alive.current && epoch.current === request) {
+          operation.current = false;
+          setBusy(null);
+        }
       }
-    }
-  }, []);
+    },
+    [setDrafts],
+  );
   useEffect(() => {
     alive.current = true;
     const timer = window.setTimeout(() => {
@@ -258,73 +260,51 @@ function SettingsForm() {
     else void load();
   };
   const label = (field: SettingsField) =>
-    fieldCopy[field.name]?.[ru ? 0 : 1] ?? field.label;
+    fieldCopy[field.name]?.[0] ?? field.label;
   const description = (field: SettingsField) =>
-    fieldCopy[field.name]?.[ru ? 2 : 3] ?? field.description;
+    fieldCopy[field.name]?.[1] ?? field.description;
   const source = (field: SettingsField) =>
     ({
-      override: text("Переопределено здесь", "Override"),
-      environment: text("Окружение сервера", "Server environment"),
-      default: text("По умолчанию", "Default"),
-      disabled: text("Отключено", "Disabled"),
+      override: t("Переопределено здесь"),
+      environment: t("Окружение сервера"),
+      default: t("По умолчанию"),
+      disabled: t("Отключено"),
     })[field.source];
   const apply = (field: SettingsField) =>
     ({
-      request: text("На следующем запросе", "Next request"),
-      worker_boundary: text(
-        "На границе следующей задачи",
-        "Next task boundary",
-      ),
-      restart: text("После перезапуска", "After restart"),
+      request: t("На следующем запросе"),
+      worker_boundary: t("На границе следующей задачи"),
+      restart: t("После перезапуска"),
     })[field.apply];
   const publicValue = (value: SettingsField["effective"]) =>
     typeof value === "boolean"
       ? value
-        ? text("Включено", "On")
-        : text("Выключено", "Off")
+        ? t("Включено")
+        : t("Выключено")
       : value === null
         ? "—"
         : String(value);
   const validation = (code: ValidationCode) =>
     ({
-      invalid: text(
-        "Проверьте значение этого поля.",
-        "Check this field's value.",
-      ),
-      range: text(
-        "Значение выходит за допустимые пределы.",
-        "Value is outside the allowed range.",
-      ),
-      empty: text(
-        "Для замены нужен новый ключ или корректный JSON до 64 КиБ.",
-        "Replacement needs a new key or valid JSON up to 64 KiB.",
-      ),
-      confirmation: text(
-        "Подтвердите изменение способа получения ключа.",
-        "Confirm the credential source change.",
-      ),
+      invalid: t("Проверьте значение этого поля."),
+      range: t("Значение выходит за допустимые пределы."),
+      empty: t("Для замены нужен новый ключ или корректный JSON до 64 КиБ."),
+      confirmation: t("Подтвердите изменение способа получения ключа."),
     })[code];
   const failureText = failure
     ? {
-        conflict: text(
+        conflict: t(
           "Настройки уже изменились. Обновите данные перед повторным сохранением.",
-          "Settings have changed. Refresh before saving again.",
         ),
-        validation: text(
+        validation: t(
           "Настройки не сохранены: проверьте отмеченные поля и требования к значениям.",
-          "Settings were not saved. Check the marked fields and value requirements.",
         ),
-        forbidden: text(
+        forbidden: t(
           "Действие запрещено. Нужны права администратора сервера и действующий сеанс.",
-          "Action denied. A server administrator and a valid session are required.",
         ),
-        authentication: text(
-          "Сеанс завершён. Войдите снова.",
-          "Session expired. Sign in again.",
-        ),
-        uncertain: text(
+        authentication: t("Сеанс завершён. Войдите снова."),
+        uncertain: t(
           "Результат не подтверждён. Обновите данные, чтобы проверить состояние на сервере.",
-          "Result is unconfirmed. Refresh to check the server state.",
         ),
       }[failure]
     : "";
@@ -332,13 +312,11 @@ function SettingsForm() {
     <span>
       {name}:{" "}
       {snapshot && isApplied(value, snapshot.revision)
-        ? text("применено", "applied")
+        ? t("применено")
         : value.state === "unknown"
-          ? text("нет подтверждения", "unconfirmed")
-          : text("ожидает применения", "pending")}
-      {value.revision !== null
-        ? ` · ${text("рев.", "rev.")} ${value.revision}`
-        : ""}
+          ? t("нет подтверждения")
+          : t("ожидает применения")}
+      {value.revision !== null ? ` · ${t("рев.")} ${value.revision}` : ""}
     </span>
   );
 
@@ -362,11 +340,8 @@ function SettingsForm() {
           <p className="system-value">
             {field.secret
               ? field.configured
-                ? text(
-                    "Настроено · значение скрыто",
-                    "Configured · value hidden",
-                  )
-                : text("Не настроено", "Not configured")
+                ? t("Настроено · значение скрыто")
+                : t("Не настроено")
               : publicValue(field.effective)}
           </p>
         ) : field.secret ? (
@@ -385,35 +360,25 @@ function SettingsForm() {
                   })
                 }
               >
-                <option value="keep">
-                  {text("Оставить без изменений", "Keep unchanged")}
-                </option>
+                <option value="keep">{t("Оставить без изменений")}</option>
                 {field.actions.includes("replace") && (
-                  <option value="replace">{text("Заменить", "Replace")}</option>
+                  <option value="replace">{t("Заменить")}</option>
                 )}
                 {field.actions.includes("inherit") && (
                   <option value="inherit">
-                    {text(
-                      "Использовать окружение / ADC",
-                      "Use environment / ADC",
-                    )}
+                    {t("Использовать окружение / ADC")}
                   </option>
                 )}
                 {field.actions.includes("disable") && (
                   <option value="disable">
-                    {text(
-                      "Отключить ключ и fallback",
-                      "Disable key and fallback",
-                    )}
+                    {t("Отключить ключ и fallback")}
                   </option>
                 )}
               </select>
               {secret.action === "replace" && (
                 <input
                   id={id}
-                  aria-label={
-                    text("Новое значение: ", "New value: ") + label(field)
-                  }
+                  aria-label={t("Новое значение: ") + label(field)}
                   type="password"
                   autoComplete="new-password"
                   spellCheck={false}
@@ -422,10 +387,7 @@ function SettingsForm() {
                   disabled={!!busy}
                   aria-invalid={!!error}
                   aria-describedby={`${id}-help${error ? ` ${id}-error` : ""}`}
-                  placeholder={text(
-                    "Введите новое значение",
-                    "Enter a new value",
-                  )}
+                  placeholder={t("Введите новое значение")}
                   onChange={(event) =>
                     editSecret(group, field, {
                       ...secret,
@@ -437,25 +399,20 @@ function SettingsForm() {
             </div>
             <small>
               {field.mode === "disable"
-                ? text("Fallback отключён", "Fallback disabled")
+                ? t("Fallback отключён")
                 : field.configured
-                  ? text(
-                      "Ключ настроен. Сохранённое значение не показывается.",
-                      "Credential configured. Saved values are never displayed.",
-                    )
-                  : text("Ключ не настроен", "Credential not configured")}
+                  ? t("Ключ настроен. Сохранённое значение не показывается.")
+                  : t("Ключ не настроен")}
             </small>
             {(secret.action === "inherit" || secret.action === "disable") && (
               <div className="system-confirm">
                 <p>
                   {secret.action === "inherit"
-                    ? text(
+                    ? t(
                         "Сохранённый override будет удалён. Сервис сможет использовать окружение сервера или Application Default Credentials.",
-                        "The saved override will be removed. The service may use its environment or Application Default Credentials.",
                       )
-                    : text(
+                    : t(
                         "Сохранённый override будет удалён, а получение ключа из окружения и ADC заблокировано.",
-                        "The saved override will be removed and environment / ADC credentials will be suppressed.",
                       )}
                 </p>
                 <label className="system-check">
@@ -470,10 +427,7 @@ function SettingsForm() {
                       })
                     }
                   />
-                  {text(
-                    "Подтверждаю изменение источника ключа",
-                    "Confirm credential source change",
-                  )}
+                  {t("Подтверждаю изменение источника ключа")}
                 </label>
               </div>
             )}
@@ -495,9 +449,7 @@ function SettingsForm() {
                     })
                   }
                 />
-                {current.value === true
-                  ? text("Включено", "On")
-                  : text("Выключено", "Off")}
+                {current.value === true ? t("Включено") : t("Выключено")}
               </label>
             ) : (
               <input
@@ -532,24 +484,21 @@ function SettingsForm() {
                   })
                 }
               />
-              {text(
-                "Использовать окружение или значение по умолчанию",
-                "Use environment or default",
-              )}
+              {t("Использовать окружение или значение по умолчанию")}
             </label>
           </>
         )}
         <div className="system-meta">
           <span>
-            {text("Источник", "Source")}: {source(field)}
+            {t("Источник")}: {source(field)}
           </span>
           {!field.secret && (
             <span>
-              {text("По умолчанию", "Default")}: {publicValue(field.default)}
+              {t("По умолчанию")}: {publicValue(field.default)}
             </span>
           )}
           <span>
-            {text("Применение", "Application")}: {apply(field)}
+            {t("Применение")}: {apply(field)}
           </span>
         </div>
         {error && (
@@ -564,21 +513,17 @@ function SettingsForm() {
   if (!allowed)
     return (
       <div className="panel system-empty" role="alert">
-        {text(
-          "Системные настройки доступны только администратору сервера.",
-          "System settings are available only to server administrators.",
-        )}
+        {t("Системные настройки доступны только администратору сервера.")}
       </div>
     );
   return (
     <>
       <ManagementTabs current="system-settings" />
       <PageHeading
-        eyebrow={text("АДМИНИСТРАТОР СЕРВЕРА", "SERVER ADMINISTRATOR")}
-        title={text("Системные настройки", "System settings")}
-        text={text(
+        eyebrow={t("АДМИНИСТРАТОР СЕРВЕРА")}
+        title={t("Системные настройки")}
+        text={t(
           "Firebase, AI и общие параметры этого сервера. Изменения не включают подписки пользователей и не меняют настройки организаций.",
-          "Firebase, AI and shared server settings. Changes do not enable user subscriptions or alter organization preferences.",
         )}
         actions={
           <button
@@ -588,7 +533,7 @@ function SettingsForm() {
             onClick={refresh}
           >
             <RefreshCw size={17} />
-            {text("Обновить", "Refresh")}
+            {t("Обновить")}
           </button>
         }
       />
@@ -598,9 +543,8 @@ function SettingsForm() {
             {failureText}
             {secretsCleared && (
               <p>
-                {text(
+                {t(
                   "Новые ключи удалены из формы. При необходимости введите их снова.",
-                  "New credentials were cleared from the form. Enter them again if needed.",
                 )}
               </p>
             )}
@@ -608,11 +552,8 @@ function SettingsForm() {
         )}
         {saved !== null && (
           <div className="system-notice" role="status">
-            {text("Сохранено на сервере.", "Saved on the server.")}{" "}
-            {text(
-              "Применение API и обработчиком показано отдельно ниже.",
-              "API and worker application is shown separately below.",
-            )}
+            {t("Сохранено на сервере.")}{" "}
+            {t("Применение API и обработчиком показано отдельно ниже.")}
             {snapshot &&
               saved.some((name) =>
                 snapshot.groups.some((group) =>
@@ -622,9 +563,8 @@ function SettingsForm() {
                 ),
               ) && (
                 <p>
-                  {text(
+                  {t(
                     "Для части изменённых параметров нужен перезапуск сервера.",
-                    "Some changed settings require a server restart.",
                   )}
                 </p>
               )}
@@ -635,24 +575,14 @@ function SettingsForm() {
           <>
             <div className="panel system-status" role="status">
               <strong>
-                {text("Ревизия настроек", "Settings revision")}:{" "}
-                {snapshot.revision}
+                {t("Ревизия настроек")}: {snapshot.revision}
               </strong>
-              <p>
-                {text(
-                  "Ревизия на границе push-провайдера",
-                  "Push provider boundary revision",
-                )}
-              </p>
+              <p>{t("Ревизия на границе push-провайдера")}</p>
               {renderObservation("API", snapshot.runtime.api)}
-              {renderObservation(
-                text("Обработчик", "Worker"),
-                snapshot.runtime.worker,
-              )}
+              {renderObservation(t("Обработчик"), snapshot.runtime.worker)}
               <p>
-                {text(
+                {t(
                   "AI, OCR и лимит загрузки применяются к следующему запросу. Наблюдения API и обработчика относятся к границе push-провайдера; они не подтверждают применение всем процессом или проверку внешнего соединения.",
-                  "AI, OCR and the upload limit apply to the next request. API and worker observations describe the push provider boundary; they do not verify the whole process or an external connection.",
                 )}
               </p>
             </div>
@@ -681,9 +611,9 @@ function SettingsForm() {
                 >
                   <h2>
                     <Icon size={22} />
-                    {copy?.[ru ? 0 : 1] ?? group.id}
+                    {copy?.[0] ?? group.id}
                   </h2>
-                  <p>{copy?.[ru ? 2 : 3]}</p>
+                  <p>{copy?.[1]}</p>
                   <div className="system-fields">
                     {group.fields.map((field) => renderField(group, field))}
                   </div>
@@ -696,8 +626,8 @@ function SettingsForm() {
                       >
                         <Save size={17} />
                         {busy === group.id
-                          ? text("Сохраняем…", "Saving…")
-                          : text("Сохранить раздел", "Save section")}
+                          ? t("Сохраняем…")
+                          : t("Сохранить раздел")}
                       </button>
                       <button
                         type="button"
@@ -705,10 +635,10 @@ function SettingsForm() {
                         disabled={!!busy || !draft}
                         onClick={() => cancel(group.id)}
                       >
-                        {text("Отменить изменения", "Cancel changes")}
+                        {t("Отменить изменения")}
                       </button>
                       <span className="system-revision">
-                        {text("На основе ревизии", "Based on revision")}{" "}
+                        {t("На основе ревизии")}{" "}
                         {draft?.revision ?? snapshot.revision}
                       </span>
                     </div>
@@ -718,16 +648,15 @@ function SettingsForm() {
             })}
             {organization?.id && (
               <div className="system-notice">
-                {text(
+                {t(
                   "Ключи и выбранный AI-провайдер текущей организации настраиваются отдельно.",
-                  "The current organization's keys and AI provider are managed separately.",
                 )}{" "}
                 <button
                   type="button"
                   className="text-button"
                   onClick={() => navigate("settings")}
                 >
-                  {text("Настройки организации", "Organization settings")}
+                  {t("Настройки организации")}
                 </button>
               </div>
             )}
@@ -736,13 +665,9 @@ function SettingsForm() {
       </div>
       {confirmRefresh && (
         <Modal
-          title={text(
-            "Обновить системные настройки?",
-            "Refresh system settings?",
-          )}
-          description={text(
+          title={t("Обновить системные настройки?")}
+          description={t(
             "Несохранённые изменения и новые ключи будут удалены из формы.",
-            "Unsaved changes and new credentials will be cleared from the form.",
           )}
           onClose={() => setConfirmRefresh(false)}
         >
@@ -756,17 +681,14 @@ function SettingsForm() {
                 void load();
               }}
             >
-              {text(
-                "Отменить изменения и обновить",
-                "Discard changes and refresh",
-              )}
+              {t("Отменить изменения и обновить")}
             </button>
             <button
               type="button"
               className="button secondary"
               onClick={() => setConfirmRefresh(false)}
             >
-              {text("Продолжить редактирование", "Continue editing")}
+              {t("Продолжить редактирование")}
             </button>
           </div>
         </Modal>
