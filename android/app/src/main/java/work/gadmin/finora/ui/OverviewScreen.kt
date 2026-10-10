@@ -89,13 +89,22 @@ fun OverviewScreen(state: AppState, vm: FinoraViewModel) {
                             Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(tr(Message.SPENDING_THIS_MONTH), Modifier.weight(1f), color = Mint)
+                            Text(
+                                tr(Message.OVERVIEW_ACTUAL_EXPENSE),
+                                Modifier.weight(1f),
+                                color = Mint,
+                            )
                             BrandMark(Modifier.size(52.dp))
                         }
                         Text(
                             money(dashboard.expense_minor),
                             style = MaterialTheme.typography.headlineLarge,
                             color = HeroInk,
+                        )
+                        Text(
+                            tr(Message.OVERVIEW_ACTUAL_NOTE),
+                            color = Mint,
+                            style = MaterialTheme.typography.bodySmall,
                         )
                         HorizontalDivider(
                             color = Mint.copy(alpha = .2f),
@@ -129,6 +138,14 @@ fun OverviewScreen(state: AppState, vm: FinoraViewModel) {
                         }
                     }
                 }
+            }
+            item {
+                OverviewPlansCard(
+                    dashboard,
+                    state.organization?.isAdmin == true,
+                    state.busy,
+                    vm::openWebsite,
+                )
             }
             if (dashboard.categories.any { it.spent_minor > 0 })
                 item {

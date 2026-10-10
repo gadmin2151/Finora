@@ -1124,5 +1124,11 @@
   "Только просроченные": "Overdue only",
   "Остаток долга": "Outstanding balance",
   "Просроченных долгов нет": "No overdue debts",
-  "В этом отборе нет открытых долгов с прошедшим сроком. Срок сегодня ещё не считается просроченным.": "No open debts are past due in this selection. A debt due today is not overdue yet."
+  "В этом отборе нет открытых долгов с прошедшим сроком. Срок сегодня ещё не считается просроченным.": "No open debts are past due in this selection. A debt due today is not overdue yet.",
+  "Фактические доходы": "Actual income",
+  "За выбранный месяц, эквивалент в MDL по курсам операций": "For the selected month, MDL equivalent at recorded transaction rates",
+  "За выбранный месяц, эквивалент в MDL. Возвраты учтены": "For the selected month, MDL equivalent. Refunds are included",
+  "План за выбранный месяц по сохранённым курсам. Ещё не проведён как расход": "Planned for the selected month at saved rates. Not yet recorded as spending",
+  "Просрочено: {0}": "Overdue: {0}",
+  "Повторить загрузку": "Retry loading"
 }

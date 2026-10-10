@@ -120,6 +120,7 @@ data class Dashboard(
     val categories: List<Category> = emptyList(),
     val accounts: List<Account> = emptyList(),
     val balances: Map<String, Long> = emptyMap(),
+    val bills: List<DashboardBill> = emptyList(),
 )
 
 @Serializable
@@ -140,3 +141,13 @@ data class Draft(
 }
 
 class ApiException(val code: Int, override val message: String) : Exception(message)
+
+@Serializable
+data class DashboardBill(
+    val id: String,
+    val name: String,
+    val amount_minor: Long,
+    val currency: String,
+    val due_date: String,
+    val status: String,
+)

@@ -2,6 +2,24 @@ package work.gadmin.finora.localization
 
 /** App-owned copy only; user names, receipt content and chat history are never translated. */
 enum class Message(val english: String, val russian: String) {
+    OVERVIEW_ACTUAL_EXPENSE(
+        "Actual spending for selected month",
+        "Фактические расходы за выбранный месяц",
+    ),
+    OVERVIEW_ACTUAL_NOTE(
+        "MDL equivalent at recorded transaction rates. Refunds are included.",
+        "Эквивалент в MDL по курсам операций. Возвраты учтены.",
+    ),
+    OVERVIEW_PLAN_TITLE("Still to pay for selected month", "Ещё к оплате за выбранный месяц"),
+    OVERVIEW_PLAN_NOTE(
+        "Planned MDL equivalent at saved rates. These payments have not been recorded as expenses yet.",
+        "Плановый эквивалент в MDL по сохранённым курсам. Эти платежи ещё не проведены как расходы.",
+    ),
+    OVERVIEW_NO_PENDING(
+        "No outstanding planned payments for this month",
+        "За этот месяц нет ожидающих плановых платежей",
+    ),
+    OVERVIEW_OVERDUE("Overdue: %1\$s", "Просрочено: %1\$s"),
     RECEIPT_AUTHOR("Added by", "Добавил"),
     ALL_RECEIPT_AUTHORS("All users", "Все пользователи"),
     UNKNOWN_RECEIPT_AUTHOR("Unknown author", "Автор неизвестен"),
@@ -1069,8 +1087,8 @@ enum class Message(val english: String, val russian: String) {
     FINANCE_BUDGETS("Budgets", "Бюджеты"),
     FINANCE_BILLS("Payments", "Платежи"),
     FINANCE_PLANNING_WEB(
-        "Budgets and scheduled payments open on the website.",
-        "Бюджеты и регулярные платежи открываются в веб-версии.",
+        "Budgets and scheduled payments open on the website. Select the same month there.",
+        "Бюджеты и регулярные платежи открываются в веб-версии. Выберите там тот же месяц.",
     ),
     RECEIPT_QR_CODES_ARE_READ_ON_YOUR_DEVICE_YOUR_SERVER_PROCE(
         "Receipt QR codes are read on your device. Your server processes photos and AI analysis using its configured AI provider.",

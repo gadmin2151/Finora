@@ -95,12 +95,15 @@ export default function Overview() {
         <WalletCard dashboard={data} />
         <section className="stat-card">
           <div className="stat-label">
-            <span>{t("Доходы")}</span>
+            <span>{t("Фактические доходы")}</span>
             <span className="round-icon mint">
               <ArrowDownLeft size={18} />
             </span>
           </div>
           <strong>{amount(data.income_minor)}</strong>
+          <span className="stat-note">
+            {t("За выбранный месяц, эквивалент в MDL по курсам операций")}
+          </span>
           <button className="text-button" onClick={() => navigate("income")}>
             <Plus size={15} />
             {t("Открыть доходы")}
@@ -108,13 +111,15 @@ export default function Overview() {
         </section>
         <section className="stat-card">
           <div className="stat-label">
-            <span>{t("Расходы")}</span>
+            <span>{t("Фактические расходы")}</span>
             <span className="round-icon peach">
               <ArrowUpRight size={18} />
             </span>
           </div>
           <strong>{amount(data.expense_minor)}</strong>
-          <span className="stat-note">{t("Возвраты покупок учтены")}</span>
+          <span className="stat-note">
+            {t("За выбранный месяц, эквивалент в MDL. Возвраты учтены")}
+          </span>
         </section>
         <section className="stat-card">
           <div className="stat-label">
@@ -124,6 +129,19 @@ export default function Overview() {
             </span>
           </div>
           <strong>{amount(data.planned_remaining_minor)}</strong>
+          <span className="stat-note">
+            {t(
+              "План за выбранный месяц по сохранённым курсам. Ещё не проведён как расход",
+            )}
+          </span>
+          {pending.some((bill) => bill.status === "overdue") && (
+            <span className="stat-note">
+              {t(
+                "Просрочено: {0}",
+                pending.filter((bill) => bill.status === "overdue").length,
+              )}
+            </span>
+          )}
           <button
             className="text-button"
             disabled={!isAdmin}
@@ -335,7 +353,20 @@ export default function Overview() {
               <ArrowRight size={17} />
             </button>
           </div>
-          {recent.data?.items.length ? (
+          {recent.isPending ? (
+            <Loading />
+          ) : recent.isError ? (
+            <>
+              <ErrorBox error={recent.error} />
+              <button
+                className="text-button"
+                disabled={recent.isFetching}
+                onClick={() => recent.refetch()}
+              >
+                {t("Повторить загрузку")}
+              </button>
+            </>
+          ) : recent.data?.items.length ? (
             <div className="recent-list">
               {recent.data.items.map((tx) => (
                 <button
