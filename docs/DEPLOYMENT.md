@@ -63,3 +63,25 @@ Receipt recognition separates the printed seller and address from products and f
 The organization-scoped admin endpoints are `POST /api/categories/daily` and `POST /api/categories/refresh` with `{ "after": "" }`. Refresh processes up to 50 receipts per request; pass `next_cursor` as `after` until it is null. A repeated run is safe.
 
 Bank payment confirmations can also be uploaded as photos or screenshots. Recognition distinguishes the charged amount/currency from the original transaction currency, extracts the payee/date/status, and represents the payment as one line. It never counts both currencies as expenses or invents purchased products. Bank confirmations always require review, including pending or declined payments; existing manually posted records are not reprocessed.
+
+## Nightly recovery checkpoint, 2026-10-10
+
+The private encrypted recovery bundle created before the nightly work includes
+application/configuration files, receipt originals, a consistent PostgreSQL dump,
+existing signing material and saved container images. The recovery identity was
+preserved privately; neither archives nor keys belong in release downloads.
+Decryption/checksum checks and a restore into a separate local PostgreSQL instance
+passed. A complete application restore on a second host has not been performed.
+The bundle is on the production host, so it does not protect against losing that
+host or disk; a separately authorized secure copy is still useful.
+
+The prepared server image has not been deployed. New Docker containers currently
+fail before application startup inside LXC. Keep running production containers
+alive until the infrastructure owner resolves that issue. The prepared image
+rollback only selects the prior API/worker image; it does not restore the database,
+receipt files or configuration. Any complete recovery must use an isolated target,
+verify the existing recovery identity and data checksums, restore into empty test
+volumes, then verify users/organizations, receipt files and account reconciliation
+before a separately reviewed production change. Do not regenerate encryption or
+signing keys, restore over live data, or run deployment/migration scripts merely
+to validate the backup.
