@@ -41,6 +41,7 @@ export class ApiError extends Error {
   constructor(
     message: string,
     public status: number,
+    public fields: string[] = [],
   ) {
     super(message);
   }
@@ -78,14 +79,29 @@ export async function api<T>(
   if (generation !== scopeGeneration && !path.startsWith("/auth/"))
     throw new DOMException(t("Организация изменена"), "AbortError");
   if (!response.ok) {
-    const body: { detail?: string } = await response.json().catch(() => ({}));
+    const body: { detail?: string | { fields?: unknown }; fields?: unknown } =
+      await response.json().catch(() => ({}));
     if (response.status === 401 && path !== "/auth/login")
       window.dispatchEvent(new Event("finora:unauthorized"));
+    const fieldNames =
+      body.fields ??
+      (body.detail && typeof body.detail === "object"
+        ? body.detail.fields
+        : undefined);
     throw new ApiError(
       typeof body.detail === "string"
         ? body.detail
         : t("Не удалось выполнить действие"),
       response.status,
+      (Array.isArray(fieldNames)
+        ? fieldNames
+        : fieldNames && typeof fieldNames === "object"
+          ? Object.keys(fieldNames)
+          : []
+      ).filter(
+        (key): key is string =>
+          typeof key === "string" && /^[a-z][a-z0-9_]{0,63}$/.test(key),
+      ),
     );
   }
   const body: T = await response.json();

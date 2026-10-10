@@ -42,6 +42,7 @@ from .finance import (
 )
 from .i18n import current_language, t, translated_notice
 from .receipt_authors import receipt_creator
+from .runtime_config import runtime_value
 from .schemas import ManualReceipt, ReceiptConfirm, SplitInput, TransactionInput
 from .web_receipts import WebReceiptError, capture_receipt_page, receipt_link
 
@@ -199,7 +200,7 @@ def mev_url(value: str) -> str:
 
 
 def image_bytes(raw: bytes) -> tuple[bytes, str | None]:
-    if len(raw) > settings().max_upload_mb * 1024 * 1024:
+    if len(raw) > runtime_value("max_upload_mb") * 1024 * 1024:
         fail("Фото слишком большое: максимум 15 МБ", 413)
     try:
         with Image.open(io.BytesIO(raw)) as original:
@@ -271,7 +272,7 @@ async def fetch_mev(url: str) -> str:
             if response.status_code == 200 and len(response.content) <= 2_000_000:
                 html = response.text
             break
-    if (not html or "newFormTest" not in html) and settings().mev_browser:
+    if (not html or "newFormTest" not in html) and runtime_value("mev_browser", service="worker"):
         from playwright.async_api import async_playwright
 
         async with async_playwright() as p:

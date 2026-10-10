@@ -22,7 +22,13 @@ class RequestBodyLimit:
         path = scope["path"].rstrip("/")
         avatar = path == "/api/auth/avatar"
         originals = path.startswith("/api/receipts/") and path.endswith("/originals")
-        limit = MAX_AVATAR_REQUEST_BYTES if avatar else MAX_REQUEST_BYTES
+        limit = (
+            128 * 1024
+            if path.startswith("/api/system/settings")
+            else MAX_AVATAR_REQUEST_BYTES
+            if avatar
+            else MAX_REQUEST_BYTES
+        )
         detail = "Выберите фотографию размером до 5 МБ" if avatar else "Слишком большой запрос"
         lengths = [value for name, value in scope["headers"] if name.lower() == b"content-length"]
         error = None

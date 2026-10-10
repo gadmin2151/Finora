@@ -205,6 +205,14 @@ export const navigationGroups: NavigationGroup[] = [
         serverOnly: true,
       },
       {
+        id: "system-settings",
+        get label() {
+          return t("Системные настройки");
+        },
+        icon: Settings,
+        serverOnly: true,
+      },
+      {
         id: "settings",
         get label() {
           return t("Настройки");

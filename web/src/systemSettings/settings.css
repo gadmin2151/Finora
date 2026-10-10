@@ -1,0 +1,150 @@
+.system-settings {
+  display: grid;
+  gap: 22px;
+  min-width: 0;
+}
+.system-settings .system-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  padding: 16px 20px;
+}
+.system-settings .system-status strong {
+  margin-right: auto;
+}
+.system-settings .system-group {
+  padding: 24px;
+  min-width: 0;
+}
+.system-settings .system-group h2 {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 0 0 8px;
+}
+.system-settings .system-group > p {
+  color: var(--muted, var(--ink-muted));
+  margin: 0 0 20px;
+}
+.system-settings .system-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+.system-settings .system-field {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 18px;
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+.system-settings .system-field.secret,
+.system-settings .system-field.read-only {
+  grid-column: 1 / -1;
+}
+.system-settings .system-field label,
+.system-settings .system-field legend {
+  font-weight: 600;
+}
+.system-settings .system-field input:not([type="checkbox"]),
+.system-settings .system-field select {
+  width: 100%;
+  min-height: 44px;
+  min-width: 0;
+}
+.system-settings .system-field small,
+.system-settings .system-meta {
+  color: var(--ink-muted, var(--muted));
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.system-settings .system-meta {
+  display: flex;
+  gap: 8px 18px;
+  flex-wrap: wrap;
+}
+.system-settings .system-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px 0;
+  cursor: pointer;
+  font-weight: 400 !important;
+}
+.system-settings .system-check input {
+  margin-top: 4px;
+  flex: none;
+  width: 18px;
+  height: 18px;
+}
+.system-settings .system-value {
+  margin: 0;
+  padding: 12px;
+  background: var(--fill-hover);
+  border-radius: 10px;
+  overflow-wrap: anywhere;
+}
+.system-settings .system-secret-controls {
+  display: grid;
+  grid-template-columns: minmax(140px, 0.5fr) minmax(0, 1fr);
+  gap: 12px;
+}
+.system-settings .system-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-top: 22px;
+}
+.system-settings .system-actions .system-revision {
+  margin-left: auto;
+  color: var(--ink-muted);
+  font-size: 12px;
+}
+.system-settings .system-error {
+  color: var(--danger, #e97070);
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.system-settings .system-notice {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.system-settings .system-confirm {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.system-settings .system-empty {
+  padding: 24px;
+}
+.system-settings .system-group:focus-within {
+  outline-offset: 3px;
+}
+@media (max-width: 700px) {
+  .system-settings .system-group {
+    padding: 16px;
+  }
+  .system-settings .system-fields,
+  .system-settings .system-secret-controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .system-settings .system-field {
+    padding: 14px;
+  }
+  .system-settings .system-actions .system-revision {
+    margin-left: 0;
+    flex-basis: 100%;
+  }
+  .system-settings .system-actions .button {
+    flex: 1;
+  }
+}

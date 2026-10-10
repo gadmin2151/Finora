@@ -10,7 +10,7 @@ from .config import settings
 from .db import SessionLocal
 from .finance import lock_organization
 from .i18n import t
-from .security import decrypt
+from .runtime_config import openai_key, runtime_snapshot
 
 MODEL_CATALOG = [
     {
@@ -86,8 +86,9 @@ async def generate(
     prefs, usage_id = reserve_request(organization_id, purpose)
     input_tokens = output_tokens = 0
     try:
+        runtime = runtime_snapshot(service="worker")
         async with httpx.AsyncClient(
-            timeout=settings().ai_timeout, follow_redirects=False
+            timeout=runtime.values["ai_timeout"], follow_redirects=False
         ) as client:
             if prefs.provider == "ollama":
                 model = prefs.vision_model if images else prefs.model
@@ -102,7 +103,7 @@ async def generate(
                         "num_gpu": 0,
                         "num_ctx": 8192 if schema else 4096,
                         "num_predict": 4096 if schema else 16 if purpose == "test" else 640,
-                        "num_thread": settings().ai_cpu_threads,
+                        "num_thread": runtime.values["ai_cpu_threads"],
                         "temperature": 0,
                     },
                     "keep_alive": "2m",
@@ -131,7 +132,8 @@ async def generate(
                     result.get("eval_count", 0),
                 )
             else:
-                if not prefs.openai_key:
+                key = openai_key(prefs.openai_key)
+                if not key:
                     raise AIError("Добавьте API-ключ OpenAI в настройках.")
                 parts = [{"type": "input_text", "text": text}]
                 if images:
@@ -162,7 +164,7 @@ async def generate(
                 response = await client.post(
                     "https://api.openai.com/v1/responses",
                     json=body,
-                    headers={"Authorization": "Bearer " + decrypt(prefs.openai_key)},
+                    headers={"Authorization": "Bearer " + key},
                 )
                 if response.status_code == 401:
                     raise AIError("OpenAI отклонил API-ключ. Проверьте его в настройках.")

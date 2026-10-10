@@ -54,6 +54,7 @@ from .receipts import (
     mev_url,
     receipt_dict,
 )
+from .runtime_config import openai_key, runtime_value
 from .security import (
     current_organization,
     current_user,
@@ -802,7 +803,7 @@ async def upload_receipt(
         except WebReceiptError as exc:
             fail(str(exc))
     for upload in files:
-        raw = await upload.read(settings().max_upload_mb * 1024 * 1024 + 1)
+        raw = await upload.read(runtime_value("max_upload_mb") * 1024 * 1024 + 1)
         import asyncio
 
         content, qr = await asyncio.to_thread(image_bytes, raw)
@@ -846,7 +847,7 @@ async def add_receipt_originals(
         fail("Дополнять оригиналы чужого чека может администратор", 403)
     images = []
     for upload in files:
-        raw = await upload.read(settings().max_upload_mb * 1024 * 1024 + 1)
+        raw = await upload.read(runtime_value("max_upload_mb") * 1024 * 1024 + 1)
         content, _ = await asyncio.to_thread(image_bytes, raw)
         images.append(content)
     added = append_images(receipt, images)
@@ -1139,7 +1140,12 @@ def get_settings(user: m.Organization = SCOPE, db: Session = DB):
         "provider": p.provider,
         "model": p.model,
         "vision_model": p.vision_model,
-        "has_openai_key": bool(p.openai_key),
+        "has_openai_key": bool(p.openai_key) or bool(openai_key(db=db, service="api")),
+        "openai_key_source": "organization"
+        if p.openai_key
+        else "system"
+        if openai_key(db=db, service="api")
+        else None,
         "monthly_request_limit": p.monthly_request_limit,
         "auto_post": p.auto_post,
         "default_account_id": p.default_account_id,
@@ -1175,7 +1181,7 @@ def save_settings(data: s.PreferencesInput, user: m.Organization = SCOPE, db: Se
         row.openai_key = None
     if data.openai_key:
         row.openai_key = encrypt(data.openai_key)
-    if row.provider == "openai" and not row.openai_key:
+    if row.provider == "openai" and not openai_key(row.openai_key, db, service="api"):
         fail("Для OpenAI требуется API-ключ")
     audit(db, user.id, "settings.updated", row.id, {"provider": row.provider})
     db.commit()

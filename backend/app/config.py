@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     push_enabled: bool = False
     push_worker_enabled: bool = False
     push_fcm_project_id: str = ""
+    openai_api_key: str | None = Field(default=None, repr=False)
+    google_application_credentials: str | None = Field(default=None, repr=False)
     testing: bool = False
 
 

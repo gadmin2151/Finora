@@ -152,6 +152,7 @@ export type Preferences = {
   model: string;
   vision_model: string;
   has_openai_key: boolean;
+  openai_key_source?: "organization" | "system" | null;
   monthly_request_limit: number;
   auto_post: boolean;
   default_account_id: string | null;
@@ -265,4 +266,5 @@ export type Route =
   | "insights"
   | "reports"
   | "accounts"
-  | "settings";
+  | "settings"
+  | "system-settings";

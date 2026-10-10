@@ -3,6 +3,7 @@ from sqlalchemy import create_engine
 
 from app import models  # noqa: F401
 from app import push_models  # noqa: F401
+from app import system_settings_models  # noqa: F401
 from app.config import settings
 from app.db import Base
 

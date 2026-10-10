@@ -84,6 +84,7 @@ const Accounts = lazy(() =>
   import("./pages/Settings").then((m) => ({ default: m.Accounts })),
 );
 const Settings = lazy(() => import("./pages/Settings"));
+const SystemSettings = lazy(() => import("./systemSettings/SystemSettings"));
 
 function routeFromHash(): Route {
   const hash = location.hash.slice(1).split("?", 1)[0];
@@ -243,7 +244,9 @@ function Login() {
 
 function OrganizationGate({ user }: { user: User }) {
   const [selected, setSelected] = useState("");
-  const [managing, setManaging] = useState(false);
+  const [managing, setManaging] = useState(
+    () => user.is_server_admin && routeFromHash() === "system-settings",
+  );
   const [changing, setChanging] = useState(false);
   const [failure, setFailure] = useState<unknown>(null);
   const organization = user.organizations.find((org) => org.id === selected);
@@ -366,7 +369,13 @@ function ManagementLobby({
   switchOrganization: (id: string) => Promise<void>;
   onBack: () => void;
 }) {
-  const [tab, setTab] = useState<Route>("organizations");
+  const [tab, setTab] = useState<Route>(() => {
+    const route = routeFromHash();
+    return user.is_server_admin &&
+      (route === "users" || route === "system-settings")
+      ? route
+      : "organizations";
+  });
   const [message, setMessage] = useState("");
   return (
     <AppContext.Provider
@@ -381,8 +390,9 @@ function ManagementLobby({
         categories: [],
         navigate: (route) =>
           setTab(
-            route === "users" && user.is_server_admin
-              ? "users"
+            (route === "users" || route === "system-settings") &&
+              user.is_server_admin
+              ? route
               : "organizations",
           ),
         open: () => {},
@@ -409,7 +419,9 @@ function ManagementLobby({
           </div>
         )}
         <Suspense fallback={<Loading />}>
-          {tab === "users" && user.is_server_admin ? (
+          {tab === "system-settings" && user.is_server_admin ? (
+            <SystemSettings />
+          ) : tab === "users" && user.is_server_admin ? (
             <Users />
           ) : (
             <Organizations />
@@ -517,6 +529,7 @@ function Workspace({
     insights: Insights,
     accounts: Accounts,
     settings: Settings,
+    "system-settings": SystemSettings,
   };
   const activeRoute = canAccessRoute(route, isAdmin, user.is_server_admin)
     ? route

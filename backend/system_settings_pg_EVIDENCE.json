@@ -1,0 +1,139 @@
+{
+  "postgres_version": "17.11",
+  "database": "finora_system_settings_test",
+  "revision": "d81ac57e09f2",
+  "predecessor": "b73f9012dca4",
+  "single_head": true,
+  "upgrade_downgrade_reupgrade": "passed",
+  "alembic_check": "passed twice",
+  "baseline_financial_values_and_schema_unchanged": true,
+  "baseline": {
+    "accounts": {
+      "rows": 1,
+      "rows_sha256": "d4ab041960404158a996ee3f40b0a81b48013e31b5d91845be40e69d8fbce05b",
+      "schema_sha256": "348abee254bcadaf911f1c202246f1452e68af2fa5b26a035fec442c3bd118c0"
+    },
+    "ai_usage": {
+      "rows": 0,
+      "rows_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "schema_sha256": "502535cef7cfc221716207d82b50ac5339b0e3dbaeeba2c2d00f030fbdae4c8e"
+    },
+    "allocations": {
+      "rows": 0,
+      "rows_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "schema_sha256": "8daebc9d5d5ad62a80911ec7052645423a75b1a7a9c8147fb0aeb5ac1b1d6592"
+    },
+    "audit": {
+      "rows": 0,
+      "rows_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "schema_sha256": "29834aa25b1e99b17656d9845f51aa48b10e86f203787700cb640e6462f461af"
+    },
+    "bills": {
+      "rows": 1,
+      "rows_sha256": "46018625e6f98274df3f3130bebaa79b8a52c46c1344f6a974f9151f544e6830",
+      "schema_sha256": "0990eae8cbd2eb9789756b417319d717f05eeefd7c644472d86f49a118a24bee"
+    },
+    "budgets": {
+      "rows": 0,
+      "rows_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "schema_sha256": "9a5ea7f22e4cbcbf46b4a5d1c65aab2a07678a40b93055ad48cd01ff0385dc95"
+    },
+    "categories": {
+      "rows": 0,
+      "rows_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "schema_sha256": "a92d6ba1aa6674ec2e665f07ab3fd2891b974879f8899adf7581f023f2ce0830"
+    },
+    "debts": {
+      "rows": 0,
+      "rows_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "schema_sha256": "350ce4d057d2ffb6628b9a1a5f52dff63a7873c8c8cd3cce456dccd93fef7e18"
+    },
+    "jobs": {
+      "rows": 0,
+      "rows_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "schema_sha256": "5cdb7702959e239d7e18ccb35eb8dc6cc9ada5885e8e94a5b8c725ecf39815ec"
+    },
+    "login_attempts": {
+      "rows": 0,
+      "rows_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "schema_sha256": "38a68f0047ac721a9f4c245595230b11e1d17fc2c1c21d4bf49d63856682fc20"
+    },
+    "memberships": {
+      "rows": 1,
+      "rows_sha256": "575758bc39e7e7e587cc07016f3e668fb1c6231e6edf95506339d852ce8475e2",
+      "schema_sha256": "7b00904b135b231bc2e5dba4b97b70724f1337b2876b985c7453926a4d427034"
+    },
+    "messages": {
+      "rows": 0,
+      "rows_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "schema_sha256": "34e612686598a220f2f0a69566b5e60d8334cd348d3933973aeb6a6632742890"
+    },
+    "occurrences": {
+      "rows": 0,
+      "rows_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "schema_sha256": "1cec89e79f8581aef7b9d530f55d757b4c64c1d4598898d253fc07527701cb58"
+    },
+    "organizations": {
+      "rows": 1,
+      "rows_sha256": "f3afea626332a57da65184910c8756b0dd6f2af57bc53c6d8352eaa705e47027",
+      "schema_sha256": "5b9faecbf241a8c48435c30986ff34c96ee41acaacf48077aa6fba2003b57a53"
+    },
+    "postings": {
+      "rows": 1,
+      "rows_sha256": "8b216ecddba5083a9e76cabc6152d68afbcf5efd5a24c1589373cae5c7bc3041",
+      "schema_sha256": "500c7e9d13ca2dd20e331b6269d2f055d18123a95e5142c413e0b503666ba0e9"
+    },
+    "preferences": {
+      "rows": 0,
+      "rows_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "schema_sha256": "b48fa5bfa3a7619d9bcc3798958284ca5f500574d0d4308412cbe2a9be5d95f9"
+    },
+    "receipt_comments": {
+      "rows": 0,
+      "rows_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "schema_sha256": "c91a5d3fded0acbbee8cf0522fa88f63d634f94ba19f390399fd33d56f4c46e0"
+    },
+    "receipt_items": {
+      "rows": 0,
+      "rows_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "schema_sha256": "543bae9289b546ee7e50bc84e240bd1728083faec359585cc5b364f148ae526d"
+    },
+    "receipts": {
+      "rows": 1,
+      "rows_sha256": "c7a8146cb37f0fcf1a4028f0980552eaeb58593d260b23bd9f3646b16c3085ee",
+      "schema_sha256": "4d81d3a7aa593b2b0ff2a2dd42e9078683e928b9ea228e14e6fbf7ee6562f734"
+    },
+    "rules": {
+      "rows": 0,
+      "rows_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "schema_sha256": "649466bc2ea3baf6c7f6b652e6075db66097b5042f338bf336214b856be59667"
+    },
+    "sessions": {
+      "rows": 1,
+      "rows_sha256": "30d44fdb762b3eeccadf818a7d89065a49099ad33a97c2701ab32f9dabb5a33c",
+      "schema_sha256": "b9c60ac8978811af43d5b344e528ab39a2e54fbe1a1b70dcd84f8e86950c58c6"
+    },
+    "transactions": {
+      "rows": 1,
+      "rows_sha256": "6f3325bf9d819bb2d51f12076be1274349ff4e53a32af371c99afb818130cbbe",
+      "schema_sha256": "f68a4eb33bf756663977e2db0308487b3aac0a25d4618c65952e96f7da7bac3a"
+    },
+    "user_audit": {
+      "rows": 0,
+      "rows_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "schema_sha256": "bf7a6bc74049927ea6dc3f7223fd46d3727aa64c51900aa3215e7bf9a78ad40e"
+    },
+    "users": {
+      "rows": 1,
+      "rows_sha256": "146e3fa9a97337d78364ef99ddaf776fedd0c894c350dd9a7f92de8ee7e7880f",
+      "schema_sha256": "c15801110ce065fda3e44effc869ec4fc2382785250b421bb05b68fb412ad50f"
+    }
+  },
+  "defaults_inherit_no_secret_migration": true,
+  "actual_save_fresh_session_worker_read": true,
+  "monotonic_observation": true,
+  "production_reads": 0,
+  "production_mutations": 0,
+  "provider_calls": 0,
+  "transport": "private /tmp Unix socket; TCP disabled"
+}

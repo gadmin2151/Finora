@@ -63,13 +63,22 @@ def test_bad_configuration_is_fail_closed(monkeypatch):
     assert not push_runtime.delivery_capabilities()["delivery_configured"]
 
 
-def test_disabled_worker_does_not_access_database(monkeypatch):
+def test_disabled_worker_polls_configuration_without_adc_or_dispatch(monkeypatch):
+    from app import push_worker
+    from app.db import SessionLocal
+
     config(monkeypatch, False, False)
+    stopped = [False]
+    monkeypatch.setattr(
+        push_runtime, "create_fcm_provider", lambda *a: pytest.fail("ADC forbidden")
+    )
+    monkeypatch.setattr(push_worker, "deliver_one", lambda *a: pytest.fail("dispatch forbidden"))
 
-    def forbidden():
-        pytest.fail("database must not be accessed while disabled")
+    async def no_wait(seconds):
+        stopped[0] = True
 
-    asyncio.run(push_runtime.run_push(forbidden, lambda: False))
+    monkeypatch.setattr(push_runtime.asyncio, "sleep", no_wait)
+    asyncio.run(push_runtime.run_push(SessionLocal, lambda: stopped[0]))
 
 
 def test_api_uses_runtime_readiness(client, monkeypatch):
@@ -107,5 +116,7 @@ def test_active_worker_schedules_and_dispatches_with_same_provider(monkeypatch):
         pass
 
     monkeypatch.setattr(push_runtime.asyncio, "sleep", no_wait)
-    asyncio.run(push_runtime.run_push(lambda: None, lambda: stopped[0]))
+    from app.db import SessionLocal
+
+    asyncio.run(push_runtime.run_push(SessionLocal, lambda: stopped[0]))
     assert calls == ["schedule", "dispatch"]

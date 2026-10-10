@@ -1,8 +1,9 @@
-"""Opt-in process-local provider; disabled configuration never probes ADC or the database."""
+"""Revision-aware process provider; disabled polling never probes ADC or dispatches."""
 
 import asyncio
 import logging
-from functools import lru_cache
+from threading import RLock
+from time import monotonic
 
 from .config import settings
 from .push_fcm import FCMConfig, create_fcm_provider
@@ -11,25 +12,111 @@ from .push_provider import DisabledProvider
 logger = logging.getLogger("finora.push")
 
 
-@lru_cache(maxsize=1)
-def configured_provider():
-    config = settings()
-    if not config.push_enabled or not config.push_worker_enabled:
-        return DisabledProvider()
+_provider_revision = None
+_provider = None
+_provider_lock = RLock()
+_failed_identity = None
+_retry_after = 0.0
+
+
+def _clear_provider():
+    global _provider_revision, _provider, _failed_identity, _retry_after
+    _failed_identity, _retry_after = None, 0.0
+    old = _provider
+    _provider_revision = None
+    _provider = None
+    client = getattr(old, "client", None)
+    if client is not None:
+        client.close()
+
+
+def _configured_provider(*, service="api", session_factory=None):
+    """Resolve persisted revision at a delivery boundary; never probe ADC while off."""
+    global _provider_revision, _provider, _failed_identity, _retry_after
+    from .db import SessionLocal
+    from .models import now
+    from .system_settings_service import read_effective, record_runtime_observation
+
+    factory = session_factory or SessionLocal
     try:
-        return create_fcm_provider(FCMConfig(config.push_fcm_project_id, True))
+        with factory() as db:
+            snapshot = read_effective(settings(), db)
+            identity = (
+                snapshot.revision,
+                snapshot.values["push_enabled"],
+                snapshot.values["push_worker_enabled"],
+                snapshot.values["push_fcm_project_id"],
+                snapshot.secret_modes["firebase_service_account"],
+            )
+            if identity != _provider_revision:
+                if identity == _failed_identity and monotonic() < _retry_after:
+                    return DisabledProvider()
+                candidate = DisabledProvider()
+                if identity[1] and identity[2] and identity[4] != "disable":
+                    credential_json = snapshot.secret_getter("firebase_service_account")
+                    if credential_json is None:
+                        candidate = create_fcm_provider(FCMConfig(identity[3], True))
+                    else:
+                        import json
+
+                        from google.oauth2 import service_account
+
+                        payload = json.loads(credential_json)
+
+                        def loader(**kwargs):
+                            return (
+                                service_account.Credentials.from_service_account_info(
+                                    payload, scopes=kwargs["scopes"]
+                                ),
+                                identity[3],
+                            )
+
+                        candidate = create_fcm_provider(
+                            FCMConfig(identity[3], True), credentials_loader=loader
+                        )
+                _clear_provider()
+                _provider = candidate
+                if (
+                    identity[1]
+                    and identity[2]
+                    and identity[4] != "disable"
+                    and not candidate.active
+                ):
+                    _failed_identity, _retry_after = identity, monotonic() + 30
+                    return candidate
+                _provider_revision = identity
+                _failed_identity, _retry_after = None, 0.0
+            if not (identity[1] and identity[2] and identity[4] != "disable") or _provider.active:
+                record_runtime_observation(db, service, snapshot.revision, now())
+                db.commit()
+            return _provider
     except Exception:
-        # Never log ADC paths, credential values, provider response or device tokens.
+        _clear_provider()
         logger.warning("push_configuration_unavailable")
         return DisabledProvider()
 
 
+def clear_provider():
+    with _provider_lock:
+        _clear_provider()
+
+
+def configured_provider(*, service="api", session_factory=None):
+    with _provider_lock:
+        return _configured_provider(service=service, session_factory=session_factory)
+
+
+# Existing test/admin callers can explicitly invalidate the process cache.
+configured_provider.cache_clear = clear_provider
+
+
 def delivery_capabilities():
-    provider = configured_provider()
-    return {
-        "delivery_configured": provider.active,
-        "provider": provider.name if provider.active else None,
-    }
+    with _provider_lock:
+        provider = configured_provider()
+        return {
+            "delivery_configured": provider.active,
+            "provider": provider.name if provider.active else None,
+        }
 
 
 def schedule_tick(session_factory, now):
@@ -58,12 +145,15 @@ async def run_push(session_factory, stopping):
     from . import models as m
     from .push_worker import deliver_one
 
-    provider = configured_provider()
-    if not provider.active:
-        return
     next_schedule = 0.0
     while not stopping():
         try:
+            provider = await asyncio.to_thread(
+                configured_provider, service="worker", session_factory=session_factory
+            )
+            if not provider.active:
+                await asyncio.sleep(5)
+                continue
             loop = asyncio.get_running_loop()
             if loop.time() >= next_schedule:
                 await asyncio.to_thread(schedule_tick, session_factory, m.now())

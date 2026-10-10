@@ -174,6 +174,10 @@ Enter your server's **HTTPS URL**, username and password, then choose an organiz
 
 [Installation, updates and recovery](docs/DEPLOYMENT.md) · [Full Russian manual](README.ru.md) · [Configuration reference](.env.example)
 
+## Server administrator settings
+
+Server administrators can open **Management → System settings** on the web, even before selecting an organization. The page provides a typed allowlist for Firebase/push, AI timeouts and CPU threads, receipt extraction and upload limits. Credentials are write-only encrypted overrides with explicit keep, replace, inherit and disable actions. Organization settings remain separate; database, encryption keys, security and mounted ADC infrastructure are not editable. Saved revisions and push provider boundary observations are shown separately. See [system settings](docs/SYSTEM-SETTINGS.md) for precedence, runtime behavior and rollback.
+
 ## Your server, with clear boundaries
 
 | Area           | Current support                                                                                                                                                           |

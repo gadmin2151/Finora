@@ -1133,5 +1133,7 @@
   "Повторить загрузку": "Retry loading",
   "Копирование лимитов недоступно на этой версии сервера. Задайте лимиты вручную.": "Copying budget limits is unavailable on this server version. Set limits manually.",
   "Не удалось проверить точные данные предложения. Повторите запрос.": "The exact proposal data could not be verified. Send your request again.",
-  "Предложение устарело. Повторите запрос, чтобы проверить актуальные данные": "The proposal expired. Send your request again to check the current data"
+  "Предложение устарело. Повторите запрос, чтобы проверить актуальные данные": "The proposal expired. Send your request again to check the current data",
+  "Системные настройки": "System settings",
+  "Ключ организации · сейчас используется системный": "Organization key · currently using the system key"
 }

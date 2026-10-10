@@ -510,9 +510,11 @@ function AISettings({ initial }: { initial: Preferences }) {
                 <>
                   <Field
                     label={
-                      initial.has_openai_key
-                        ? t("Новый API-ключ · текущий уже сохранён")
-                        : t("API-ключ OpenAI")
+                      initial.openai_key_source === "system"
+                        ? t("Ключ организации · сейчас используется системный")
+                        : initial.has_openai_key
+                          ? t("Новый API-ключ · текущий уже сохранён")
+                          : t("API-ключ OpenAI")
                     }
                     hint={t(
                       "Ключ хранится зашифрованным на сервере и не возвращается в браузер.",
