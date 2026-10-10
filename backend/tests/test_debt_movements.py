@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
+from decimal import ROUND_HALF_UP, Decimal
 from uuid import uuid4
 
 import pytest
@@ -37,6 +38,65 @@ def movement(account, amount, **extra):
 
 def remaining(client, debt):
     return next(d["remaining_minor"] for d in client.get("/api/debts").json() if d["id"] == debt)
+
+
+@pytest.mark.parametrize("currency,rate", [("EUR", "19.50"), ("USD", "17.50"), ("RON", "3.90")])
+@pytest.mark.parametrize("direction", ["lent", "borrowed"])
+def test_foreign_partial_repayment_preserves_currency_cents_retry_and_scope(
+    client, currency, rate, direction
+):
+    account = client.post(
+        "/api/accounts",
+        json={"name": f"Synthetic {currency}", "currency": currency, "opening_balance": "100"},
+    ).json()
+    body = {
+        "person": "Synthetic foreign debt",
+        "direction": direction,
+        "amount": "50",
+        "currency": currency,
+        "mode": "new",
+        "account_id": account["id"],
+        "occurred_on": "2025-02-01",
+        "fx_rate": rate,
+        "idempotency_key": uuid4().hex,
+    }
+    created = client.post("/api/debts", json=body)
+    assert created.status_code == 200, created.text
+    debt = created.json()["id"]
+    payment = movement(account["id"], "12.34", fx_rate=rate)
+    paid = client.post(f"/api/debts/{debt}/repay", json=payment)
+    assert paid.status_code == 200, paid.text
+    result = paid.json()
+    assert result["currency"] == currency and result["amount_minor"] == 1234
+    assert Decimal(result["fx_rate"]) == Decimal(rate)
+    assert result["base_minor"] == int(
+        (Decimal(1234) * Decimal(rate)).quantize(Decimal(1), rounding=ROUND_HALF_UP)
+    )
+    assert remaining(client, debt) == 3766
+    assert client.post(f"/api/debts/{debt}/repay", json=payment).json()["id"] == result["id"]
+    assert (
+        client.post(f"/api/debts/{debt}/repay", json={**payment, "amount": "12.35"}).status_code
+        == 409
+    )
+    balances = {row["id"]: row["balance_minor"] for row in client.get("/api/accounts").json()}
+    assert balances[account["id"]] == (6234 if direction == "lent" else 13766)
+    report = client.get("/api/dashboard?month=2025-02").json()
+    assert report["income_minor"] == report["expense_minor"] == 0
+    assert client.get("/api/transactions").json()["total"] == 2
+    other = client.post("/api/organizations", json={"name": "Synthetic other FX scope"}).json()[
+        "id"
+    ]
+    assert (
+        client.post(
+            f"/api/debts/{debt}/repay", json=payment, headers={"X-Organization-ID": other}
+        ).status_code
+        == 404
+    )
+    assert client.get("/api/debts", headers={"X-Organization-ID": other}).json() == []
+    assert (
+        client.get("/api/transactions", headers={"X-Organization-ID": other}).json()["total"] == 0
+    )
+    assert remaining(client, debt) == 3766
 
 
 @pytest.mark.parametrize("direction", ["lent", "borrowed"])

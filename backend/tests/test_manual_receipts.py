@@ -95,6 +95,7 @@ def test_manual_receipt_requires_explicit_organization_and_csrf(client, accounts
         {"merchant": " "},
         {"total": "10.00"},
         {"total": "12.501"},
+        {"total": "-12.50"},
         {"purchased_on": (date.today() + timedelta(days=2)).isoformat()},
         {"items": []},
         {"request_key": "not-a-uuid"},
@@ -104,6 +105,17 @@ def test_manual_receipt_requires_explicit_organization_and_csrf(client, accounts
 )
 def test_invalid_manual_receipt_is_atomic(client, accounts, change):
     response = client.post("/api/receipts/manual", json={**entry(accounts[0]), **change})
+    assert response.status_code == 422, response.text
+    assert_no_receipts()
+
+
+@pytest.mark.parametrize(
+    "field,value", [("quantity", "-2"), ("unit_price", "-7.00"), ("total", "-12.50")]
+)
+def test_negative_manual_line_never_creates_receipt_or_money(client, accounts, field, value):
+    body = entry(accounts[0])
+    body["items"][0][field] = value
+    response = client.post("/api/receipts/manual", json=body)
     assert response.status_code == 422, response.text
     assert_no_receipts()
 
