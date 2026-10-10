@@ -1099,5 +1099,15 @@
   "Месяц": "Month",
   "Да": "Yes",
   "Нет": "No",
-  "Не удалось прочитать сохранённый черновик. Он не изменён. Закройте окно и попробуйте снова или явно удалите черновик, чтобы начать заново.": "Could not read the saved draft. It has been left unchanged. Close this window and try again, or explicitly delete the draft to start over."
+  "Не удалось прочитать сохранённый черновик. Он не изменён. Закройте окно и попробуйте снова или явно удалите черновик, чтобы начать заново.": "Could not read the saved draft. It has been left unchanged. Close this window and try again, or explicitly delete the draft to start over.",
+  "Сначала проверьте лимиты для переноса": "Review the budget limits before copying",
+  "Лимиты перенесены": "Budget limits copied",
+  "Перенести прошлый месяц": "Copy previous month",
+  "Лимиты на {0}": "Budget limits for {0}",
+  "Перенесём только категории без лимита. Уже заданные суммы сохранятся.": "Only categories without a limit will be copied. Existing amounts will be kept.",
+  "План за {0}": "Plan for {0}",
+  "Нет лимитов для переноса. Задайте их по категориям.": "No limits to copy. Set them for each category.",
+  "Будет добавлено: {0}": "To be added: {0}",
+  "Уже заданных лимитов: {0}": "Existing limits: {0}",
+  "Перенести лимиты": "Copy budget limits"
 }

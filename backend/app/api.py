@@ -19,7 +19,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy import delete, func, or_, select
 from sqlalchemy.orm import Session
 
-from . import accounting, ai, ledger
+from . import accounting, ai, budgets, ledger
 from . import models as m
 from . import schemas as s
 from .category_refresh import install_daily_categories, refresh_receipt_categories
@@ -608,6 +608,18 @@ def save_budget(data: s.BudgetInput, user: m.Organization = SCOPE, db: Session =
     row.amount_minor = minor(data.amount)
     db.commit()
     return {"id": row.id}
+
+
+@router.get("/budgets/copy-preview")
+def budget_copy_preview(month: str, user: m.Organization = SCOPE, db: Session = DB):
+    return budgets.copy_preview(db, user.id, month)
+
+
+@router.post("/budgets/copy")
+def copy_budgets(data: s.BudgetCopyInput, user: m.Organization = SCOPE, db: Session = DB):
+    result = budgets.copy_previous_month(db, user.id, data.month, data.fingerprint)
+    db.commit()
+    return result
 
 
 @router.delete("/budgets/{key}")

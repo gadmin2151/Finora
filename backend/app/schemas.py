@@ -215,6 +215,11 @@ class BudgetInput(Strict):
     amount: Money = Field(gt=0, le=1000000000)
 
 
+class BudgetCopyInput(Strict):
+    month: str = Field(pattern=r"^\d{4}-(0[1-9]|1[0-2])$")
+    fingerprint: str = Field(pattern=r"^[a-f0-9]{64}$")
+
+
 class RuleInput(Strict):
     pattern: str = Field(min_length=2, max_length=150)
     field: Literal["item", "merchant"] = "item"

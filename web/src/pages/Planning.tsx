@@ -48,13 +48,42 @@ import {
 } from "../ui";
 
 export function Budgets() {
-  const { month, categories, toast } = useApp();
+  const { month, categories, toast, isAdmin } = useApp();
   const query = useQuery({
     queryKey: ["dashboard", month],
     queryFn: () => api<Dashboard>(`/dashboard?month=${month}`),
   });
   const [editing, setEditing] = useState<string | null>(null);
   const [value, setValue] = useState("");
+  const [copyMonth, setCopyMonth] = useState<string | null>(null);
+  const copyPreview = useQuery({
+    queryKey: ["budget-copy", copyMonth],
+    queryFn: () =>
+      api<{
+        month: string;
+        source_month: string;
+        fingerprint: string;
+        items: { category_id: string; name: string; amount_minor: number }[];
+        total_minor: number;
+        preserved_count: number;
+      }>(`/budgets/copy-preview?month=${copyMonth}`),
+    enabled: copyMonth !== null,
+  });
+  const copy = useAction(
+    () => {
+      const preview = copyPreview.data;
+      if (!preview || preview.month !== copyMonth)
+        throw new Error(t("Сначала проверьте лимиты для переноса"));
+      return send("/budgets/copy", {
+        month: preview.month,
+        fingerprint: preview.fingerprint,
+      });
+    },
+    () => {
+      setCopyMonth(null);
+      toast(t("Лимиты перенесены"));
+    },
+  );
   const [view, setView] = useState<"cards" | "list">(() => {
     try {
       return localStorage.getItem("finora.budgets.view") === "list"
@@ -105,6 +134,19 @@ export function Budgets() {
         text={t(
           "Установите комфортные лимиты. Приложение покажет, сколько ещё доступно.",
         )}
+        actions={
+          isAdmin && (
+            <button
+              className="button secondary"
+              onClick={() => {
+                copy.reset();
+                setCopyMonth(month);
+              }}
+            >
+              <CalendarClock size={18} /> {t("Перенести прошлый месяц")}
+            </button>
+          )
+        }
       />
       <div className="budget-summary panel">
         <div className="round-icon mint">
@@ -192,6 +234,7 @@ export function Budgets() {
                 {c.id !== "uncategorized" && (
                   <button
                     className="text-button budget-list-limit"
+                    disabled={!isAdmin}
                     onClick={() => {
                       setEditing(c.id);
                       setValue(
@@ -258,7 +301,7 @@ export function Budgets() {
                         : t("Осталось {0}", amount(budget - spent))
                       : t("Вы решаете, сколько потратить")}
                   </small>
-                  {c.id !== "uncategorized" && (
+                  {isAdmin && c.id !== "uncategorized" && (
                     <button
                       className="text-button"
                       onClick={() => {
@@ -274,6 +317,74 @@ export function Budgets() {
             );
           })}
         </div>
+      )}
+      {copyMonth && (
+        <Modal
+          title={t("Лимиты на {0}", copyMonth)}
+          description={t(
+            "Перенесём только категории без лимита. Уже заданные суммы сохранятся.",
+          )}
+          onClose={() => {
+            if (!copy.isPending) setCopyMonth(null);
+          }}
+        >
+          <ErrorBox error={copyPreview.error ?? copy.error} />
+          {copyPreview.isPending ? (
+            <Loading />
+          ) : copyPreview.data ? (
+            <Form
+              onSubmit={() => {
+                if (!copy.isPending) copy.mutate(undefined);
+              }}
+            >
+              <p>{t("План за {0}", copyPreview.data.source_month)}</p>
+              {copyPreview.data.items.length ? (
+                <ul>
+                  {copyPreview.data.items.map((item) => (
+                    <li key={item.category_id} className="between">
+                      <span>{item.name}</span>
+                      <strong>{amount(item.amount_minor)}</strong>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>
+                  {t("Нет лимитов для переноса. Задайте их по категориям.")}
+                </p>
+              )}
+              <p>
+                {t(
+                  "Будет добавлено: {0}",
+                  amount(copyPreview.data.total_minor),
+                )}
+              </p>
+              <p>
+                {t(
+                  "Уже заданных лимитов: {0}",
+                  copyPreview.data.preserved_count,
+                )}
+              </p>
+              <footer className="modal-footer">
+                <button
+                  type="button"
+                  className="button secondary"
+                  disabled={copy.isPending}
+                  onClick={() => setCopyMonth(null)}
+                >
+                  {t("Отмена")}
+                </button>
+                <Submit
+                  pending={copy.isPending}
+                  disabled={
+                    !copyPreview.data.items.length || copyPreview.isFetching
+                  }
+                >
+                  {t("Перенести лимиты")}
+                </Submit>
+              </footer>
+            </Form>
+          ) : null}
+        </Modal>
       )}
       {editing && (
         <Modal

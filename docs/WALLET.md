@@ -53,3 +53,9 @@ Select a spending category to see its confirmed receipt items for the selected m
 
 
 `POST /api/wallet/balance-adjustment` accepts the same fields plus required `expected_accounting_version` from `/api/settings/accounting`. It reconciles the combined MDL total and records the difference on the primary account. The response includes `transaction`, `previous_balance_minor`, `adjustment_minor`, and the current `balance_minor`. Concurrent balance or accounting-mode changes return 409; the user refreshes and reviews before retrying. Source account IDs from older clients are accepted for new payments only when an organization-scoped merge audit proves ownership. In combined mode `POST /api/accounts` is rejected; choose separate mode first.
+
+## Copy monthly budget limits
+
+On the Budgets page, an administrator can choose **Copy previous month** and review the exact categories and amounts before confirming. The operation fills only categories without a limit for the selected month; existing limits remain unchanged. Copying a budget does not create a transaction or change any account balance.
+
+`GET /api/budgets/copy-preview?month=YYYY-MM` returns the previous month, missing category limits, the total to add, existing-limit count and a snapshot fingerprint. `POST /api/budgets/copy` accepts the selected `month` and that `fingerprint`. A changed source/current budget or another organization returns 409 so the user can review again. The copy is serialized with other organization writes and committed as one operation. Repeating an already applied snapshot cannot add duplicate limits. Members can view the shared plan; only administrators can copy or edit it. No schema migration is required.
