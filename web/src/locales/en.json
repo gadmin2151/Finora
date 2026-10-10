@@ -1130,5 +1130,6 @@
   "За выбранный месяц, эквивалент в MDL. Возвраты учтены": "For the selected month, MDL equivalent. Refunds are included",
   "План за выбранный месяц по сохранённым курсам. Ещё не проведён как расход": "Planned for the selected month at saved rates. Not yet recorded as spending",
   "Просрочено: {0}": "Overdue: {0}",
-  "Повторить загрузку": "Retry loading"
+  "Повторить загрузку": "Retry loading",
+  "Копирование лимитов недоступно на этой версии сервера. Задайте лимиты вручную.": "Copying budget limits is unavailable on this server version. Set limits manually."
 }

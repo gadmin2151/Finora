@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { categoryPurchasesHash } from "../purchaseNavigation";
 import { debtIsOverdue, filterDebts } from "../debtFilters";
-import { api, send, useAction } from "../api";
+import { api, ApiError, send, useAction } from "../api";
 import { useApp } from "../context";
 import type {
   Bill,
@@ -84,6 +84,9 @@ export function Budgets() {
       setCopyMonth(null);
       toast(t("Лимиты перенесены"));
     },
+  );
+  const copyUnsupported = [copyPreview.error, copy.error].some(
+    (error) => error instanceof ApiError && [404, 405].includes(error.status),
   );
   const [view, setView] = useState<"cards" | "list">(() => {
     try {
@@ -329,10 +332,20 @@ export function Budgets() {
             if (!copy.isPending) setCopyMonth(null);
           }}
         >
-          <ErrorBox error={copyPreview.error ?? copy.error} />
+          <ErrorBox
+            error={
+              copyUnsupported
+                ? new Error(
+                    t(
+                      "Копирование лимитов недоступно на этой версии сервера. Задайте лимиты вручную.",
+                    ),
+                  )
+                : (copyPreview.error ?? copy.error)
+            }
+          />
           {copyPreview.isPending ? (
             <Loading />
-          ) : copyPreview.data ? (
+          ) : copyPreview.data && !copyPreview.isError && !copyUnsupported ? (
             <Form
               onSubmit={() => {
                 if (!copy.isPending) copy.mutate(undefined);
