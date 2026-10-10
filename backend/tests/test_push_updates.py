@@ -1,6 +1,6 @@
 """APK update events use fictional published metadata; no provider or network calls."""
 
-from datetime import UTC, timedelta
+from datetime import timedelta
 
 import pytest
 import test_push_backend as foundation
@@ -15,6 +15,7 @@ from app.push_models import (
     PushPreference,
     PushUpdateNotice,
 )
+from app.push_schedule import utc
 from app.push_updates import (
     CERTIFICATE,
     MANIFEST_URL,
@@ -94,7 +95,7 @@ def test_update_one_device_opt_in_quiet_and_durable_dedup(context):
             release.version_name,
         )
         assert delivery.device_id == device.id
-        assert delivery.available_at.astimezone(UTC).hour == 10
+        assert utc(delivery.available_at).hour == 10
         assert update_delivery_eligible(db, event, device, now=NOW)
         device.installed_version_code = 200
         assert not update_delivery_eligible(db, event, device, now=NOW)

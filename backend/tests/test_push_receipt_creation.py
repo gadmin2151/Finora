@@ -323,3 +323,29 @@ def test_legacy_preferences_preserve_explicit_updates(context, client):
         json={"enabled": True, "receipts": True, "payments": True, "important": True},
     )
     assert result.status_code == 200 and result.json()["updates"]
+
+
+def test_pre_rollout_queued_completion_event_is_never_delivered(context, monkeypatch):
+    from app.push_service import enqueue
+
+    monkeypatch.setattr("app.push_api.m.now", lambda: NOW)
+    with SessionLocal() as db:
+        row = receipt(db, context, author_id=context["user_id"])
+        row.status = "review"
+        event = enqueue(
+            db,
+            user_id=context["user_id"],
+            organization_id=context["organization_id"],
+            event_key=f"receipt:{row.id}:review:1",
+            category="receipts",
+            entity_id=row.id,
+            now=NOW,
+            expires_at=NOW + timedelta(days=1),
+        )
+        db.commit()
+        assert event and not db.get(PushReceiptCreation, row.id)
+        with pytest.raises(HTTPException):
+            available_event(db, context["user_id"], context["session_id"], event.id)
+    provider = MockProvider()
+    assert deliver_one(SessionLocal, provider, now=NOW) == "skipped"
+    assert not provider.sent

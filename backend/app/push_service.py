@@ -313,13 +313,9 @@ def event_is_current(db: Session, event: PushEvent) -> bool:
             receipt
             and receipt.organization_id == event.organization_id
             and not receipt.deleted_at
-            and (
-                receipt.status in {"review", "posted"}
-                or (
-                    event.event_key == f"receipt-created:{receipt.id}"
-                    and db.get(PushReceiptCreation, receipt.id)
-                )
-            )
+            and receipt.created_by != event.user_id
+            and event.event_key == f"receipt-created:{receipt.id}"
+            and db.get(PushReceiptCreation, receipt.id)
         )
     return event.category == "important" and event.entity_id is None
 
