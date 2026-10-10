@@ -1131,5 +1131,7 @@
   "План за выбранный месяц по сохранённым курсам. Ещё не проведён как расход": "Planned for the selected month at saved rates. Not yet recorded as spending",
   "Просрочено: {0}": "Overdue: {0}",
   "Повторить загрузку": "Retry loading",
-  "Копирование лимитов недоступно на этой версии сервера. Задайте лимиты вручную.": "Copying budget limits is unavailable on this server version. Set limits manually."
+  "Копирование лимитов недоступно на этой версии сервера. Задайте лимиты вручную.": "Copying budget limits is unavailable on this server version. Set limits manually.",
+  "Не удалось проверить точные данные предложения. Повторите запрос.": "The exact proposal data could not be verified. Send your request again.",
+  "Предложение устарело. Повторите запрос, чтобы проверить актуальные данные": "The proposal expired. Send your request again to check the current data"
 }

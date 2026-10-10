@@ -1,4 +1,6 @@
 import { Check, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { chatActionReviewState, parseActionObject } from "./chatActionReview";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient, send } from "./api";
 import { useApp } from "./context";
@@ -36,6 +38,12 @@ const labels = () => ({
 
 export function ChatActions({ message }: { message: Message }) {
   const { user, accounts, categories } = useApp();
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const reviewState = chatActionReviewState(message, now);
   const action = useMutation({
     mutationFn: (confirm: boolean) =>
       send<{
@@ -74,13 +82,10 @@ export function ChatActions({ message }: { message: Message }) {
           : String(value);
     return [[prefix, names.get(display) ?? display]];
   }
-  function parse(text: string): unknown {
-    try {
-      return JSON.parse(text);
-    } catch {
-      return t("Не удалось прочитать данные");
-    }
+  function parse(text: string, limit = 12_000): unknown {
+    return parseActionObject(text, limit) ?? t("Не удалось прочитать данные");
   }
+
   return (
     <section className="chat-actions" aria-label={t("Подготовленные действия")}>
       <strong>{t("Проверьте перед выполнением")}</strong>
@@ -100,7 +105,7 @@ export function ChatActions({ message }: { message: Message }) {
             <summary>{t("Запись и параметры действия")}</summary>
             <p>{proposal.operation}</p>
             <dl>
-              {values(parse(proposal.parameters_json)).map(
+              {values(parse(proposal.parameters_json, 2048)).map(
                 ([label, value], index) => (
                   <div key={index}>
                     <dt>{label}</dt>
@@ -119,10 +124,24 @@ export function ChatActions({ message }: { message: Message }) {
       ))}
       {status === "pending" && message.details.actor_id === user.id ? (
         <div className="button-row">
+          {reviewState !== "valid" && (
+            <p className="text-danger">
+              {reviewState === "expired"
+                ? t(
+                    "Предложение устарело. Повторите запрос, чтобы проверить актуальные данные",
+                  )
+                : t(
+                    "Не удалось проверить точные данные предложения. Повторите запрос.",
+                  )}
+            </p>
+          )}
           <button
             className="button primary"
-            disabled={action.isPending}
-            onClick={() => action.mutate(true)}
+            disabled={action.isPending || reviewState !== "valid"}
+            onClick={() => {
+              if (chatActionReviewState(message, Date.now()) === "valid")
+                action.mutate(true);
+            }}
           >
             <Check size={17} />
             {action.isPending ? t("Выполняю…") : t("Выполнить")}
