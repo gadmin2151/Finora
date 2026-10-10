@@ -1,10 +1,13 @@
 package work.gadmin.finora
 
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.fail
 import org.junit.Rule
@@ -37,6 +40,62 @@ class OverviewPlansAcceptanceTest {
                     DashboardBill("paid", "Paid bill", 100, "MDL", "2026-10-08", "paid"),
                 ),
         )
+
+    @Test
+    fun largeTextAndLongPlanKeepNavigationReachableOnNarrowScreen() {
+        val context =
+            androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().targetContext
+        val preferences = LanguagePreferences(context)
+        val original = preferences.read()
+        try {
+            preferences.save(LanguagePreference.ENGLISH)
+            LanguageRuntime.initialize(context)
+            rule.setContent {
+                val density = androidx.compose.ui.platform.LocalDensity.current
+                androidx.compose.runtime.CompositionLocalProvider(
+                    androidx.compose.ui.platform.LocalDensity provides
+                        androidx.compose.ui.unit.Density(density.density, 2f)
+                ) {
+                    FinoraTheme(darkOverride = true) {
+                        androidx.compose.foundation.layout.Column(
+                            androidx.compose.ui.Modifier.width(320.dp)
+                                .verticalScroll(androidx.compose.foundation.rememberScrollState())
+                        ) {
+                            OverviewPlansCard(
+                                dashboard.copy(
+                                    bills =
+                                        listOf(
+                                            dashboard.bills
+                                                .first()
+                                                .copy(
+                                                    name =
+                                                        "Synthetic unusually long original plan name "
+                                                            .repeat(4)
+                                                )
+                                        )
+                                ),
+                                true,
+                                false,
+                            ) {}
+                        }
+                    }
+                }
+            }
+            rule
+                .onNodeWithTag("planning-budgets")
+                .performScrollTo()
+                .assertIsDisplayed()
+                .assertIsEnabled()
+            rule
+                .onNodeWithTag("planning-bills")
+                .performScrollTo()
+                .assertIsDisplayed()
+                .assertIsEnabled()
+        } finally {
+            preferences.save(original)
+            LanguageRuntime.initialize(context)
+        }
+    }
 
     @Test
     fun memberSeesOriginalCurrencyAndOverduePlanWithoutPaymentActions() {
