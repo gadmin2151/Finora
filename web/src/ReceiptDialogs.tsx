@@ -638,7 +638,7 @@ function ReceiptForm({
     items,
   ]);
   function leaveManualDraft(close: () => void) {
-    if (action.isPending) return;
+    if (pending) return;
     if (manual && !draftUnreadable) {
       try {
         saveManualReceiptDraft(sessionStorage, storageKey, {
@@ -767,6 +767,7 @@ function ReceiptForm({
       onClose();
     },
   );
+  const pending = action.isPending || retry.isPending;
   const difference = Math.round(Number(total || 0) * 100) - sum;
   function change(
     index: number,
@@ -911,11 +912,11 @@ function ReceiptForm({
           {w}
         </div>
       ))}
-      <Form onSubmit={() => action.mutate(undefined)}>
+      <Form pending={pending} onSubmit={() => action.mutate(undefined)}>
         <div className={manual ? "receipt-manual-layout" : "receipt-layout"}>
           {!manual && <ReceiptOriginals receipt={receipt} />}
           <div>
-            <fieldset disabled={readonly || action.isPending}>
+            <fieldset disabled={readonly || pending}>
               <div className="form-grid">
                 <Field label={t("Магазин")}>
                   <input
@@ -1154,7 +1155,7 @@ function ReceiptForm({
             <button
               type="button"
               className="button secondary"
-              disabled={retry.isPending}
+              disabled={pending}
               onClick={() => retry.mutate(undefined)}
             >
               <RefreshCw size={16} />
@@ -1165,7 +1166,7 @@ function ReceiptForm({
             type="button"
             className="button secondary"
             onClick={() => leaveManualDraft(onClose)}
-            disabled={action.isPending}
+            disabled={pending}
           >
             {manual ? t("Закрыть и оставить черновик") : t("Закрыть")}
           </button>
@@ -1173,7 +1174,7 @@ function ReceiptForm({
             <button
               type="button"
               className="text-button negative"
-              disabled={action.isPending}
+              disabled={pending}
               onClick={() => setDiscarding(true)}
             >
               {t("Удалить черновик")}
@@ -1183,7 +1184,7 @@ function ReceiptForm({
             <button
               type="button"
               className="button secondary"
-              disabled={action.isPending}
+              disabled={pending}
               onClick={() => leaveManualDraft(onBack)}
             >
               {t("Назад")}
@@ -1198,7 +1199,9 @@ function ReceiptForm({
       {!manual &&
         isAdmin &&
         !["queued", "processing"].includes(receipt.status) && (
-          <ReceiptModeration receipt={receipt} onClose={onClose} />
+          <fieldset disabled={pending}>
+            <ReceiptModeration receipt={receipt} onClose={onClose} />
+          </fieldset>
         )}
       {!manual && <ReceiptComments receiptId={receipt.id} />}
     </Modal>

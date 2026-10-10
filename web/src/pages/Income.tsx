@@ -377,9 +377,14 @@ function PlanForm({ plan, onClose }: { plan?: Plan; onClose: () => void }) {
     <Modal
       title={plan ? t("Изменить источник дохода") : t("Новый источник дохода")}
       description={t("Запланированные суммы не увеличивают остаток на счёте.")}
-      onClose={onClose}
+      onClose={() => {
+        if (!action.isPending) onClose();
+      }}
     >
-      <Form onSubmit={() => action.mutate(undefined)}>
+      <Form
+        pending={action.isPending}
+        onSubmit={() => action.mutate(undefined)}
+      >
         <Field label={t("Название источника")}>
           <input
             autoFocus
@@ -494,9 +499,14 @@ function ReceiveForm({
     <Modal
       title={t("Получено: {0}", row.name)}
       description={t("Укажите фактическую сумму и дату поступления.")}
-      onClose={onClose}
+      onClose={() => {
+        if (!action.isPending) onClose();
+      }}
     >
-      <Form onSubmit={() => action.mutate(undefined)}>
+      <Form
+        pending={action.isPending}
+        onSubmit={() => action.mutate(undefined)}
+      >
         <div className="form-grid">
           <Field label={t("Полученная сумма")}>
             <MoneyInput value={value} onChange={setValue} />

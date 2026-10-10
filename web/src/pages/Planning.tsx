@@ -675,8 +675,13 @@ function DebtForm({
     onDone,
   );
   return (
-    <Modal title={t("Новый долг")} onClose={onClose}>
-      <Form onSubmit={() => save.mutate(undefined)}>
+    <Modal
+      title={t("Новый долг")}
+      onClose={() => {
+        if (!save.isPending) onClose();
+      }}
+    >
+      <Form pending={save.isPending} onSubmit={() => save.mutate(undefined)}>
         <div className="segmented">
           <button
             type="button"
@@ -830,9 +835,14 @@ function DebtMovementForm({
             ? t("Весь остаток будет погашен после подтверждения.")
             : t("Укажите сумму фактического возврата."),
       )}
-      onClose={onClose}
+      onClose={() => {
+        if (!action.isPending) onClose();
+      }}
     >
-      <Form onSubmit={() => action.mutate(undefined)}>
+      <Form
+        pending={action.isPending}
+        onSubmit={() => action.mutate(undefined)}
+      >
         <div className="form-grid">
           <Field label={t("Сумма · {0}", debt.currency)}>
             {full ? (
@@ -1116,8 +1126,13 @@ function BillForm({
     onDone,
   );
   return (
-    <Modal title={t("Запланировать платёж")} onClose={onClose}>
-      <Form onSubmit={() => save.mutate(undefined)}>
+    <Modal
+      title={t("Запланировать платёж")}
+      onClose={() => {
+        if (!save.isPending) onClose();
+      }}
+    >
+      <Form pending={save.isPending} onSubmit={() => save.mutate(undefined)}>
         <div className="form-grid">
           <Field label={t("Название")} wide>
             <input
@@ -1243,9 +1258,11 @@ function BillPay({
       description={t(
         "Укажите фактическую сумму — она может отличаться от плановой.",
       )}
-      onClose={onClose}
+      onClose={() => {
+        if (!save.isPending) onClose();
+      }}
     >
-      <Form onSubmit={() => save.mutate(undefined)}>
+      <Form pending={save.isPending} onSubmit={() => save.mutate(undefined)}>
         <div className="form-grid">
           <Field label={t("Сумма · {0}", bill.currency)}>
             <MoneyInput value={value} onChange={setValue} autoFocus />

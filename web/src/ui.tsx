@@ -517,18 +517,25 @@ export function Modal({
 export function Form({
   children,
   onSubmit,
+  pending,
 }: {
   children: ReactNode;
   onSubmit: () => void;
+  pending?: boolean;
 }) {
   return (
     <form
+      aria-busy={pending || undefined}
       onSubmit={(e: FormEvent) => {
         e.preventDefault();
-        onSubmit();
+        if (!pending) onSubmit();
       }}
     >
-      {children}
+      {pending === undefined ? (
+        children
+      ) : (
+        <fieldset disabled={pending}>{children}</fieldset>
+      )}
     </form>
   );
 }
