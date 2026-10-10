@@ -60,6 +60,7 @@ fun FinanceContent(
     var incomeSection by rememberSaveable { mutableStateOf("schedule") }
     var direction by rememberSaveable { mutableStateOf("all") }
     var closed by rememberSaveable { mutableStateOf(false) }
+    var overdueOnly by rememberSaveable { mutableStateOf(false) }
     var search by rememberSaveable { mutableStateOf("") }
     var cancelling by remember { mutableStateOf<FinanceTransaction?>(null) }
     fun fresh(kind: FinanceEditKind): FinanceEdit {
@@ -467,21 +468,13 @@ fun FinanceContent(
                             )
                         }
                 }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(closed, { closed = it })
-                    Text(tr(Message.SHOW_CLOSED_DEBTS), style = MaterialTheme.typography.bodyMedium)
-                }
+                DebtDueFilters(overdueOnly, closed, { overdueOnly = it }, { closed = it })
             }
-            val shown =
-                data.debts.filter {
-                    (direction == "all" || it.direction == direction) &&
-                        (closed || it.remaining_minor > 0) &&
-                        (it.person.contains(search, true) || it.note.contains(search, true))
-                }
+            val shown = filterDebts(data.debts, direction, closed, overdueOnly, search)
             if (!data.loading && shown.isEmpty())
                 item {
                     EmptyState(
-                        tr(Message.ALL_CLEAR_HERE),
+                        tr(if (overdueOnly) Message.NO_OVERDUE_DEBTS else Message.ALL_CLEAR_HERE),
                         tr(Message.NO_DEBTS_MATCH_YOUR_FILTERS),
                         Glyph.USER,
                     )
@@ -494,13 +487,16 @@ fun FinanceContent(
                         color = Muted,
                     )
                     Text(
+                        tr(Message.DEBT_OUTSTANDING_BALANCE),
+                        color = Muted,
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                    Text(
                         money(debt.remaining_minor, debt.currency),
                         color = Mint,
                         style = MaterialTheme.typography.headlineSmall,
                     )
-                    val overdue =
-                        debt.remaining_minor > 0 &&
-                            debt.due_date?.let { it < LocalDate.now().toString() } == true
+                    val overdue = debtIsOverdue(debt)
                     Text(
                         if (debt.remaining_minor == 0L) tr(Message.CLOSED)
                         else

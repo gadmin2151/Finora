@@ -1,0 +1,26 @@
+package work.gadmin.finora.data
+
+import java.time.LocalDate
+import java.time.ZoneId
+
+fun debtIsOverdue(
+    debt: Debt,
+    today: LocalDate = LocalDate.now(ZoneId.of("Europe/Chisinau")),
+): Boolean =
+    debt.remaining_minor > 0 &&
+        runCatching { debt.due_date?.let(LocalDate::parse)?.isBefore(today) == true }
+            .getOrDefault(false)
+
+fun filterDebts(
+    debts: List<Debt>,
+    direction: String,
+    includeClosed: Boolean,
+    overdueOnly: Boolean,
+    search: String,
+    today: LocalDate = LocalDate.now(ZoneId.of("Europe/Chisinau")),
+): List<Debt> = debts.filter {
+    (direction == "all" || it.direction == direction) &&
+        (includeClosed || it.remaining_minor > 0) &&
+        (!overdueOnly || debtIsOverdue(it, today)) &&
+        (it.person.contains(search, true) || it.note.contains(search, true))
+}

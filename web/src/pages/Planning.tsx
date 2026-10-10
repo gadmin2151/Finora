@@ -15,6 +15,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { categoryPurchasesHash } from "../purchaseNavigation";
+import { debtIsOverdue, filterDebts } from "../debtFilters";
 import { api, send, useAction } from "../api";
 import { useApp } from "../context";
 import type {
@@ -432,6 +433,7 @@ export function Debts() {
   } | null>(null);
   const [direction, setDirection] = useState("all");
   const [closed, setClosed] = useState(false);
+  const [overdueOnly, setOverdueOnly] = useState(false);
   const totals = (type: string) => {
     const totals: Record<string, number> = {};
     for (const d of query.data ?? [])
@@ -444,11 +446,9 @@ export function Debts() {
         .join(" · ") || amount(0)
     );
   };
-  const shown = query.data?.filter(
-    (d) =>
-      (direction === "all" || d.direction === direction) &&
-      (closed || d.remaining_minor > 0),
-  );
+  const shown =
+    query.data &&
+    filterDebts(query.data, direction, closed, overdueOnly, today());
   return (
     <>
       <PageHeading
@@ -515,9 +515,18 @@ export function Debts() {
             <input
               type="checkbox"
               checked={closed}
+              disabled={overdueOnly}
               onChange={(e) => setClosed(e.target.checked)}
             />
             {t("Показывать закрытые")}
+          </label>
+          <label className="check-field">
+            <input
+              type="checkbox"
+              checked={overdueOnly}
+              onChange={(e) => setOverdueOnly(e.target.checked)}
+            />
+            {t("Только просроченные")}
           </label>
         </div>
         <ErrorBox error={query.error} />
@@ -539,19 +548,20 @@ export function Debts() {
                   {d.note && <small>{d.note}</small>}
                 </div>
                 <div className="debt-value">
+                  <small>{t("Остаток долга")}</small>
                   <strong>{amount(d.remaining_minor, d.currency)}</strong>
                   <Badge
                     status={
                       d.remaining_minor === 0
                         ? "paid"
-                        : d.due_date && d.due_date < today()
+                        : debtIsOverdue(d, today())
                           ? "overdue"
                           : undefined
                     }
                   >
                     {d.remaining_minor === 0
                       ? t("Закрыт")
-                      : d.due_date && d.due_date < today()
+                      : debtIsOverdue(d, today())
                         ? t("Срок прошёл")
                         : t("Открыт")}
                   </Badge>
@@ -590,10 +600,18 @@ export function Debts() {
         ) : (
           <Empty
             icon={<Users size={28} />}
-            title={t("Всё спокойно")}
-            text={t(
-              "Здесь будут ваши долги и возвраты. Выдача и получение долга не считаются расходом и доходом.",
-            )}
+            title={
+              overdueOnly ? t("Просроченных долгов нет") : t("Всё спокойно")
+            }
+            text={
+              overdueOnly
+                ? t(
+                    "В этом отборе нет открытых долгов с прошедшим сроком. Срок сегодня ещё не считается просроченным.",
+                  )
+                : t(
+                    "Здесь будут ваши долги и возвраты. Выдача и получение долга не считаются расходом и доходом.",
+                  )
+            }
             action={
               isAdmin && (
                 <button

@@ -1120,5 +1120,9 @@
   "Итог чека: {0}. Сумма строк: {1}.": "Receipt total: {0}. Line total: {1}.",
   "Сверьте итоги с оригиналом. Скидки и включённые налоги уже входят в суммы строк; не прибавляйте их повторно.": "Compare with the original. Discounts and included taxes are already reflected in line totals; do not add them again.",
   "Использовать сумму строк": "Use the line total",
-  "Заполните итоги чека и строк для сверки": "Enter the receipt and line totals to compare them"
+  "Заполните итоги чека и строк для сверки": "Enter the receipt and line totals to compare them",
+  "Только просроченные": "Overdue only",
+  "Остаток долга": "Outstanding balance",
+  "Просроченных долгов нет": "No overdue debts",
+  "В этом отборе нет открытых долгов с прошедшим сроком. Срок сегодня ещё не считается просроченным.": "No open debts are past due in this selection. A debt due today is not overdue yet."
 }
