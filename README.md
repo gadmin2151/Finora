@@ -25,7 +25,9 @@
 
 ## Release checkpoint · 10 October 2026
 
-**Android 1.18.0 (`versionCode 32`) is published**, and API/worker run source `e132c71e172944095a8e537c1fa821bdbef1547a`. [Download the signed APK](https://finora.gadmin.work/assets/mobile/finora-1.18.0.apk). A full HTTPS GET verified SHA-256 `c1247e5cae608f8d084ccc53285ed5c2482b5109da5dd46c89ee22fd41808b6b`. The existing signer and previous APKs are retained.
+**Android 1.19.0 (`versionCode 33`) is published**, while API/worker remain on 1.18 source `e132c71e172944095a8e537c1fa821bdbef1547a`. [Download the signed APK](https://finora.gadmin.work/assets/mobile/finora-1.19.0.apk). A full HTTPS GET verified SHA-256 `65ad18d5a6162a71114282079cd510b26f9972a9c57171c6436eba3a2f62a4ae`. The existing signer and previous APKs are retained.
+
+Android 1.19 improves notification switch visibility, labelled touch targets, small-screen wallet/navigation and scrollable financial confirmations. Verification: 235 unit tests and 36 focused emulator checks passed; 57 final large-font screenshots reviewed. The screenshot matrix ended without a passing instrumentation summary due to lifecycle teardown; physical-device coverage remains pending. Exact signed upgrade 1.18→1.19 and offline startup passed. Backend validation below belongs to the earlier 1.18 release. No push was sent or release attestation created for 1.19. [UI scope, screenshots and limits](docs/ANDROID-UI-UX-119.md).
 
 Notifications now cover fresh receipts created by other participants and verified published APK updates. Authors, historical receipts and reprocessing are excluded. Enable receipt preferences in each desired organization, optionally all-organization receipt delivery, and separately app updates under **Profile → Notifications**. Taps open authenticated native screens; downloading/installing remains explicit. Legacy installations with unknown versions are skipped until upgraded. [Contract and limits](docs/PUSH-RECEIPTS-AND-UPDATES.md).
 

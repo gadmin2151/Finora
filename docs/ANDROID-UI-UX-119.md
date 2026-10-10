@@ -33,3 +33,5 @@
 Signed APK SHA256 `65ad18d5a6162a71114282079cd510b26f9972a9c57171c6436eba3a2f62a4ae`, 172682067 bytes, прежний signer `3a3c14d603cc9cfeff5092ece5101acc60512787e90f1330292d98e4f45ee6c0`.
 
 Поставка меняет только публичные APK/manifest, с no-replace APK и atomic manifest. Manifest1.18 и hash APK сохраняются до замены; encrypted DB/docs backup1.18 проверяется по прежнему подтверждённому SHA256. Backend, services, schema, FCM/секреты и данные не меняются. Rollback manifest: `/opt/finora-ui-release-1.19.0-20261010/restore-manifest.py`; APK1.18 сохраняется. Новая release attestation для push scheduler не создаётся в этой UI задаче; push не отправляется.
+
+Публичный полный HTTPS GET APK и manifest подтвердил hash/size/version33; health HTTP200, старый APK1.18 доступен. Точный повтор signed upgrade с установкой1.18 и install-r1.19 без удаления между версиями прошёл: offline login/MLKit3/OpenCV PASS. Evidence: `.local/ui-ux-119/public-release-119-verification.json`, `exact-signed-upgrade.json`, `publication.json`, `source-apk-binding.json`. APK связан с production source commit `02f6128`; последующее обновление README не меняет APK.
