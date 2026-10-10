@@ -13,7 +13,9 @@
 
 ## Состояние релиза · 10 октября 2026
 
-**Android 1.19.0 (`versionCode 33`) опубликован**, API и worker остаются на версии 1.18 из исходного кода `e132c71e172944095a8e537c1fa821bdbef1547a`. [Скачать подписанный APK](https://finora.gadmin.work/assets/mobile/finora-1.19.0.apk). Полный HTTPS GET подтвердил SHA256 `65ad18d5a6162a71114282079cd510b26f9972a9c57171c6436eba3a2f62a4ae`; прежний сертификат и старые APK сохранены.
+**Android 1.20.0 (`versionCode 34`) опубликован**, API и worker остаются на версии 1.18 из исходного кода `e132c71e172944095a8e537c1fa821bdbef1547a`. [Скачать подписанный APK](https://finora.gadmin.work/assets/mobile/finora-1.20.0.apk). Полный HTTPS GET подтвердил SHA256 `5ec789d5d5b4de81b54156b86dfb733052586c8ce57f0f11f74927ccaba400e5`; прежний сертификат и старые APK сохранены.
+
+Android 1.20 исправляет включение уведомлений об обновлениях APK: после session fence прежний обработчик выходил до PUT. Настоящее нажатие → authenticated HTTP PUT → независимое чтение БД → reload/new Host прошли вместе с категориями/master, ошибками/retry, permissions и org/logout fence (3 emulator HTTP tests). Signed upgrade 1.19→1.20 прошёл; 236 unit-тестов, release lint без ошибок. Backend patch, изменения семейных preferences и отправка push не требовались. [Причина и доказательства](docs/ANDROID-PUSH-PREFERENCES-120.md).
 
 Android 1.19 исправляет видимость переключателей, подписи и области нажатия, кошелёк/навигацию на маленьком экране и прокрутку финансовых подтверждений. Проверены 235 unit-тестов и 36 отдельных emulator checks; просмотрены 57 финальных снимков при крупном шрифте. Визуальная матрица завершилась без passing instrumentation summary из-за lifecycle teardown; физический телефон остаётся непроверенным. Точный signed upgrade 1.18→1.19 и offline startup прошли. Проверки backend ниже относятся к прежнему релизу 1.18. Push и release attestation для 1.19 не создавались. [Область проверки, снимки и ограничения](docs/ANDROID-UI-UX-119.md).
 
