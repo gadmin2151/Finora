@@ -1043,6 +1043,12 @@ enum class Message(val english: String, val russian: String) {
         "Пароль не хранится на телефоне. Сессия защищена Android Keystore. Фото остаются в закрытом хранилище до отправки.",
     ),
     OPEN_WEBSITE("Open website", "Открыть веб-версию"),
+    FINANCE_BUDGETS("Budgets", "Бюджеты"),
+    FINANCE_BILLS("Payments", "Платежи"),
+    FINANCE_PLANNING_WEB(
+        "Budgets and scheduled payments open on the website.",
+        "Бюджеты и регулярные платежи открываются в веб-версии.",
+    ),
     RECEIPT_QR_CODES_ARE_READ_ON_YOUR_DEVICE_YOUR_SERVER_PROCE(
         "Receipt QR codes are read on your device. Your server processes photos and AI analysis using its configured AI provider.",
         "QR чека считывается на устройстве. Распознавание фотографий и AI-анализ выполняет ваш сервер с выбранным в нём AI-провайдером.",

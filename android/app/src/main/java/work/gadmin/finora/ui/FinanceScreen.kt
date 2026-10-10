@@ -26,7 +26,14 @@ import work.gadmin.finora.localization.tr
 @Composable
 fun FinanceScreen(app: AppState, vm: FinoraViewModel) {
     val data by vm.finance.state.collectAsStateWithLifecycle()
-    FinanceContent(data, app.organization?.isAdmin == true, app.busy, vm.finance, vm::month)
+    FinanceContent(
+        data,
+        app.organization?.isAdmin == true,
+        app.busy,
+        vm.finance,
+        vm::month,
+        vm::openWebsite,
+    )
     data.editor?.let {
         FinanceEditor(
             it,
@@ -48,6 +55,7 @@ fun FinanceContent(
     busy: Boolean,
     actions: FinanceController,
     changeMonth: (Long) -> Unit,
+    openPlanning: ((ChatDestination) -> Unit)? = null,
 ) {
     var incomeSection by rememberSaveable { mutableStateOf("schedule") }
     var direction by rememberSaveable { mutableStateOf("all") }
@@ -93,6 +101,7 @@ fun FinanceContent(
                     }
             }
         }
+        if (openPlanning != null) item { FinancePlanningLinks(admin, busy, openPlanning) }
         if (!admin)
             item {
                 InfoCard(tr(Message.YOU_CAN_VIEW_SHARED_FINANCES_ONLY_ORGANIZATION_ADMINISTRAT))
@@ -576,6 +585,35 @@ fun FinanceContent(
             dismissButton = {
                 TextButton({ cancelling = null }, enabled = !busy) { Text(tr(Message.KEEP)) }
             },
+        )
+    }
+}
+
+@Composable
+fun FinancePlanningLinks(admin: Boolean, busy: Boolean, open: (ChatDestination) -> Unit) {
+    if (!admin) return
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            listOf(
+                    ChatDestination.BUDGETS to Message.FINANCE_BUDGETS,
+                    ChatDestination.BILLS to Message.FINANCE_BILLS,
+                )
+                .forEach { (destination, label) ->
+                    OutlinedButton(
+                        onClick = { open(destination) },
+                        modifier = Modifier.weight(1f).testTag("planning-${destination.route}"),
+                        enabled = !busy,
+                    ) {
+                        LineIcon(Glyph.LINK, size = 16.dp)
+                        Spacer(Modifier.width(8.dp))
+                        Text(tr(label))
+                    }
+                }
+        }
+        Text(
+            tr(Message.FINANCE_PLANNING_WEB),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
