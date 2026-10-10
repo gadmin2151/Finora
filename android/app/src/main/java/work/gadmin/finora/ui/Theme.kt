@@ -29,51 +29,159 @@ import androidx.compose.ui.unit.sp
 val Forest = Color(0xFF123A32)
 val CaptureMint = Color(0xFFC5F4DC)
 
-private val LocalDarkPalette = staticCompositionLocalOf { true }
+/** Semantic tokens shared by Material components and custom UI. */
+internal data class FinoraPalette(
+    val green: Color,
+    val mint: Color,
+    val paper: Color,
+    val ink: Color,
+    val muted: Color,
+    val softGreen: Color,
+    val border: Color,
+    val surfaceColor: Color,
+    val surfaceRaised: Color,
+    val outlineSoft: Color,
+    val amber: Color,
+    val amberSurface: Color,
+    val coral: Color,
+    val coralSurface: Color,
+    val sage: Color,
+    val heroStart: Color,
+    val heroEnd: Color,
+    val heroInk: Color,
+    val onPrimary: Color,
+)
+
+private val classicPalette =
+    FinoraPalette(
+        green = Color(0xFF82DDB5),
+        mint = Color(0xFFC5F4DC),
+        paper = Color(0xFF101715),
+        ink = Color(0xFFF1F3EC),
+        muted = Color(0xFFA6B5AD),
+        softGreen = Color(0xFF203B31),
+        border = Color(0xFF40534A),
+        surfaceColor = Color(0xFF1B2722),
+        surfaceRaised = Color(0xFF25352D),
+        outlineSoft = Color(0xFF31443A),
+        amber = Color(0xFFF0CB8C),
+        amberSurface = Color(0xFF3B3021),
+        coral = Color(0xFFFFB4A8),
+        coralSurface = Color(0xFF442B26),
+        sage = Color(0xFFBCD1B5),
+        heroStart = Color(0xFF123A32),
+        heroEnd = Color(0xFF2B3B32),
+        heroInk = Color(0xFFFFFFFF),
+        onPrimary = Color(0xFF123A32),
+    )
+
+private val whitePalette =
+    FinoraPalette(
+        green = Color(0xFF285F41),
+        mint = Color(0xFF285F41),
+        paper = Color(0xFFF8FAF6),
+        ink = Color(0xFF203B31),
+        muted = Color(0xFF657369),
+        softGreen = Color(0xFFE9F4EC),
+        border = Color(0xFFCDD9CF),
+        surfaceColor = Color(0xFFFFFFFF),
+        surfaceRaised = Color(0xFFF0F5EF),
+        outlineSoft = Color(0xFFE1E8E2),
+        amber = Color(0xFF80602A),
+        amberSurface = Color(0xFFFBF4E4),
+        coral = Color(0xFFAA3A31),
+        coralSurface = Color(0xFFFFF0ED),
+        sage = Color(0xFF56715E),
+        heroStart = Color(0xFFECF6E9),
+        heroEnd = Color(0xFFF4F8ED),
+        heroInk = Color(0xFF204A32),
+        onPrimary = Color(0xFFFFFFFF),
+    )
+
+private val blackPalette =
+    FinoraPalette(
+        green = Color(0xFFA0E4C5),
+        mint = Color(0xFFC6F4DF),
+        paper = Color(0xFF18191B),
+        ink = Color(0xFFF0F1F3),
+        muted = Color(0xFFB2B6BE),
+        softGreen = Color(0xFF28342F),
+        border = Color(0xFF3A3C42),
+        surfaceColor = Color(0xFF242529),
+        surfaceRaised = Color(0xFF2A2B30),
+        outlineSoft = Color(0xFF3A3C42),
+        amber = Color(0xFFE8C788),
+        amberSurface = Color(0xFF342F25),
+        coral = Color(0xFFFFB4AB),
+        coralSurface = Color(0xFF392726),
+        sage = Color(0xFFBCD1B5),
+        heroStart = Color(0xFF2B2D32),
+        heroEnd = Color(0xFF242529),
+        heroInk = Color(0xFFF0F1F3),
+        onPrimary = Color(0xFF122E23),
+    )
+
+internal fun paletteFor(mode: ThemeMode, systemDark: Boolean = false): FinoraPalette =
+    when (mode.resolve(systemDark)) {
+        ThemeMode.LIGHT -> whitePalette
+        ThemeMode.BLACK -> blackPalette
+        else -> classicPalette
+    }
+
+private val LocalPalette = staticCompositionLocalOf { classicPalette }
 val Green: Color
-    @Composable get() = if (LocalDarkPalette.current) Color(0xFF82DDB5) else Color(0xFF285F41)
+    @Composable get() = LocalPalette.current.green
 val Mint: Color
-    @Composable get() = if (LocalDarkPalette.current) Color(0xFFC5F4DC) else Color(0xFF285F41)
+    @Composable get() = LocalPalette.current.mint
 val Paper: Color
-    @Composable get() = if (LocalDarkPalette.current) Color(0xFF101715) else Color(0xFFF8FAF6)
+    @Composable get() = LocalPalette.current.paper
 val Ink: Color
-    @Composable get() = if (LocalDarkPalette.current) Color(0xFFF1F3EC) else Color(0xFF203B31)
+    @Composable get() = LocalPalette.current.ink
 val Muted: Color
-    @Composable get() = if (LocalDarkPalette.current) Color(0xFFA6B5AD) else Color(0xFF657369)
+    @Composable get() = LocalPalette.current.muted
 val SoftGreen: Color
-    @Composable get() = if (LocalDarkPalette.current) Color(0xFF203B31) else Color(0xFFE9F4EC)
+    @Composable get() = LocalPalette.current.softGreen
 val Border: Color
-    @Composable get() = if (LocalDarkPalette.current) Color(0xFF40534A) else Color(0xFFCDD9CF)
+    @Composable get() = LocalPalette.current.border
 val SurfaceColor: Color
-    @Composable get() = if (LocalDarkPalette.current) Color(0xFF1B2722) else Color(0xFFFFFFFF)
+    @Composable get() = LocalPalette.current.surfaceColor
 val SurfaceRaised: Color
-    @Composable get() = if (LocalDarkPalette.current) Color(0xFF25352D) else Color(0xFFF0F5EF)
+    @Composable get() = LocalPalette.current.surfaceRaised
 val OutlineSoft: Color
-    @Composable get() = if (LocalDarkPalette.current) Color(0xFF31443A) else Color(0xFFE1E8E2)
+    @Composable get() = LocalPalette.current.outlineSoft
 val Amber: Color
-    @Composable get() = if (LocalDarkPalette.current) Color(0xFFF0CB8C) else Color(0xFF80602A)
+    @Composable get() = LocalPalette.current.amber
 val AmberSurface: Color
-    @Composable get() = if (LocalDarkPalette.current) Color(0xFF3B3021) else Color(0xFFFBF4E4)
+    @Composable get() = LocalPalette.current.amberSurface
 val Coral: Color
-    @Composable get() = if (LocalDarkPalette.current) Color(0xFFFFB4A8) else Color(0xFFAA3A31)
+    @Composable get() = LocalPalette.current.coral
 val CoralSurface: Color
-    @Composable get() = if (LocalDarkPalette.current) Color(0xFF442B26) else Color(0xFFFFF0ED)
+    @Composable get() = LocalPalette.current.coralSurface
 val Sage: Color
-    @Composable get() = if (LocalDarkPalette.current) Color(0xFFBCD1B5) else Color(0xFF56715E)
+    @Composable get() = LocalPalette.current.sage
 val HeroStart: Color
-    @Composable get() = if (LocalDarkPalette.current) Color(0xFF123A32) else Color(0xFFECF6E9)
+    @Composable get() = LocalPalette.current.heroStart
 val HeroEnd: Color
-    @Composable get() = if (LocalDarkPalette.current) Color(0xFF2B3B32) else Color(0xFFF4F8ED)
+    @Composable get() = LocalPalette.current.heroEnd
 val HeroInk: Color
-    @Composable get() = if (LocalDarkPalette.current) Color(0xFFFFFFFF) else Color(0xFF204A32)
+    @Composable get() = LocalPalette.current.heroInk
 val OnPrimary: Color
-    @Composable get() = if (LocalDarkPalette.current) Color(0xFF123A32) else Color(0xFFFFFFFF)
+    @Composable get() = LocalPalette.current.onPrimary
 
 @Composable
 fun FinoraTheme(darkOverride: Boolean? = null, content: @Composable () -> Unit) {
     val appearance = rememberAppearance()
     val dark = darkOverride ?: appearance.dark
-    CompositionLocalProvider(LocalAppearance provides appearance, LocalDarkPalette provides dark) {
+    // Boolean override retains the historical Classic/White behavior used by previews/tests.
+    val paletteMode =
+        if (darkOverride != null) {
+            if (darkOverride) ThemeMode.DARK else ThemeMode.LIGHT
+        } else appearance.mode.resolve(appearance.dark)
+    val effectiveAppearance = AppearanceState(appearance.mode, dark, appearance.select)
+    CompositionLocalProvider(
+        LocalAppearance provides effectiveAppearance,
+        LocalPalette provides paletteFor(paletteMode),
+    ) {
         MaterialTheme(
             colorScheme =
                 (if (dark) darkColorScheme() else lightColorScheme()).copy(

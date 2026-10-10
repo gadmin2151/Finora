@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import work.gadmin.finora.accounts.*
 import work.gadmin.finora.data.*
 import work.gadmin.finora.localization.AppLanguage
 import work.gadmin.finora.localization.LanguageRuntime
@@ -23,12 +24,14 @@ import work.gadmin.finora.localization.Message
 import work.gadmin.finora.localization.tr
 
 enum class Page {
+    ANALYTICS,
     CAPTURE,
     RECEIPTS,
     OVERVIEW,
     CHAT,
     FINANCES,
     PROFILE,
+    ACCOUNTS,
 }
 
 enum class CameraMode {
@@ -44,6 +47,8 @@ data class AppState(
     val organization: Organization? = null,
     val choosingOrganization: Boolean = false,
     val page: Page = Page.CAPTURE,
+    val nativeNavigationIntent: NativeNavigationIntent? = null,
+    val nativeBackAvailable: Boolean = false,
     val camera: CameraMode? = null,
     val receiptPageUrl: String? = null,
     val editingReceipt: Boolean = false,
@@ -95,7 +100,68 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
     val lastUsername
         get() = sessions.lastUsername
 
+    private data class NativeOrigin(
+        val page: Page,
+        val financeTab: FinanceTab,
+        val intent: NativeNavigationIntent?,
+        val scope: NavigationScope,
+        val route: NativeRoute,
+        val detailId: String?,
+    )
+
+    private var nativeOrigins: List<NativeOrigin> = emptyList()
+    private var assistantContext: NativeRoute = NativeRoute.ASSISTANT
+
+    private fun navigationScope(current: AppState) =
+        NavigationScope(
+            current.organization?.id.orEmpty(),
+            current.month,
+            "${current.user?.id}@${current.server}",
+        )
+
+    private fun currentScreenRoute(current: AppState): NativeRoute =
+        current.nativeNavigationIntent?.route?.takeIf { current.page != Page.FINANCES }
+            ?: when (current.page) {
+                Page.OVERVIEW -> NativeRoute.OVERVIEW
+                Page.RECEIPTS,
+                Page.CAPTURE -> NativeRoute.RECEIPTS
+                Page.CHAT -> NativeRoute.ASSISTANT
+                Page.PROFILE -> NativeRoute.SETTINGS
+                Page.ACCOUNTS -> NativeRoute.ACCOUNTS
+                Page.ANALYTICS ->
+                    if (nativeAnalytics.state.value.mode == NativeAnalyticsMode.PURCHASES)
+                        NativeRoute.PURCHASES
+                    else NativeRoute.REPORTS
+                Page.FINANCES ->
+                    when (finance.state.value.tab) {
+                        FinanceTab.INCOME -> NativeRoute.INCOME
+                        FinanceTab.DEBTS -> NativeRoute.DEBTS
+                        FinanceTab.BILLS -> NativeRoute.BILLS
+                        FinanceTab.BUDGETS -> NativeRoute.BUDGETS
+                        FinanceTab.TRANSACTIONS -> NativeRoute.TRANSACTIONS
+                    }
+            }
+
+    private fun clearNativeNavigation() {
+        nativeOrigins = emptyList()
+        mutable.update { it.copy(nativeBackAvailable = false, nativeNavigationIntent = null) }
+    }
+
     private var api: ApiClient? = null
+    val push =
+        work.gadmin.finora.notifications.PushHost(
+            application,
+            viewModelScope,
+            state,
+            { api },
+            { navigationScope(mutable.value) },
+            ::openNativeNavigation,
+            ::month,
+            ::handleError,
+            { message -> mutable.update { it.copy(error = message) } },
+            onOpenUpdater = { navigate(Page.PROFILE) },
+            onOpenReceiptOrganization = ::openPushReceiptOrganization,
+        )
     private var drafts: DraftStore? = null
     private var manualDrafts: ManualReceiptDraftStore? = null
     private val manualDraftLock = Mutex()
@@ -168,10 +234,152 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
             },
         )
 
+    val accountManagement =
+        AccountManagementController(
+            viewModelScope,
+            AccountManagementApiAdapter { requireNotNull(api) },
+            currentScope = {
+                val current = mutable.value
+                current.organization?.let { org ->
+                    current.user?.let { user ->
+                        AccountManagementScope(
+                            org.id,
+                            org.isAdmin,
+                            current.accounting?.combined == true,
+                            current.accounting?.default_account_id,
+                            user.id,
+                            serverOrigin(current.server),
+                        )
+                    }
+                }
+            },
+            busy = { mutable.value.busy },
+            write = ::writeAction,
+            onAuthError = ::handleError,
+            onSaved = {
+                loadDashboard()
+                viewModelScope.launch {
+                    val org = mutable.value.organization?.id ?: return@launch
+                    try {
+                        fetchWorkspace(org)
+                    } catch (e: Exception) {
+                        handleError(e)
+                    }
+                }
+            },
+            guardStore =
+                FileAccountMutationGuardStore(
+                    File(application.noBackupFilesDir, "account-mutations")
+                ),
+        )
+
+    val budgets =
+        BudgetController(
+            viewModelScope,
+            { requireNotNull(api) },
+            { mutable.value.organization },
+            { mutable.value.month },
+            { mutable.value.busy },
+            ::writeAction,
+            ::handleError,
+            { notice ->
+                mutable.update { it.copy(notice = notice) }
+                loadDashboard()
+            },
+        )
+    val payments =
+        PaymentController(
+            viewModelScope,
+            { requireNotNull(api) },
+            { mutable.value.organization },
+            { mutable.value.month },
+            { mutable.value.busy },
+            ::writeAction,
+            ::handleError,
+            { notice ->
+                mutable.update { it.copy(notice = notice) }
+                loadDashboard()
+            },
+            guardStore =
+                FileAccountMutationGuardStore(
+                    File(application.noBackupFilesDir, "payment-mutations")
+                ),
+            guardScope = {
+                val current = mutable.value
+                current.organization?.let { org ->
+                    current.user?.let { user ->
+                        AccountManagementScope(
+                            org.id,
+                            org.isAdmin,
+                            false,
+                            null,
+                            user.id,
+                            serverOrigin(current.server),
+                        )
+                    }
+                }
+            },
+        )
+    val ledger =
+        LedgerController(
+            viewModelScope,
+            { requireNotNull(api) },
+            { mutable.value.organization },
+            { mutable.value.month },
+            { mutable.value.busy },
+            ::writeAction,
+            ::handleError,
+            { notice ->
+                mutable.update { it.copy(notice = notice) }
+                loadDashboard()
+            },
+            pendingStore = PreferencesLedgerPendingStore(application),
+            owner = { mutable.value.server + "|" + requireNotNull(mutable.value.user).id },
+        )
+
+    val nativeAnalytics =
+        NativeAnalyticsController(
+            viewModelScope,
+            object : NativeAnalyticsReader {
+                override suspend fun report(scope: NavigationScope, kind: NativeReportKind) =
+                    requireNotNull(api).nativeReport(scope.organizationId, kind, scope.month)
+
+                override suspend fun purchases(scope: NavigationScope, offset: Int) =
+                    requireNotNull(api).nativePurchases(scope.organizationId, scope.month, offset)
+            },
+            { navigationScope(mutable.value) },
+            ::handleError,
+        )
+
+    private fun loadFinances() {
+        when (finance.state.value.tab) {
+            FinanceTab.BILLS -> payments.load()
+            FinanceTab.BUDGETS -> budgets.load()
+            FinanceTab.TRANSACTIONS -> ledger.load()
+            else -> finance.load()
+        }
+    }
+
+    private suspend fun refreshFinances() {
+        when (finance.state.value.tab) {
+            FinanceTab.BILLS -> payments.refresh()
+            FinanceTab.BUDGETS -> budgets.refresh()
+            FinanceTab.TRANSACTIONS -> ledger.refresh()
+            else -> finance.refresh()
+        }
+    }
+
+    fun financeTab(tab: FinanceTab) {
+        if (mutable.value.busy) return
+        finance.tab(tab)
+        loadFinances()
+    }
+
     init {
         viewModelScope.launch {
             val saved = withContext(Dispatchers.IO) { sessions.read() }
             if (saved != null) {
+                push.beginSession(saved.server, saved.user.id, false)
                 api = ApiClient(saved.server, saved.cookie).also { it.csrf = saved.user.csrf }
                 try {
                     val user = requireNotNull(api).me()
@@ -211,6 +419,7 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
     private fun handleError(error: Exception) {
         if (error is CancellationException) throw error
         if (error is ApiException && error.code == 401) {
+            push.invalidateSession()
             sessions.clear()
             cancelWorkspace()
             drafts = null
@@ -253,6 +462,7 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
         }
         val client = ApiClient(serverOrigin(server))
         val user = client.login(username.trim(), password)
+        push.beginSession(client.server, user.id, true)
         api?.cancel()
         api = client
         persist(user)
@@ -275,8 +485,15 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private fun cancelWorkspace() {
+        nativeAnalytics.reset()
+        clearNativeNavigation()
+        assistantContext = NativeRoute.ASSISTANT
         refresh.cancel()
         finance.reset()
+        budgets.reset()
+        accountManagement.reset()
+        payments.reset()
+        ledger.reset()
         purchases.reset()
         wallet.reset()
         workspaceJob?.cancel()
@@ -287,6 +504,30 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
         localizedContentJob?.cancel()
         localizedContentStale = false
         chatRequest = null
+    }
+
+    private fun openPushReceiptOrganization(organizationId: String, eventId: String) {
+        val original = push.currentScope() ?: return
+        val current = mutable.value
+        if (current.busy || current.starting) return
+        val organization =
+            current.user?.organizations?.singleOrNull { it.id == organizationId } ?: return
+        selectOrganization(organization)
+        val selection = workspaceJob ?: return
+        viewModelScope.launch {
+            selection.join()
+            val settled = mutable.value
+            if (
+                settled.organization?.id != organizationId ||
+                    settled.workspaceLoading ||
+                    settled.busy ||
+                    settled.error != null ||
+                    settled.user?.id != original.userId ||
+                    serverOrigin(settled.server) != original.server
+            )
+                return@launch
+            push.openReceiptEvent(eventId, original, organizationId)
+        }
     }
 
     fun selectOrganization(org: Organization) {
@@ -349,6 +590,9 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
 
     fun navigate(page: Page) {
         if (mutable.value.busy) return
+        if (page == Page.CHAT && mutable.value.page != Page.CHAT)
+            assistantContext = currentScreenRoute(mutable.value)
+        clearNativeNavigation()
         closeDetail()
         purchases.reset()
         mutable.update {
@@ -359,7 +603,9 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
             Page.RECEIPTS -> loadReceipts()
             Page.OVERVIEW -> loadDashboard()
             Page.CHAT -> loadChat()
-            Page.FINANCES -> finance.load()
+            Page.FINANCES -> loadFinances()
+            Page.ACCOUNTS -> accountManagement.load()
+            Page.ANALYTICS -> nativeAnalytics.load()
             Page.PROFILE,
             Page.CAPTURE ->
                 viewModelScope.launch {
@@ -779,6 +1025,14 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
             try {
                 fetchDetail(org.id, id)
             } catch (error: Exception) {
+                if (
+                    error is ApiException &&
+                        error.code in setOf(403, 404) &&
+                        mutable.value.organization?.id == org.id &&
+                        mutable.value.detailId == id
+                ) {
+                    closeDetail()
+                }
                 handleError(error)
             } finally {
                 if (currentCoroutineContext().isActive)
@@ -877,6 +1131,7 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
     fun month(delta: Long) {
         val next = YearMonth.parse(mutable.value.month).plusMonths(delta)
         if (next.year !in 1990..2100 || mutable.value.busy) return
+        clearNativeNavigation()
         refresh.cancel()
         mutable.update {
             it.copy(
@@ -886,8 +1141,11 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
                 lastRefreshedAt = null,
             )
         }
+        if (mutable.value.page == Page.ANALYTICS) {
+            nativeAnalytics.resetForMonth()
+        }
         if (mutable.value.page == Page.OVERVIEW) loadDashboard()
-        if (mutable.value.page == Page.FINANCES) finance.load()
+        if (mutable.value.page == Page.FINANCES) loadFinances()
     }
 
     fun loadDashboard() {
@@ -1013,7 +1271,9 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
                 current.page == Page.OVERVIEW -> fetchDashboard(current)
                 current.page == Page.CAPTURE -> fetchWorkspace(org.id)
                 current.page == Page.CHAT -> fetchChat(current)
-                current.page == Page.FINANCES -> finance.refresh()
+                current.page == Page.FINANCES -> refreshFinances()
+                current.page == Page.ACCOUNTS -> accountManagement.refresh()
+                current.page == Page.ANALYTICS -> nativeAnalytics.refresh()
                 else -> {
                     fetchWorkspace(org.id)
                     val user = requireNotNull(api).me()
@@ -1067,6 +1327,10 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
         }
         fetchWorkspace(org.id)
         finance.reset()
+        budgets.reset()
+        accountManagement.reset()
+        payments.reset()
+        ledger.reset()
         loadReceipts()
         loadDashboard()
         mutable.update { it.copy(notice = tr(Message.ACCOUNTING_SAVED)) }
@@ -1091,45 +1355,151 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun openChatDestination(destination: ChatDestination) {
-        val current = mutable.value
-        if (
-            current.busy ||
-                !destination.available(
-                    current.organization?.isAdmin == true,
-                    current.user?.is_server_admin == true,
-                )
+        openNativeNavigation(
+            NativeNavigationRequest(destination.route, navigationScope(mutable.value))
         )
-            return
-        when (destination) {
-            ChatDestination.OVERVIEW -> navigate(Page.OVERVIEW)
-            ChatDestination.RECEIPTS -> navigate(Page.RECEIPTS)
-            ChatDestination.ASSISTANT -> navigate(Page.CHAT)
-            ChatDestination.ORGANIZATIONS -> chooseOrganization()
-            ChatDestination.INCOME,
-            ChatDestination.DEBTS -> {
+    }
+
+    fun openNativeNavigation(request: NativeNavigationRequest) {
+        val current = mutable.value
+        if (current.busy || current.organization == null || current.user == null) return
+        val result =
+            NativeNavigationResolver.resolve(
+                request,
+                navigationScope(current),
+                NavigationAccess(current.organization.isAdmin, current.user.is_server_admin),
+                explicitTap = true,
+                nowMillis = System.currentTimeMillis(),
+                available = NativeRouteContract.available,
+            )
+        when (result) {
+            is NativeNavigationResolution.Open -> {
+                // Receipt detail and scoped read-only payment selection have native consumers.
+                if (
+                    result.intent.entities.isNotEmpty() &&
+                        result.intent.route != NativeRoute.RECEIPTS &&
+                        !(result.intent.route == NativeRoute.BILLS &&
+                            result.intent.entities.keys == setOf(NavigationEntity.BILL))
+                ) {
+                    mutable.update {
+                        it.copy(error = nativeNavigationUnavailable(result.intent.route))
+                    }
+                    return
+                }
+                val origins = nativeOrigins
+                val origin =
+                    NativeOrigin(
+                        current.page,
+                        finance.state.value.tab,
+                        current.nativeNavigationIntent,
+                        navigationScope(current),
+                        currentScreenRoute(current),
+                        current.detailId,
+                    )
+                applyNativeIntent(result.intent)
+                if (origin.route != result.intent.route || result.intent.entities.isNotEmpty()) {
+                    nativeOrigins =
+                        (origins.filter { it.scope == result.intent.scope } + origin).takeLast(32)
+                    mutable.update { it.copy(nativeBackAvailable = nativeOrigins.isNotEmpty()) }
+                }
+            }
+            is NativeNavigationResolution.WebSettings -> {
+                val destination =
+                    ChatDestination.entries.firstOrNull { it.route == result.intent.route.page }
+                if (destination != null) openWebsite(destination)
+            }
+            is NativeNavigationResolution.Unavailable ->
+                mutable.update { it.copy(error = nativeNavigationUnavailable(result.intent.route)) }
+            is NativeNavigationResolution.Rejected ->
+                mutable.update { it.copy(error = tr(Message.AI_NAV_OPEN_FAILED)) }
+        }
+    }
+
+    private fun applyNativeIntent(intent: NativeNavigationIntent) {
+        when (NativeRouteContract.targets[intent.route]) {
+            NativeScreenTarget.REPORTS,
+            NativeScreenTarget.PURCHASES -> {
+                nativeAnalytics.open(
+                    if (intent.route == NativeRoute.PURCHASES) NativeAnalyticsMode.PURCHASES
+                    else NativeAnalyticsMode.REPORTS
+                )
+                navigate(Page.ANALYTICS)
+            }
+            NativeScreenTarget.WALLET -> navigate(Page.ACCOUNTS)
+            NativeScreenTarget.OVERVIEW,
+            NativeScreenTarget.INSIGHTS -> navigate(Page.OVERVIEW)
+            NativeScreenTarget.RECEIPTS -> {
+                navigate(Page.RECEIPTS)
+                intent.entities[NavigationEntity.RECEIPT]?.let(::openReceipt)
+            }
+            NativeScreenTarget.ASSISTANT -> navigate(Page.CHAT)
+            NativeScreenTarget.ORGANIZATIONS -> chooseOrganization()
+            NativeScreenTarget.INCOME,
+            NativeScreenTarget.DEBTS,
+            NativeScreenTarget.BILLS,
+            NativeScreenTarget.BUDGETS,
+            NativeScreenTarget.TRANSACTIONS -> {
+                if (intent.route == NativeRoute.BILLS && intent.entities.isNotEmpty())
+                    payments.closeEditor()
                 finance.tab(
-                    if (destination == ChatDestination.INCOME) FinanceTab.INCOME
-                    else FinanceTab.DEBTS
+                    when (intent.route) {
+                        NativeRoute.INCOME -> FinanceTab.INCOME
+                        NativeRoute.DEBTS -> FinanceTab.DEBTS
+                        NativeRoute.BILLS -> FinanceTab.BILLS
+                        NativeRoute.BUDGETS -> FinanceTab.BUDGETS
+                        else -> FinanceTab.TRANSACTIONS
+                    }
                 )
                 navigate(Page.FINANCES)
             }
-            else -> openWebsite(destination)
+            null -> return
+        }
+        mutable.update { it.copy(nativeNavigationIntent = intent) }
+    }
+
+    fun nativeNavigationBack() {
+        val current = mutable.value
+        if (current.busy) return
+        val scope = navigationScope(current)
+        val origins = nativeOrigins.filter { origin ->
+            origin.scope == scope &&
+                (!origin.route.admin || current.organization?.isAdmin == true) &&
+                (!origin.route.serverAdmin || current.user?.is_server_admin == true)
+        }
+        val origin = origins.lastOrNull()
+        if (origin == null) {
+            clearNativeNavigation()
+            return
+        }
+        finance.tab(origin.financeTab)
+        if (origin.page == Page.ANALYTICS)
+            nativeAnalytics.open(
+                if (origin.route == NativeRoute.PURCHASES) NativeAnalyticsMode.PURCHASES
+                else NativeAnalyticsMode.REPORTS
+            )
+        navigate(origin.page)
+        origin.detailId?.let(::openReceipt)
+        nativeOrigins = origins.dropLast(1)
+        mutable.update {
+            it.copy(
+                nativeNavigationIntent = origin.intent,
+                nativeBackAvailable = nativeOrigins.isNotEmpty(),
+            )
         }
     }
 
     fun openWebsite(destination: ChatDestination? = null) {
+        val selected = destination ?: ChatDestination.SETTINGS
         val current = mutable.value
         if (
-            destination != null &&
-                !destination.available(
+            selected !in setOf(ChatDestination.SETTINGS, ChatDestination.USERS) ||
+                !selected.available(
                     current.organization?.isAdmin == true,
                     current.user?.is_server_admin == true,
                 )
         )
             return
-        openBrowser {
-            serverOrigin(current.server) + (destination?.let { "/#" + it.route } ?: "")
-        }
+        openBrowser { serverOrigin(current.server) + "/#" + selected.route }
     }
 
     fun openPrivacyPolicy() = openBrowser { PRIVACY_POLICY_URL }
@@ -1200,6 +1570,10 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
         }
         if (confirm) {
             finance.reset()
+            budgets.reset()
+            accountManagement.reset()
+            payments.reset()
+            ledger.reset()
             wallet.reset()
             purchases.reset()
             loadReceipts()
@@ -1221,12 +1595,14 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
                 else -> throw IllegalArgumentException(tr(Message.UNKNOWN_REPORT))
             }
         require(text.isNotBlank()) { tr(Message.ENTER_A_QUESTION) }
-        val signature = "$org:${current.month}:$report:$text"
+        val contextPage =
+            if (current.page == Page.CHAT) assistantContext else currentScreenRoute(current)
+        val signature = "$org:${current.month}:${contextPage.page}:$report:$text"
         val key =
             chatRequest?.takeIf { it.first == signature }?.second
                 ?: java.util.UUID.randomUUID().toString()
         chatRequest = signature to key
-        requireNotNull(api).sendChat(org, text, current.month, key, report)
+        requireNotNull(api).sendChat(org, text, current.month, key, report, contextPage)
         chatRequest = null
         mutable.update {
             it.copy(chatDraft = if (it.chatDraft.trim() == text) "" else it.chatDraft)
@@ -1327,11 +1703,13 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
         val resultComments = comments.await()
         ensureActive()
         mutable.update {
-            it.copy(
-                detail = result,
-                comments = resultComments,
-                receipts = it.receipts.map { row -> if (row.id == id) result else row },
-            )
+            if (it.organization?.id != org || it.detailId != id) it
+            else
+                it.copy(
+                    detail = result,
+                    comments = resultComments,
+                    receipts = it.receipts.map { row -> if (row.id == id) result else row },
+                )
         }
     }
 
@@ -1356,6 +1734,7 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun logout() = writeAction {
+        push.logout()
         var serverRevoked = false
         // Local sign-out must still work without a network connection.
         withTimeoutOrNull(5000) {
@@ -1387,6 +1766,7 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     override fun onCleared() {
+        push.detach()
         api?.cancel()
     }
 }

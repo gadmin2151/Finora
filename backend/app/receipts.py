@@ -1066,6 +1066,9 @@ def create_manual_receipt(db, organization_id: str, data: ManualReceipt) -> dict
     db.flush()
     result = confirm_receipt(db, organization_id, receipt, ReceiptConfirm(**fields, version=1))
     audit(db, organization_id, "receipt.manual_created", receipt.id)
+    from .push_events import receipt_created
+
+    receipt_created(db, receipt, now=m.now())
     return {"receipt": result, "duplicate": False}
 
 
@@ -1459,4 +1462,7 @@ async def process_receipt(receipt_id: str):
                 organization_id=organization_id, role="assistant", text=text, receipt_id=receipt.id
             )
         )
+        from .push_events import receipt_ready
+
+        receipt_ready(db, receipt, now=m.now())
         db.commit()

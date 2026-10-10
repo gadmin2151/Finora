@@ -160,7 +160,7 @@ fun ChatScreen(state: AppState, vm: FinoraViewModel) {
                     ChatBubble(message, vm::openReceipt, vm::reportChatAnswer, state.busy)
                     if (!message.details.actions.isNullOrEmpty())
                         ChatActions(message, state, vm::decideChatActions)
-                    ChatNavigation(message, state, vm::openChatDestination, vm::openReceipt)
+                    NativeChatNavigation(message, state, vm::openNativeNavigation)
                 }
             }
             if (pending != null)
@@ -311,7 +311,7 @@ private fun ChatBubble(
 }
 
 @Composable
-private fun ReportBlock(report: AnalyticsReport, openReceipt: (String) -> Unit) {
+internal fun ReportBlock(report: AnalyticsReport, openReceipt: (String) -> Unit) {
     var expanded by rememberSaveable(report.query.toString()) { mutableStateOf(false) }
     var methods by rememberSaveable { mutableStateOf(false) }
     Surface(

@@ -1,8 +1,11 @@
 package work.gadmin.finora.ui
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -18,6 +21,7 @@ import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import work.gadmin.finora.AppState
 import work.gadmin.finora.FinoraViewModel
+import work.gadmin.finora.accounts.AccountManagementScreen
 import work.gadmin.finora.data.*
 import work.gadmin.finora.localization.LanguageRuntime
 import work.gadmin.finora.localization.Message
@@ -26,15 +30,79 @@ import work.gadmin.finora.localization.tr
 @Composable
 fun FinanceScreen(app: AppState, vm: FinoraViewModel) {
     val data by vm.finance.state.collectAsStateWithLifecycle()
-    FinanceContent(
-        data,
-        app.organization?.isAdmin == true,
-        app.busy,
-        vm.finance,
-        vm::month,
-        vm::openWebsite,
-    )
+    val budgets by vm.budgets.state.collectAsStateWithLifecycle()
+    val payments by vm.payments.state.collectAsStateWithLifecycle()
+    val ledger by vm.ledger.state.collectAsStateWithLifecycle()
+    val admin = app.organization?.isAdmin == true
+    Column(Modifier.fillMaxSize()) {
+        Row(
+            Modifier.fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            listOf(
+                    FinanceTab.INCOME to tr(Message.INCOME),
+                    FinanceTab.DEBTS to tr(Message.DEBTS),
+                    FinanceTab.BILLS to tr(Message.FINANCE_BILLS),
+                    FinanceTab.BUDGETS to tr(Message.FINANCE_BUDGETS),
+                    FinanceTab.TRANSACTIONS to budgetText("Операции", "Transactions"),
+                )
+                .forEach { (tab, label) ->
+                    FilterChip(
+                        data.tab == tab,
+                        { vm.financeTab(tab) },
+                        { Text(label) },
+                        Modifier.testTag("finance-tab-${tab.name.lowercase()}"),
+                        enabled = !app.busy,
+                    )
+                }
+        }
+        TextButton({ vm.navigate(work.gadmin.finora.Page.ACCOUNTS) }, enabled = !app.busy) {
+            Text(budgetText("Счета и остатки", "Accounts and balances"))
+        }
+        Box(Modifier.weight(1f)) {
+            when (data.tab) {
+                FinanceTab.BILLS ->
+                    PaymentScreen(
+                        payments,
+                        admin,
+                        app.busy,
+                        vm.payments,
+                        vm::month,
+                        app.nativeNavigationIntent
+                            ?.takeIf { it.route == NativeRoute.BILLS }
+                            ?.let {
+                                NativeEntitySelection.resolve(
+                                    it,
+                                    NavigationScope(
+                                        app.organization?.id.orEmpty(),
+                                        app.month,
+                                        "${app.user?.id}@${app.server}",
+                                    ),
+                                    payments.month == app.month &&
+                                        !payments.loading &&
+                                        payments.error == null,
+                                    payments.templates.map { template -> template.id }.toSet(),
+                                )
+                            },
+                    )
+                FinanceTab.BUDGETS -> BudgetScreen(budgets, admin, app.busy, vm.budgets, vm::month)
+                FinanceTab.TRANSACTIONS ->
+                    LedgerScreen(ledger, admin, app.busy, vm.ledger) { selected ->
+                        val difference =
+                            java.time.temporal.ChronoUnit.MONTHS.between(
+                                YearMonth.parse(app.month),
+                                YearMonth.parse(selected),
+                            )
+                        vm.month(difference)
+                    }
+                else -> FinanceContent(data, admin, app.busy, vm.finance, vm::month)
+            }
+        }
+    }
     data.editor?.let {
+        BackHandler { if (!app.busy) vm.finance.closeEditor() }
         FinanceEditor(
             it,
             data,
@@ -607,7 +675,10 @@ fun FinancePlanningLinks(admin: Boolean, busy: Boolean, open: (ChatDestination) 
                 }
         }
         Text(
-            tr(Message.FINANCE_PLANNING_WEB),
+            budgetText(
+                "Платежи и лимиты доступны в приложении",
+                "Payments and limits are available in the app",
+            ),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -655,3 +726,9 @@ fun financeDateLabel(date: String): String = runCatching {
         )
 }
     .getOrDefault(date)
+
+@Composable
+fun NativeAccountsScreen(app: AppState, vm: FinoraViewModel) {
+    val data by vm.accountManagement.state.collectAsStateWithLifecycle()
+    AccountManagementScreen(data, app.busy, vm.accountManagement)
+}

@@ -18,6 +18,9 @@ if not ("finora-test-" in database_name or database_name.endswith("_test")):
 os.environ["SECRET_KEY"] = secrets.token_urlsafe(48)
 os.environ["DATA_DIR"] = str(test_dir / "data")
 os.environ["TESTING"] = "true"
+# Never discover credentials or activate delivery from a developer's environment in tests.
+os.environ["PUSH_ENABLED"] = "false"
+os.environ["PUSH_WORKER_ENABLED"] = "false"
 
 from app.config import settings  # noqa: E402
 

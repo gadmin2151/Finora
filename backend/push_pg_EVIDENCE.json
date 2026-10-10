@@ -1,0 +1,48 @@
+{
+  "postgres_version": "17.11",
+  "database": "finora_push_isolated_test",
+  "transport": "private temporary unix socket; TCP disabled",
+  "revision": "a92e7810bc43",
+  "predecessor": "16b4029ae831",
+  "single_head": true,
+  "upgrade_downgrade_reupgrade": "passed",
+  "alembic_check": "passed",
+  "baseline_rows_unchanged": true,
+  "baseline_table_count": 24,
+  "new_tables": [
+    "push_devices",
+    "push_preferences",
+    "push_events",
+    "push_deliveries"
+  ],
+  "provider_calls": 0,
+  "credentials": "synthetic test SECRET_KEY in process RAM only",
+  "targeted_postgresql_tests": {
+    "passed": 75,
+    "failed": 0,
+    "duration_seconds": 3.9
+  },
+  "full_backend_postgresql_tests": {
+    "passed": 516,
+    "failed": 0,
+    "duration_seconds": 49.22
+  },
+  "log_sha256": {
+    "push-tests.log": "54e19fbd08cf2d1ec6bf95afad177c2dbc3beda61dfa5ce4a55da1931cfd0ca2",
+    "full-backend-tests.log": "16a2a298d48099fbcba19bd19ec39a1120e1bdb4badf5b1ebc1fd7b8950c88a3",
+    "final-dispatch-tests.log": "280c453dad0c8577cd944156a5a8adb2234e2bd354eaf3761d2bd1a0eec9b96b"
+  },
+  "official_google_auth_test_version": "2.61.0",
+  "fcm_transport": "httpx.MockTransport only",
+  "final_dispatch_tests": {
+    "passed": 6,
+    "failed": 0,
+    "duration_seconds": 0.65,
+    "covers": "dispatch clock refresh, expired lease, parallel enqueue/rotation/delivery, skip_locked, revoke-before-send"
+  },
+  "cluster_state": "stopped after QA",
+  "shared_requirements_changed": false,
+  "delivery_configured": false,
+  "production_mutations": 0,
+  "migration_financial_dml": 0
+}

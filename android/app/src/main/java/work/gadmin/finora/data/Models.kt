@@ -140,7 +140,11 @@ data class Draft(
         get() = photos.isNotEmpty() || qr.isNotBlank()
 }
 
-class ApiException(val code: Int, override val message: String) : Exception(message)
+class ApiException(
+    val code: Int,
+    override val message: String,
+    val retryAfterMillis: Long? = null,
+) : Exception(message)
 
 @Serializable
 data class DashboardBill(

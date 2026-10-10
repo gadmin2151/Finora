@@ -374,6 +374,18 @@ fun FinoraApp(vm: FinoraViewModel) {
                                     Page.CHAT -> ChatScreen(state, vm)
                                     Page.FINANCES -> FinanceScreen(state, vm)
                                     Page.PROFILE -> ProfileScreen(state, vm)
+                                    Page.ACCOUNTS -> NativeAccountsScreen(state, vm)
+                                    Page.ANALYTICS -> {
+                                        val analytics by
+                                            vm.nativeAnalytics.state.collectAsStateWithLifecycle()
+                                        NativeAnalyticsScreen(
+                                            analytics,
+                                            vm.nativeAnalytics,
+                                            vm::openReceipt,
+                                            vm::month,
+                                            state.busy,
+                                        )
+                                    }
                                 }
                             }
                     }

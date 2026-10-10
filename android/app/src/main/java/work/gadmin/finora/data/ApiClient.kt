@@ -159,6 +159,11 @@ class ApiClient(val server: String, savedCookie: String? = null) {
                                         it.code,
                                         if (it.code >= 500) fallback
                                         else detail?.take(400) ?: fallback,
+                                        it.header("Retry-After")
+                                            ?.trim()
+                                            ?.toLongOrNull()
+                                            ?.coerceIn(0, 60)
+                                            ?.times(1000),
                                     )
                                 }
                                 if (continuation.isActive) continuation.resume(bytes)
@@ -269,6 +274,34 @@ class ApiClient(val server: String, savedCookie: String? = null) {
         )
     }
 
+    suspend fun nativeReport(org: String, kind: NativeReportKind, month: String): AnalyticsReport {
+        val (from, to) = purchaseMonthRange(month)
+        val url =
+            origin
+                .newBuilder()
+                .encodedPath("/api/reports")
+                .addQueryParameter("kind", kind.wire)
+                .addQueryParameter("date_from", from)
+                .addQueryParameter("date_to", to)
+                .build()
+        return get(url.encodedPath + "?" + url.encodedQuery, org)
+    }
+
+    suspend fun nativePurchases(org: String, month: String, offset: Int): PurchasePage {
+        val (from, to) = purchaseMonthRange(month)
+        val url =
+            origin
+                .newBuilder()
+                .encodedPath("/api/purchases")
+                .addQueryParameter("date_from", from)
+                .addQueryParameter("date_to", to)
+                .addQueryParameter("offset", offset.toString())
+                .addQueryParameter("limit", "30")
+                .addQueryParameter("sort", "newest")
+                .build()
+        return get(url.encodedPath + "?" + url.encodedQuery, org)
+    }
+
     suspend fun categories(org: String): List<Category> = get("/api/categories", org)
 
     suspend fun receiptAuthors(org: String): ReceiptAuthorPage =
@@ -297,6 +330,65 @@ class ApiClient(val server: String, savedCookie: String? = null) {
                 .addQueryParameter("limit", "30")
                 .addQueryParameter("sort", "newest")
                 .apply { createdBy?.let { addQueryParameter("created_by", it) } }
+                .build()
+        return get(url.encodedPath + "?" + url.encodedQuery, org)
+    }
+
+    suspend fun getAccountsDetails(org: String): List<AccountLifecycleModel> =
+        get("/api/accounts", org)
+
+    suspend fun budgetDashboard(org: String, month: String): BudgetDashboard =
+        get("/api/dashboard?month=$month", org)
+
+    suspend fun budgetCopyPreview(org: String, month: String): BudgetCopyPreview =
+        get("/api/budgets/copy-preview?month=$month", org)
+
+    suspend fun paymentReport(org: String, month: String): List<PaymentOccurrence> =
+        get("/api/bills?month=$month", org)
+
+    suspend fun paymentTemplates(org: String): List<PaymentTemplate> =
+        get("/api/bills/templates", org)
+
+    suspend fun expenseHistory(
+        org: String,
+        month: String,
+        account: String? = null,
+        offset: Int = 0,
+    ): IncomeHistory {
+        val url =
+            origin
+                .newBuilder()
+                .encodedPath("/api/transactions")
+                .addQueryParameter("kind", "expense")
+                .addQueryParameter("month", month)
+                .addQueryParameter("limit", "200")
+                .addQueryParameter("offset", offset.toString())
+                .addQueryParameter("sort", "newest")
+                .apply { account?.let { addQueryParameter("account_id", it) } }
+                .build()
+        return get(url.encodedPath + "?" + url.encodedQuery, org)
+    }
+
+    suspend fun transactionHistory(
+        org: String,
+        month: String,
+        offset: Int = 0,
+        kind: String? = null,
+        account: String? = null,
+        limit: Int = 30,
+    ): LedgerHistory {
+        val url =
+            origin
+                .newBuilder()
+                .encodedPath("/api/transactions")
+                .addQueryParameter("month", month)
+                .addQueryParameter("offset", offset.toString())
+                .addQueryParameter("limit", limit.toString())
+                .addQueryParameter("sort", "newest")
+                .apply {
+                    kind?.let { addQueryParameter("kind", it) }
+                    account?.let { addQueryParameter("account_id", it) }
+                }
                 .build()
         return get(url.encodedPath + "?" + url.encodedQuery, org)
     }
@@ -332,6 +424,42 @@ class ApiClient(val server: String, savedCookie: String? = null) {
         json.decodeFromString(
             execute(request("/api/accounts/$id/balance-adjustment", org, "POST", jsonBody(body)))
         )
+
+    /** Push uses this existing session/CSRF client; credentials never leave ApiClient. */
+    suspend fun pushGet(path: String, org: String?): JsonObject {
+        requirePushPath(path)
+        return json.parseToJsonElement(execute(request(path, org))).jsonObject
+    }
+
+    suspend fun pushWrite(
+        path: String,
+        org: String?,
+        method: String,
+        body: JsonObject? = null,
+    ): JsonObject {
+        requirePushPath(path)
+        require(method in setOf("POST", "PUT", "DELETE"))
+        return json
+            .parseToJsonElement(
+                execute(
+                    request(
+                        path,
+                        org,
+                        method,
+                        if (method == "DELETE") null else jsonBody(body ?: buildJsonObject {}),
+                    )
+                )
+            )
+            .jsonObject
+    }
+
+    private fun requirePushPath(path: String) {
+        require(
+            path.startsWith("/api/push/") && path.none { it in "\\%?#" } && !path.contains("..")
+        ) {
+            "Invalid push API path"
+        }
+    }
 
     suspend fun financeWrite(org: String, command: FinanceCommand) {
         execute(
@@ -429,6 +557,7 @@ class ApiClient(val server: String, savedCookie: String? = null) {
         month: String,
         requestKey: String,
         report: String? = null,
+        page: NativeRoute? = null,
     ): ChatResult =
         json.decodeFromString(
             execute(
@@ -440,6 +569,7 @@ class ApiClient(val server: String, savedCookie: String? = null) {
                         buildJsonObject {
                             put("text", text)
                             put("month", month)
+                            page?.let { put("page", it.page) }
                             put("request_key", requestKey)
                             report?.let { put("report", it) }
                         }

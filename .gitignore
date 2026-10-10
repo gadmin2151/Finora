@@ -33,3 +33,6 @@ android/local.properties
 *.p12
 artifacts/
 downloads/
+
+# Local Firebase client configuration: explicitly excluded from repository submission.
+/android/app/google-services.json

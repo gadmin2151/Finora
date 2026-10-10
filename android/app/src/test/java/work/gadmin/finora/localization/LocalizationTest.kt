@@ -60,11 +60,11 @@ class LocalizationTest {
     @Test
     fun fixedChoiceLabelsUpdateWithoutRestartOrChangingStableValues() {
         LanguageRuntime.language = AppLanguage.ENGLISH
-        assertEquals("Light", ThemeMode.LIGHT.label)
+        assertEquals("White", ThemeMode.LIGHT.label)
         assertEquals("Monthly", incomeRecurrences["monthly"])
         val keys = incomeRecurrences.keys
         LanguageRuntime.language = AppLanguage.RUSSIAN
-        assertEquals("Светлая", ThemeMode.LIGHT.label)
+        assertEquals("Белая", ThemeMode.LIGHT.label)
         assertEquals("Каждый месяц", incomeRecurrences["monthly"])
         assertEquals(keys, incomeRecurrences.keys)
     }

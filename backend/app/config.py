@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     session_days: int = 14
     max_upload_mb: int = 15
     mev_browser: bool = True
+    push_enabled: bool = False
+    push_worker_enabled: bool = False
+    push_fcm_project_id: str = ""
     testing: bool = False
 
 

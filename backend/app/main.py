@@ -15,6 +15,7 @@ from .config import settings
 from .feature_api import router as feature_router
 from .i18n import LocaleMiddleware, t
 from .organizations import router as organization_router
+from .push_api import router as push_router
 from .request_limits import RequestBodyLimit
 from .users import router as user_router
 
@@ -25,6 +26,7 @@ app.include_router(router)
 app.include_router(organization_router)
 app.include_router(feature_router)
 app.include_router(user_router)
+app.include_router(push_router)
 app.add_middleware(RequestBodyLimit)
 
 

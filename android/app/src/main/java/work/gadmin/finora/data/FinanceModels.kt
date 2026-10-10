@@ -76,6 +76,9 @@ data class Debt(
 enum class FinanceTab {
     INCOME,
     DEBTS,
+    BILLS,
+    BUDGETS,
+    TRANSACTIONS,
 }
 
 enum class FinanceEditKind {

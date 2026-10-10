@@ -83,7 +83,7 @@ class AppearanceAcceptanceTest {
             rule.onNodeWithText("Resolved: light").assertExists()
             rule.runOnIdle { systemDark = true }
             rule.onNodeWithText("Resolved: dark").assertExists()
-            rule.onNodeWithText("Светлая").performClick()
+            rule.onNodeWithText("Белая").performClick()
             rule.onNodeWithText("Resolved: light").assertExists()
             rule.runOnIdle {
                 assertEquals(ThemeMode.LIGHT, ThemePreferences(context).read())
@@ -91,13 +91,21 @@ class AppearanceAcceptanceTest {
             }
             rule.onNodeWithText("Resolved: light").assertExists()
             screenshot("theme-light.png")
-            rule.onNodeWithText("Тёмная").performClick()
+            rule.onNodeWithText("Классическая").performClick()
             rule.runOnIdle {
                 systemDark = false
                 generation++
             }
             rule.onNodeWithText("Resolved: dark").assertExists()
             screenshot("theme-dark.png")
+            rule.onNodeWithText("Material Black").performClick()
+            rule.onNodeWithText("Resolved: dark").assertExists()
+            rule.runOnIdle {
+                assertEquals(ThemeMode.BLACK, ThemePreferences(context).read())
+                generation++
+            }
+            rule.onNodeWithText("Resolved: dark").assertExists()
+            screenshot("theme-black.png")
             rule.onNodeWithText("Как в системе").performClick()
             rule.onNodeWithText("Resolved: light").assertExists()
             rule.runOnIdle { systemDark = true }

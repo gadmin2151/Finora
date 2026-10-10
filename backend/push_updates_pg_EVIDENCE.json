@@ -1,0 +1,203 @@
+{
+  "postgres_version": "17.11",
+  "database": "finora_push_receipt_update_test",
+  "transport": "private /tmp Unix socket; TCP disabled",
+  "revision": "b73f9012dca4",
+  "predecessor": "a92e7810bc43",
+  "single_head": true,
+  "alembic_check": "passed twice",
+  "upgrade_downgrade_reupgrade": "passed",
+  "downgrade_live_update_refusal_and_transactional_rollback": "passed",
+  "legacy_unknown_version_defaults": "passed",
+  "legacy_updates_and_allorg_opt_in_defaults": false,
+  "historical_receipt_backfill_rows": 0,
+  "financial_rows_and_schema_unchanged": true,
+  "baseline": {
+    "accounts": {
+      "rows": 1,
+      "rows_sha256": "4a5e2a8be1d0ed78acc156c0a3ee394a36e76e4a3ba94230afb0a6c3e33d9164",
+      "schema_sha256": "348abee254bcadaf911f1c202246f1452e68af2fa5b26a035fec442c3bd118c0"
+    },
+    "ai_usage": {
+      "rows": 0,
+      "rows_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "schema_sha256": "502535cef7cfc221716207d82b50ac5339b0e3dbaeeba2c2d00f030fbdae4c8e"
+    },
+    "allocations": {
+      "rows": 0,
+      "rows_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "schema_sha256": "8daebc9d5d5ad62a80911ec7052645423a75b1a7a9c8147fb0aeb5ac1b1d6592"
+    },
+    "audit": {
+      "rows": 0,
+      "rows_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "schema_sha256": "29834aa25b1e99b17656d9845f51aa48b10e86f203787700cb640e6462f461af"
+    },
+    "bills": {
+      "rows": 1,
+      "rows_sha256": "4f9ba224343ffc529c6f2ccaa0cf589d7b24531f3518de5977b8414539b3519d",
+      "schema_sha256": "0990eae8cbd2eb9789756b417319d717f05eeefd7c644472d86f49a118a24bee"
+    },
+    "budgets": {
+      "rows": 0,
+      "rows_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "schema_sha256": "9a5ea7f22e4cbcbf46b4a5d1c65aab2a07678a40b93055ad48cd01ff0385dc95"
+    },
+    "categories": {
+      "rows": 0,
+      "rows_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "schema_sha256": "a92d6ba1aa6674ec2e665f07ab3fd2891b974879f8899adf7581f023f2ce0830"
+    },
+    "debts": {
+      "rows": 0,
+      "rows_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "schema_sha256": "350ce4d057d2ffb6628b9a1a5f52dff63a7873c8c8cd3cce456dccd93fef7e18"
+    },
+    "jobs": {
+      "rows": 0,
+      "rows_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "schema_sha256": "5cdb7702959e239d7e18ccb35eb8dc6cc9ada5885e8e94a5b8c725ecf39815ec"
+    },
+    "login_attempts": {
+      "rows": 0,
+      "rows_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "schema_sha256": "38a68f0047ac721a9f4c245595230b11e1d17fc2c1c21d4bf49d63856682fc20"
+    },
+    "memberships": {
+      "rows": 1,
+      "rows_sha256": "956ad1568e86ab736ba319ccff95c3be02fcc37eaf91930d8d4d3defefd4b725",
+      "schema_sha256": "7b00904b135b231bc2e5dba4b97b70724f1337b2876b985c7453926a4d427034"
+    },
+    "messages": {
+      "rows": 0,
+      "rows_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "schema_sha256": "34e612686598a220f2f0a69566b5e60d8334cd348d3933973aeb6a6632742890"
+    },
+    "occurrences": {
+      "rows": 0,
+      "rows_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "schema_sha256": "1cec89e79f8581aef7b9d530f55d757b4c64c1d4598898d253fc07527701cb58"
+    },
+    "organizations": {
+      "rows": 1,
+      "rows_sha256": "9da3518d8c8cd93fb12a31961813188754674fc260058d974ccc17beaa9a96cd",
+      "schema_sha256": "5b9faecbf241a8c48435c30986ff34c96ee41acaacf48077aa6fba2003b57a53"
+    },
+    "postings": {
+      "rows": 1,
+      "rows_sha256": "33312a805de2d1ca3b2cee55ee4c1210b552203c2be8fb469dbb180563b6edee",
+      "schema_sha256": "500c7e9d13ca2dd20e331b6269d2f055d18123a95e5142c413e0b503666ba0e9"
+    },
+    "preferences": {
+      "rows": 0,
+      "rows_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "schema_sha256": "b48fa5bfa3a7619d9bcc3798958284ca5f500574d0d4308412cbe2a9be5d95f9"
+    },
+    "receipt_comments": {
+      "rows": 0,
+      "rows_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "schema_sha256": "c91a5d3fded0acbbee8cf0522fa88f63d634f94ba19f390399fd33d56f4c46e0"
+    },
+    "receipt_items": {
+      "rows": 0,
+      "rows_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "schema_sha256": "543bae9289b546ee7e50bc84e240bd1728083faec359585cc5b364f148ae526d"
+    },
+    "receipts": {
+      "rows": 1,
+      "rows_sha256": "8ed7cfd36f6b29e682d6836fc065d36f5ff0cdc9700ab36ead92839d0f1d9532",
+      "schema_sha256": "4d81d3a7aa593b2b0ff2a2dd42e9078683e928b9ea228e14e6fbf7ee6562f734"
+    },
+    "rules": {
+      "rows": 0,
+      "rows_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "schema_sha256": "649466bc2ea3baf6c7f6b652e6075db66097b5042f338bf336214b856be59667"
+    },
+    "sessions": {
+      "rows": 1,
+      "rows_sha256": "dabc43a9f3904c6a6a1bed1e12b233b7a41d013cf20ec268cf95bd095a92ee80",
+      "schema_sha256": "b9c60ac8978811af43d5b344e528ab39a2e54fbe1a1b70dcd84f8e86950c58c6"
+    },
+    "transactions": {
+      "rows": 1,
+      "rows_sha256": "29c38cff5363ea3cdd8ab0d157c1ce3b552877abe992ca77a3c7e82dbb424447",
+      "schema_sha256": "f68a4eb33bf756663977e2db0308487b3aac0a25d4618c65952e96f7da7bac3a"
+    },
+    "user_audit": {
+      "rows": 0,
+      "rows_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "schema_sha256": "bf7a6bc74049927ea6dc3f7223fd46d3727aa64c51900aa3215e7bf9a78ad40e"
+    },
+    "users": {
+      "rows": 1,
+      "rows_sha256": "c694f7d37aff6f076f2dd255500cc4151a5138ce05e57978197bd5d2a7f99b45",
+      "schema_sha256": "c15801110ce065fda3e44effc869ec4fc2382785250b421bb05b68fb412ad50f"
+    }
+  },
+  "provider_calls": 0,
+  "production_mutations": 0,
+  "credentials": "synthetic process-RAM SECRET_KEY only",
+  "artifacts": {
+    "backend/migrations/versions/b73f9012dca4_push_updates.py": {
+      "sha256": "00324cd8afc77e18d666084b33787ad4c529d05b084a05962592786542584119"
+    },
+    "backend/app/push_models.py": {
+      "sha256": "45abefc29d6fcebef3de23e0dcb234d4db0b8d06a48f4104d701c58b17b1c3f6"
+    },
+    "backend/push_updates_pg_verify.py": {
+      "sha256": "df9efd13203682fb48eebc141a3ec334cc4d611e6e8665fca7a2881e3b7e720e"
+    },
+    "/tmp/finora-push-pg-20261010/additive-migration.log": {
+      "sha256": "cd2ce6658ea487389b6bc40f4aa3ca69f68135813d87bd276d4b358455d3830b"
+    },
+    "/tmp/finora-push-pg-20261010/additive-full-backend.log": {
+      "sha256": "3f81e310fc7f2eed37115d1d68673577f67f6fc335ddc3d16fd3b13b30189bf1"
+    },
+    "/tmp/finora-push-pg-20261010/additive-full-backend-final.log": {
+      "sha256": "d9e3782599e3c88949b7f87870f073644d55eaae713c525716b13c2f4cb92da3"
+    },
+    "/tmp/finora-push-pg-20261010/additive-targeted-tests.log": {
+      "sha256": "1484762b85653db870e70c08935a81cecb099a35fdbad6f143abeb308b1833ec"
+    },
+    "/tmp/finora-push-pg-20261010/additive-server-settings.json": {
+      "sha256": "c8f771cfc6f54546488130f7cb05c8c1e78726a5538640a8f4f8e8c749ef1ac7"
+    },
+    "backend/tests/test_push_updates.py": {
+      "sha256": "82b8db3770228f18272e19384607687c6d8dbf04501712ad34112f4108ffe372"
+    }
+  },
+  "test_only_seeded_financial_tables": [
+    "accounts",
+    "bills",
+    "receipts",
+    "transactions",
+    "postings"
+  ],
+  "production_data_read": false,
+  "migration_financial_dml": 0,
+  "service_state": "stopped after QA",
+  "server_settings": {
+    "listen_addresses": "",
+    "server_encoding": "UTF8",
+    "timezone": "Europe/Chisinau"
+  },
+  "full_backend_initial": {
+    "passed": 570,
+    "failed": 1,
+    "duration_seconds": 130.01,
+    "failure": "test assertion compared PostgreSQL session timezone hour instead of UTC; corrected assertion only"
+  },
+  "targeted_postgres": {
+    "passed": 21,
+    "failed": 0,
+    "duration_seconds": 1.18
+  },
+  "full_backend_final": {
+    "passed": 571,
+    "failed": 0,
+    "duration_seconds": 72.42,
+    "database": "finora_push_full_update_test",
+    "provider_network_calls": 0
+  },
+  "ruff": "passed"
+}

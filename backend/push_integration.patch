@@ -1,0 +1,86 @@
+--- a/backend/app/main.py
++++ b/backend/app/main.py
+@@ -15,6 +15,7 @@
+ from .feature_api import router as feature_router
+ from .i18n import LocaleMiddleware, t
+ from .organizations import router as organization_router
++from .push_api import router as push_router
+ from .request_limits import RequestBodyLimit
+ from .users import router as user_router
+ 
+@@ -25,6 +26,7 @@
+ app.include_router(organization_router)
+ app.include_router(feature_router)
+ app.include_router(user_router)
++app.include_router(push_router)
+ app.add_middleware(RequestBodyLimit)
+ 
+ 
+--- a/backend/migrations/env.py
++++ b/backend/migrations/env.py
+@@ -2,6 +2,7 @@
+ from sqlalchemy import create_engine
+ 
+ from app import models  # noqa: F401
++from app import push_models  # noqa: F401
+ from app.config import settings
+ from app.db import Base
+ 
+--- a/backend/app/api.py
++++ b/backend/app/api.py
+@@ -147,6 +147,9 @@
+ 
+ @router.post("/auth/logout")
+ def logout(request: Request, response: Response, user: m.User = ACTOR, db: Session = DB):
++    from .push_service import revoke_session as revoke_push_session
++
++    revoke_push_session(db, user.id, request.state.session.id, m.now())
+     db.delete(request.state.session)
+     db.commit()
+     response.delete_cookie(
+@@ -204,6 +207,9 @@
+     row = db.scalar(select(m.Session).where(m.Session.id == key, m.Session.user_id == user.id))
+     if row is None:
+         fail("Сессия не найдена", 404)
++    from .push_service import revoke_session as revoke_push_session
++
++    revoke_push_session(db, user.id, row.id, m.now())
+     db.delete(row)
+     db.commit()
+     return {"ok": True}
+--- a/backend/app/receipts.py
++++ b/backend/app/receipts.py
+@@ -1459,4 +1459,7 @@
+                 organization_id=organization_id, role="assistant", text=text, receipt_id=receipt.id
+             )
+         )
++        from .push_events import receipt_ready
++
++        receipt_ready(db, receipt, now=m.now())
+         db.commit()
+--- a/backend/app/worker.py
++++ b/backend/app/worker.py
+@@ -14,6 +14,7 @@
+ from .db import SessionLocal
+ from .i18n import current_language, language_context, t
+ from .job_lease import Lease, LeaseLost, current_lease, renew, require_lease
++from .push_events import receipt_ready
+ from .receipts import ReceiptError, process_receipt
+ 
+ logger = logging.getLogger("finora.worker")
+@@ -119,6 +120,7 @@
+                 if receipt and not receipt.deleted_at and receipt.status != "posted":
+                     receipt.status, receipt.error = "review", safe
+                     receipt.version += 1
++                    receipt_ready(db, receipt, now=m.now())
+                     db.add(
+                         m.Message(
+                             organization_id=job.organization_id,
+@@ -197,6 +199,7 @@
+                     if receipt and not receipt.deleted_at and receipt.status != "posted":
+                         receipt.status, receipt.error = "review", row.progress
+                         receipt.version += 1
++                        receipt_ready(db, receipt, now=m.now())
+             job = db.scalar(
+                 select(m.Job)
+                 .where(m.Job.status == "queued", m.Job.available_at <= m.now())

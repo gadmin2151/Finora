@@ -14,6 +14,8 @@ from .config import settings
 from .db import SessionLocal
 from .i18n import current_language, language_context, t
 from .job_lease import Lease, LeaseLost, current_lease, renew, require_lease
+from .push_events import receipt_ready
+from .push_runtime import run_push
 from .receipts import ReceiptError, process_receipt
 
 logger = logging.getLogger("finora.worker")
@@ -119,6 +121,7 @@ async def _execute_job(job: m.Job):
                 if receipt and not receipt.deleted_at and receipt.status != "posted":
                     receipt.status, receipt.error = "review", safe
                     receipt.version += 1
+                    receipt_ready(db, receipt, now=m.now())
                     db.add(
                         m.Message(
                             organization_id=job.organization_id,
@@ -175,6 +178,16 @@ async def main():
 
     for sig in (signal.SIGTERM, signal.SIGINT):
         loop.add_signal_handler(sig, stop)
+    push_task = asyncio.create_task(run_push(SessionLocal, lambda: stopping))
+    try:
+        await job_loop()
+    finally:
+        stopping = True
+        # Wait for bounded provider dispatch to finish; do not abandon a live thread.
+        await push_task
+
+
+async def job_loop():
     while not stopping:
         with SessionLocal() as db:
             # A crashed process cannot strand a task forever; at most 2 automatic attempts.
@@ -197,6 +210,7 @@ async def main():
                     if receipt and not receipt.deleted_at and receipt.status != "posted":
                         receipt.status, receipt.error = "review", row.progress
                         receipt.version += 1
+                        receipt_ready(db, receipt, now=m.now())
             job = db.scalar(
                 select(m.Job)
                 .where(m.Job.status == "queued", m.Job.available_at <= m.now())

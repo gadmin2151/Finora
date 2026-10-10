@@ -1,0 +1,160 @@
+diff --git a/android/build.gradle.kts b/android/build.gradle.kts
+--- a/android/build.gradle.kts
++++ b/android/build.gradle.kts
+@@ -1,4 +1,5 @@
+ plugins {
++    id("com.google.gms.google-services") version "4.5.0" apply false
+     id("com.android.application") version "9.3.2" apply false
+     id("org.jetbrains.kotlin.plugin.compose") version "2.4.10" apply false
+     id("org.jetbrains.kotlin.plugin.serialization") version "2.4.10" apply false
+diff --git a/android/app/build.gradle.kts b/android/app/build.gradle.kts
+--- a/android/app/build.gradle.kts
++++ b/android/app/build.gradle.kts
+@@ -1,6 +1,7 @@
+ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+ 
+ plugins {
++    id("com.google.gms.google-services")
+     id("com.android.application")
+     id("org.jetbrains.kotlin.plugin.compose")
+     id("org.jetbrains.kotlin.plugin.serialization")
+@@ -60,6 +61,8 @@
+ kotlin { compilerOptions { jvmTarget = JvmTarget.JVM_17 } }
+ 
+ dependencies {
++    implementation(platform("com.google.firebase:firebase-bom:35.0.0"))
++    implementation("com.google.firebase:firebase-messaging")
+     implementation(platform("androidx.compose:compose-bom:2026.08.00"))
+     implementation("androidx.activity:activity-compose:1.13.0")
+     implementation("androidx.compose.material3:material3")
+diff --git a/android/app/src/main/AndroidManifest.xml b/android/app/src/main/AndroidManifest.xml
+--- a/android/app/src/main/AndroidManifest.xml
++++ b/android/app/src/main/AndroidManifest.xml
+@@ -1,6 +1,7 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+     <uses-permission android:name="android.permission.INTERNET" />
++    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+     <uses-permission android:name="android.permission.CAMERA" />
+     <uses-permission android:name="android.permission.VIBRATE" />
+@@ -16,6 +17,13 @@
+         android:usesCleartextTraffic="false"
+         android:networkSecurityConfig="@xml/network_security_config"
+         android:theme="@style/Theme.Finora">
++        <meta-data android:name="firebase_messaging_auto_init_enabled" android:value="false" />
++        <meta-data android:name="firebase_analytics_collection_enabled" android:value="false" />
++        <service android:name=".notifications.FinoraMessagingService" android:exported="false">
++            <intent-filter>
++                <action android:name="com.google.firebase.MESSAGING_EVENT" />
++            </intent-filter>
++        </service>
+         <provider
+             android:name="androidx.core.content.FileProvider"
+             android:authorities="${applicationId}.updates"
+diff --git a/android/app/src/main/java/work/gadmin/finora/data/ApiClient.kt b/android/app/src/main/java/work/gadmin/finora/data/ApiClient.kt
+--- a/android/app/src/main/java/work/gadmin/finora/data/ApiClient.kt
++++ b/android/app/src/main/java/work/gadmin/finora/data/ApiClient.kt
+@@ -70,6 +70,18 @@
+             )
+ 
+     fun cancel() = client.dispatcher.cancelAll()
++
++    // Existing authenticated transport; notifications never owns credentials.
++    suspend fun pushGet(path: String, org: String): JsonObject {
++        require(path.startsWith("/api/push/") && !path.contains("..") && !path.contains("?"))
++        return json.parseToJsonElement(execute(request(path, org))).jsonObject
++    }
++
++    suspend fun pushWrite(path: String, org: String, method: String, body: JsonObject?): JsonObject {
++        require(path.startsWith("/api/push/") && !path.contains("..") && !path.contains("?"))
++        require(method in setOf("POST", "PUT", "DELETE"))
++        return json.parseToJsonElement(execute(request(path, org, method, body?.let(::jsonBody)))).jsonObject
++    }
+ 
+     private fun request(
+         path: String,
+diff --git a/android/app/src/main/java/work/gadmin/finora/notifications/FinoraMessagingService.kt b/android/app/src/main/java/work/gadmin/finora/notifications/FinoraMessagingService.kt
+new file mode 100644
+--- /dev/null
++++ b/android/app/src/main/java/work/gadmin/finora/notifications/FinoraMessagingService.kt
+@@ -0,0 +1,32 @@
++package work.gadmin.finora.notifications
++
++import com.google.firebase.messaging.FirebaseMessagingService
++import com.google.firebase.messaging.RemoteMessage
++
++/** Copy through integration.patch only after Firebase configuration is available. */
++class FinoraMessagingService : FirebaseMessagingService() {
++    override fun onMessageReceived(message: RemoteMessage) {
++        // Server MUST send data-only. Notification payloads bypass this handler in background.
++        if (message.notification != null) return
++        PushRuntime.receiver?.invoke(message.data)
++    }
++
++    override fun onNewToken(token: String) {
++        PushRuntime.tokenRotated?.invoke(PushToken(token))
++    }
++
++    override fun onDeletedMessages() {
++        PushRuntime.messagesDeleted?.invoke()
++    }
++}
++
++/**
++ * Application installs callbacks synchronously, including process starts caused by FCM. No service
++ * networking: show a neutral notification immediately; fetch on explicit tap. Token callbacks
++ * should enqueue one-time lifecycle-owned work, never periodic polling.
++ */
++object PushRuntime {
++    @Volatile var receiver: ((Map<String, String>) -> Unit)? = null
++    @Volatile var tokenRotated: ((PushToken) -> Unit)? = null
++    @Volatile var messagesDeleted: (() -> Unit)? = null
++}
+diff --git a/android/app/src/main/java/work/gadmin/finora/notifications/FirebasePushProvider.kt b/android/app/src/main/java/work/gadmin/finora/notifications/FirebasePushProvider.kt
+new file mode 100644
+--- /dev/null
++++ b/android/app/src/main/java/work/gadmin/finora/notifications/FirebasePushProvider.kt
+@@ -0,0 +1,42 @@
++package work.gadmin.finora.notifications
++
++import com.google.firebase.FirebaseApp
++import com.google.firebase.messaging.FirebaseMessaging
++import kotlin.coroutines.resume
++import kotlin.coroutines.resumeWithException
++import kotlinx.coroutines.suspendCancellableCoroutine
++
++class FirebasePushProvider : PushProvider {
++    override val configured: Boolean
++        get() = runCatching { FirebaseApp.getInstance() }.isSuccess
++
++    override suspend fun token(): PushToken = suspendCancellableCoroutine { continuation ->
++        FirebaseMessaging.getInstance()
++            .apply { isAutoInitEnabled = true }
++            .token
++            .addOnCompleteListener { task ->
++                if (continuation.isActive) {
++                    if (task.isSuccessful) continuation.resume(PushToken(task.result))
++                    else
++                        continuation.resumeWithException(
++                            IllegalStateException("Push registration unavailable")
++                        )
++                }
++            }
++    }
++
++    override suspend fun deleteToken(): Unit = suspendCancellableCoroutine { continuation ->
++        FirebaseMessaging.getInstance()
++            .apply { isAutoInitEnabled = false }
++            .deleteToken()
++            .addOnCompleteListener { task ->
++                if (continuation.isActive) {
++                    if (task.isSuccessful) continuation.resume(Unit)
++                    else
++                        continuation.resumeWithException(
++                            IllegalStateException("Push revocation unavailable")
++                        )
++                }
++            }
++    }
++}

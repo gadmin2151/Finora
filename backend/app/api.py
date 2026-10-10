@@ -147,6 +147,9 @@ def me(request: Request, user: m.User = ACTOR, db: Session = DB):
 
 @router.post("/auth/logout")
 def logout(request: Request, response: Response, user: m.User = ACTOR, db: Session = DB):
+    from .push_service import revoke_session as revoke_push_session
+
+    revoke_push_session(db, user.id, request.state.session.id, m.now())
     db.delete(request.state.session)
     db.commit()
     response.delete_cookie(
@@ -204,6 +207,9 @@ def revoke_session(key: str, user: m.User = ACTOR, db: Session = DB):
     row = db.scalar(select(m.Session).where(m.Session.id == key, m.Session.user_id == user.id))
     if row is None:
         fail("Сессия не найдена", 404)
+    from .push_service import revoke_session as revoke_push_session
+
+    revoke_push_session(db, user.id, row.id, m.now())
     db.delete(row)
     db.commit()
     return {"ok": True}
@@ -750,6 +756,10 @@ def register_receipt(
         )
     )
     job = enqueue(db, organization_id, "receipt", {"receipt_id": receipt.id})
+    if not prior:
+        from .push_events import receipt_created
+
+        receipt_created(db, receipt, now=m.now())
     db.commit()
     return {"receipt": receipt_dict(db, receipt), "job_id": job.id, "duplicate": False}
 
