@@ -5,12 +5,13 @@ import json
 from uuid import uuid4
 
 import pytest
+from PIL import Image
+from sqlalchemy import func, select
+
 from app import models as m
 from app.config import settings
 from app.db import SessionLocal
 from app.receipt_files import append_images
-from PIL import Image
-from sqlalchemy import func, select
 
 
 def second_workspace(owner):

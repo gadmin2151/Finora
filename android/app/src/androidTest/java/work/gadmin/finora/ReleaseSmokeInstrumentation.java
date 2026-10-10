@@ -17,6 +17,7 @@ public final class ReleaseSmokeInstrumentation extends Instrumentation {
     private String receiptUrl;
     private boolean submitReceipt;
     private boolean captureReceipt;
+    private boolean launchOffline;
 
     @Override
     public void onCreate(Bundle arguments) {
@@ -27,6 +28,7 @@ public final class ReleaseSmokeInstrumentation extends Instrumentation {
         receiptUrl = arguments.getString("receiptUrl");
         submitReceipt = "true".equals(arguments.getString("submitReceipt"));
         captureReceipt = "true".equals(arguments.getString("captureReceipt"));
+        launchOffline = "true".equals(arguments.getString("launchOffline"));
         start();
     }
 
@@ -62,6 +64,20 @@ public final class ReleaseSmokeInstrumentation extends Instrumentation {
                 input.release(); mask.release(); descriptors.release(); points.release(); detector.clear();
             }
             sendStatus(0, result);
+            if (launchOffline) {
+                if (!android.os.Build.MODEL.startsWith("sdk_gphone") ||
+                        new java.io.File(getTargetContext().getNoBackupFilesDir(), "session.enc").exists())
+                    throw new AssertionError("Offline launch smoke requires an empty owned emulator");
+                getTargetContext().startActivity(new Intent(Intent.ACTION_MAIN)
+                        .setClassName(getTargetContext(), "work.gadmin.finora.MainActivity")
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                requireNode("Sign in to Finora");
+                requireNode("Sign in");
+                requireNode("HTTPS server");
+                result.putString("offlineLaunch", "PASS: signed release opens accessible login without a session");
+                finish(Activity.RESULT_OK, result);
+                return;
+            }
             if (testCamera) {
                 getTargetContext().startActivity(new Intent(Intent.ACTION_MAIN)
                         .setClassName(getTargetContext(), "work.gadmin.finora.MainActivity")
