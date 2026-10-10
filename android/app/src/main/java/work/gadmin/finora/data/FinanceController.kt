@@ -22,6 +22,7 @@ data class FinanceState(
     val error: String? = null,
     val editor: FinanceEdit? = null,
     val editorError: String? = null,
+    val editorRetryLocked: Boolean = false,
     val matches: List<FinanceTransaction> = emptyList(),
     val matchesLoaded: Boolean = false,
     val matchesLoading: Boolean = false,
@@ -105,6 +106,7 @@ class FinanceController(
                     tab = it.tab,
                     editor = it.editor,
                     editorError = it.editorError,
+                    editorRetryLocked = it.editorRetryLocked,
                     matches = it.matches,
                     matchesLoaded = it.matchesLoaded,
                     matchesLoading = it.matchesLoading,
@@ -164,6 +166,7 @@ class FinanceController(
                                     .orEmpty()
                         ),
                 editorError = null,
+                editorRetryLocked = false,
                 matches = emptyList(),
                 matchesLoaded = false,
                 matchesLoading = false,
@@ -178,6 +181,7 @@ class FinanceController(
             it.copy(
                 editor = null,
                 editorError = null,
+                editorRetryLocked = false,
                 matches = emptyList(),
                 matchesLoading = false,
             )
@@ -185,7 +189,7 @@ class FinanceController(
     }
 
     fun edit(form: FinanceEdit) {
-        if (busy()) return
+        if (busy() || mutable.value.editorRetryLocked) return
         val old = mutable.value.editor ?: return
         val changesMatch =
             old.accountId != form.accountId || old.date != form.date || old.amount != form.amount
@@ -204,7 +208,8 @@ class FinanceController(
     fun findMatches() {
         val form = mutable.value.editor ?: return
         val org = organization()?.id ?: return
-        if (busy() || form.kind != FinanceEditKind.RECEIVE) return
+        if (busy() || mutable.value.editorRetryLocked || form.kind != FinanceEditKind.RECEIVE)
+            return
         matching?.cancel()
         matching = scope.launch {
             mutable.update { it.copy(matchesLoading = true, editorError = null) }
@@ -297,7 +302,15 @@ class FinanceController(
                 if (error is CancellationException) throw error
                 if (error is ApiException && error.code == 401) throw error
                 mutable.update {
-                    if (editor) it.copy(editorError = message(error))
+                    if (editor)
+                        it.copy(
+                            editorError = message(error),
+                            editorRetryLocked =
+                                it.editorRetryLocked ||
+                                    error !is ApiException ||
+                                    error.code == 408 ||
+                                    error.code >= 500,
+                        )
                     else it.copy(error = message(error))
                 }
                 // Refresh toggle/version state after uncertain responses, without blindly retrying.
@@ -317,6 +330,7 @@ class FinanceController(
                 it.copy(
                     editor = null,
                     editorError = null,
+                    editorRetryLocked = false,
                     matches = emptyList(),
                     matchesLoading = false,
                 )

@@ -33,14 +33,14 @@ fun FinanceEditor(
     findMatches: () -> Unit,
 ) {
     var discard by remember { mutableStateOf(false) }
-    val enabled = !busy
+    val enabled = !busy && !data.editorRetryLocked
     val existing = form.kind == FinanceEditKind.DEBT && form.mode == "existing"
     val fixedCurrency =
         form.kind in
             setOf(FinanceEditKind.RECEIVE, FinanceEditKind.REPAY, FinanceEditKind.INCREASE_DEBT)
     val accounts = data.accounts.filter { it.currency == form.currency && !it.archived }
     Dialog(
-        onDismissRequest = { if (enabled) discard = true },
+        onDismissRequest = { if (!busy) discard = true },
         properties =
             DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
     ) {
@@ -52,7 +52,7 @@ fun FinanceEditor(
                     Modifier.fillMaxWidth().padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    IconButton({ discard = true }, enabled = enabled) {
+                    IconButton({ discard = true }, enabled = !busy) {
                         LineIcon(Glyph.BACK, tr(Message.CLOSE_FORM))
                     }
                     Column {
@@ -71,6 +71,12 @@ fun FinanceEditor(
                         Modifier.fillMaxWidth().padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
+                        if (data.editorRetryLocked)
+                            Text(
+                                tr(Message.FINANCE_UNCERTAIN_RESULT),
+                                color = Muted,
+                                style = MaterialTheme.typography.bodySmall,
+                            )
                         data.editorError?.let {
                             Text(
                                 it,
@@ -80,6 +86,7 @@ fun FinanceEditor(
                         }
                         PrimaryButton(
                             if (busy) tr(Message.SAVING)
+                            else if (data.editorRetryLocked) tr(Message.RETRY_SAME_DETAILS)
                             else
                                 when (form.kind) {
                                     FinanceEditKind.PLAN -> tr(Message.SAVE_SOURCE)
@@ -93,7 +100,7 @@ fun FinanceEditor(
                                 },
                             save,
                             Modifier.fillMaxWidth(),
-                            enabled = enabled && !data.matchesLoading,
+                            enabled = !busy && !data.matchesLoading,
                         )
                     }
                 }
@@ -361,15 +368,29 @@ fun FinanceEditor(
         if (discard)
             AlertDialog(
                 onDismissRequest = { discard = false },
-                title = { Text(tr(Message.CLOSE_WITHOUT_SAVING)) },
-                text = { Text(tr(Message.UNSAVED_CHANGES_IN_THIS_FORM_WILL_BE_LOST)) },
+                title = {
+                    Text(
+                        tr(
+                            if (data.editorRetryLocked) Message.CLOSE_FORM
+                            else Message.CLOSE_WITHOUT_SAVING
+                        )
+                    )
+                },
+                text = {
+                    Text(
+                        tr(
+                            if (data.editorRetryLocked) Message.FINANCE_UNCERTAIN_CLOSE
+                            else Message.UNSAVED_CHANGES_IN_THIS_FORM_WILL_BE_LOST
+                        )
+                    )
+                },
                 confirmButton = {
                     TextButton(
                         {
                             discard = false
                             close()
                         },
-                        enabled = enabled,
+                        enabled = !busy,
                     ) {
                         Text(tr(Message.CLOSE))
                     }

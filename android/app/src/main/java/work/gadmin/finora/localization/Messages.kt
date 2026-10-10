@@ -408,6 +408,15 @@ enum class Message(val english: String, val russian: String) {
         "No confirmation from the server. Check your connection and retry with the same details.",
         "Нет подтверждения от сервера. Проверьте интернет и повторите с теми же данными.",
     ),
+    FINANCE_UNCERTAIN_RESULT(
+        "The request may already be saved. Details are locked so you can retry the same request safely.",
+        "Запрос мог уже сохраниться. Поля зафиксированы для безопасного повтора с теми же данными.",
+    ),
+    RETRY_SAME_DETAILS("Retry the same request", "Повторить тот же запрос"),
+    FINANCE_UNCERTAIN_CLOSE(
+        "Closing does not cancel a possible saved operation. Refresh the list and check the balance before creating another entry. This form will be lost.",
+        "Закрытие не отменяет возможную сохранённую операцию. Обновите список и проверьте остаток перед созданием новой записи. Эта форма будет потеряна.",
+    ),
     MONTHLY("Monthly", "Каждый месяц"),
     WEEKLY("Weekly", "Каждую неделю"),
     QUARTERLY("Quarterly", "Каждый квартал"),
