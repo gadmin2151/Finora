@@ -1109,5 +1109,16 @@
   "Нет лимитов для переноса. Задайте их по категориям.": "No limits to copy. Set them for each category.",
   "Будет добавлено: {0}": "To be added: {0}",
   "Уже заданных лимитов: {0}": "Existing limits: {0}",
-  "Перенести лимиты": "Copy budget limits"
+  "Перенести лимиты": "Copy budget limits",
+  "Укажите магазин": "Enter the store",
+  "Проверьте дату покупки": "Check the purchase date",
+  "Выберите счёт в валюте чека": "Choose an account in the receipt currency",
+  "Укажите итог чека": "Enter the receipt total",
+  "Добавьте товары чека": "Add receipt items",
+  "Проверьте товар, количество и суммы в строках: {0}": "Check item names, quantities and amounts in lines: {0}",
+  "Проверка чека": "Receipt review",
+  "Итог чека: {0}. Сумма строк: {1}.": "Receipt total: {0}. Line total: {1}.",
+  "Сверьте итоги с оригиналом. Скидки и включённые налоги уже входят в суммы строк; не прибавляйте их повторно.": "Compare with the original. Discounts and included taxes are already reflected in line totals; do not add them again.",
+  "Использовать сумму строк": "Use the line total",
+  "Заполните итоги чека и строк для сверки": "Enter the receipt and line totals to compare them"
 }

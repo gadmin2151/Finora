@@ -2,7 +2,7 @@ import { defaultReceiptUnit, unitLabel, canonicalUnit } from "./units";
 import { t, getLocale } from "./i18n";
 import { ReceiptOriginals } from "./ReceiptOriginals";
 import { ReceiptAuthor } from "./ReceiptAuthor";
-import { receiptLineTotal } from "./receiptAmounts";
+import { receiptLineTotal, receiptReviewTotals } from "./receiptAmounts";
 import { moneyMinor, minorDecimal } from "./wallet";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -768,7 +768,30 @@ function ReceiptForm({
     },
   );
   const pending = action.isPending || retry.isPending;
-  const difference = Math.round(Number(total || 0) * 100) - sum;
+  const review = receiptReviewTotals(total, items);
+  const difference = review.differenceMinor;
+  const reviewProblems = [
+    ...(!merchant.trim() ? [t("Укажите магазин")] : []),
+    ...(!date || date > today() ? [t("Проверьте дату покупки")] : []),
+    ...(!accounts.some(
+      (item) =>
+        item.id === account && item.currency === currency && !item.archived,
+    )
+      ? [t("Выберите счёт в валюте чека")]
+      : []),
+    ...(review.receiptMinor === null || review.receiptMinor <= 0
+      ? [t("Укажите итог чека")]
+      : []),
+    ...(!items.length ? [t("Добавьте товары чека")] : []),
+    ...(review.invalidLineNumbers.length
+      ? [
+          t(
+            "Проверьте товар, количество и суммы в строках: {0}",
+            review.invalidLineNumbers.join(", "),
+          ),
+        ]
+      : []),
+  ];
   function change(
     index: number,
     field: Exclude<keyof ReturnType<typeof blank>, "category_selected">,
@@ -912,6 +935,54 @@ function ReceiptForm({
           {w}
         </div>
       ))}
+      {!manual && !readonly && (
+        <section
+          className="notice receipt-review-summary"
+          aria-label={t("Проверка чека")}
+        >
+          <strong>{t("Проверка чека")}</strong>
+          <p>
+            {t(
+              "Итог чека: {0}. Сумма строк: {1}.",
+              review.receiptMinor === null
+                ? "—"
+                : amount(review.receiptMinor, currency),
+              review.itemsMinor === null
+                ? "—"
+                : amount(review.itemsMinor, currency),
+            )}
+          </p>
+          {difference !== null && difference !== 0 && (
+            <p className="negative">
+              {t("Разница со строками: {0}", amount(difference, currency))}
+            </p>
+          )}
+          {reviewProblems.length > 0 && (
+            <ul>
+              {reviewProblems.map((problem) => (
+                <li key={problem}>{problem}</li>
+              ))}
+            </ul>
+          )}
+          <p>
+            {t(
+              "Сверьте итоги с оригиналом. Скидки и включённые налоги уже входят в суммы строк; не прибавляйте их повторно.",
+            )}
+          </p>
+          {review.itemsMinor !== null &&
+            review.itemsMinor > 0 &&
+            difference !== 0 && (
+              <button
+                type="button"
+                className="button secondary"
+                disabled={pending}
+                onClick={() => setTotal(minorDecimal(review.itemsMinor!))}
+              >
+                {t("Использовать сумму строк")}
+              </button>
+            )}
+        </section>
+      )}
       <Form pending={pending} onSubmit={() => action.mutate(undefined)}>
         <div className={manual ? "receipt-manual-layout" : "receipt-layout"}>
           {!manual && <ReceiptOriginals receipt={receipt} />}
@@ -1098,8 +1169,16 @@ function ReceiptForm({
                     <MoneyInput value={total} onChange={setTotal} />
                   )}
                 </Field>
-                <div className={difference ? "negative" : "positive"}>
-                  {difference ? (
+                <div
+                  className={
+                    difference === null || difference !== 0
+                      ? "negative"
+                      : "positive"
+                  }
+                >
+                  {difference === null ? (
+                    t("Заполните итоги чека и строк для сверки")
+                  ) : difference !== 0 ? (
                     t("Разница со строками: {0}", amount(difference, currency))
                   ) : (
                     <>

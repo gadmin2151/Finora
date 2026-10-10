@@ -413,6 +413,17 @@ enum class Message(val english: String, val russian: String) {
         "Запрос мог уже сохраниться. Поля зафиксированы для безопасного повтора с теми же данными.",
     ),
     RETRY_SAME_DETAILS("Retry the same request", "Повторить тот же запрос"),
+    REVIEW_RECEIPT_TOTAL("Receipt total: %1\$s", "Итог чека: %1\$s"),
+    REVIEW_ITEM_TOTAL("Line total: %1\$s", "Сумма строк: %1\$s"),
+    REVIEW_TOTAL_DIFFERENCE("Difference from lines: %1\$s", "Разница со строками: %1\$s"),
+    REVIEW_INVALID_LINES(
+        "Check item names, quantities and amounts in lines: %1\$s",
+        "Проверьте товар, количество и суммы в строках: %1\$s",
+    ),
+    REVIEW_INCLUDED_TAXES(
+        "Compare with the original. Discounts and included taxes are already reflected in line totals; do not add them again.",
+        "Сверьте с оригиналом. Скидки и включённые налоги уже входят в суммы строк; не прибавляйте их повторно.",
+    ),
     FINANCE_UNCERTAIN_CLOSE(
         "Closing does not cancel a possible saved operation. Refresh the list and check the balance before creating another entry. This form will be lost.",
         "Закрытие не отменяет возможную сохранённую операцию. Обновите список и проверьте остаток перед созданием новой записи. Эта форма будет потеряна.",

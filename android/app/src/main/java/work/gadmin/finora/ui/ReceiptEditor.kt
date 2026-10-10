@@ -54,6 +54,7 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
     }
     BackHandler { if (!state.busy) leaveEditor() }
     val sum = form.lineSum()
+    val review = receiptReviewSummary(form, state.paymentAccounts)
     val enabled = !state.busy
     fun changeItems(items: List<ReceiptLineForm>) {
         val next = form.copy(items = items)
@@ -155,6 +156,14 @@ fun ReceiptEditor(state: AppState, vm: FinoraViewModel) {
                     ),
                     Glyph.RECEIPT,
                 )
+            }
+            if (!manual) {
+                item {
+                    ReceiptReviewSummaryCard(review, form.currency, enabled) {
+                        review.itemsMinor?.let { form = form.copy(total = editableMoney(it)) }
+                    }
+                }
+                receipt?.warnings?.forEach { warning -> item { InfoCard(warning, Glyph.RECEIPT) } }
             }
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
