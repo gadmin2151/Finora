@@ -470,6 +470,7 @@ export function Modal({
   const id = useId();
   useEffect(() => {
     const node = ref.current;
+    const previousFocus = document.activeElement;
     node?.showModal();
     node
       ?.querySelector<HTMLInputElement>(
@@ -478,6 +479,9 @@ export function Modal({
       ?.focus();
     return () => {
       node?.close();
+      if (previousFocus instanceof HTMLElement && previousFocus.isConnected) {
+        previousFocus.focus({ preventScroll: true });
+      }
     };
   }, []);
   return (
