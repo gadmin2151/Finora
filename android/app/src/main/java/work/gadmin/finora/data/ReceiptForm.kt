@@ -77,11 +77,11 @@ data class ReceiptForm(
     }
         .getOrNull()
 
-    fun payload(): JsonObject {
+    fun payload(today: LocalDate = accountingToday()): JsonObject {
         require(merchant.trim().length in 1..200) { tr(Message.ENTER_A_STORE) }
         require(merchantAddress.length <= 500) { tr(Message.THE_ADDRESS_IS_TOO_LONG) }
         val purchased = runCatching { LocalDate.parse(date.trim()) }.getOrNull()
-        require(purchased != null && purchased.year >= 1990 && purchased <= LocalDate.now()) {
+        require(purchased != null && purchased.year >= 1990 && purchased <= today) {
             tr(Message.CHECK_THE_DATE_YYYY_MM_DD_NO_LATER_THAN_TODAY)
         }
         require(currency in setOf("MDL", "EUR", "USD", "RON")) { tr(Message.CHOOSE_A_CURRENCY) }

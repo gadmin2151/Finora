@@ -105,4 +105,49 @@ class ReceiptReviewSummaryTest {
         assertEquals(0L, check.differenceMinor)
         assertTrue(check.invalidLineNumbers.isEmpty())
     }
+
+    @Test
+    fun midnightBoundaryUsesAccountingDayForReviewAndPayload() {
+        val clock =
+            java.time.Clock.fixed(
+                java.time.Instant.parse("2026-10-09T22:30:00Z"),
+                java.time.ZoneOffset.UTC,
+            )
+        val today = accountingToday(clock)
+        assertEquals(LocalDate.of(2026, 10, 10), today)
+        val receipt = form.copy(date = "2026-10-10")
+        assertFalse(
+            ReceiptReviewProblem.DATE in
+                receiptReviewSummary(receipt, listOf(account), today).problems
+        )
+        receipt.payload(today)
+        assertTrue(
+            ReceiptReviewProblem.DATE in
+                receiptReviewSummary(receipt.copy(date = "2026-10-11"), listOf(account), today)
+                    .problems
+        )
+        assertTrue(runCatching { receipt.copy(date = "2026-10-11").payload(today) }.isFailure)
+    }
+
+    @Test
+    fun explicitDiscountedTotalMayBeBelowOversizedGrossProduct() {
+        val receipt =
+            form.copy(
+                total = "900000000.00",
+                items =
+                    listOf(
+                        form.items
+                            .single()
+                            .copy(
+                                quantity = "100",
+                                unitPrice = "10000000.00",
+                                total = "900000000.00",
+                            )
+                    ),
+            )
+        val check = receiptReviewSummary(receipt, listOf(account))
+        assertTrue(check.invalidLineNumbers.isEmpty())
+        assertEquals(0L, check.differenceMinor)
+        receipt.payload()
+    }
 }

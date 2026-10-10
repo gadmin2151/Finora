@@ -74,3 +74,17 @@ test("manual totals reject invalid quantities, money and oversized lines", () =>
     assert.equal(receiptLineTotal("2", value), "");
   assert.equal(receiptLineTotal("100000", "999999999.99"), "");
 });
+
+test("explicit discounted line totals remain valid when gross product exceeds the limit", () => {
+  const line = {
+    name: "Discounted bulk",
+    quantity: "100",
+    unit_price: "10000000.00",
+    total: "900000000.00",
+  };
+  const result = receiptReviewTotals(line.total, [line]);
+  assert.deepEqual(result.invalidLineNumbers, []);
+  assert.equal(result.differenceMinor, 0);
+  assert.equal(result.itemsMinor, 90000000000);
+  assert.equal(receiptLineTotal(line.quantity, line.unit_price), "");
+});

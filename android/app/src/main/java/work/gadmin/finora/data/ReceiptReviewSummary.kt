@@ -23,7 +23,7 @@ data class ReceiptReviewSummary(
 fun receiptReviewSummary(
     form: ReceiptForm,
     accounts: List<Account>,
-    today: LocalDate = LocalDate.now(),
+    today: LocalDate = accountingToday(),
 ): ReceiptReviewSummary {
     fun minor(value: String): Long? = runCatching {
         receiptNumber(value, true).movePointRight(2).longValueExact()
