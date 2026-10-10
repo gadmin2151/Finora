@@ -144,7 +144,7 @@ data class ReceiptForm(
                     ?: accounts.firstOrNull { !it.archived }
             return ReceiptForm(
                 merchant = "",
-                date = LocalDate.now().toString(),
+                date = accountingToday().toString(),
                 currency = account?.currency ?: "MDL",
                 total = "",
                 accountId = account?.id,

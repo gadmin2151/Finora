@@ -1,6 +1,5 @@
 package work.gadmin.finora.data
 
-import java.time.LocalDate
 import java.util.UUID
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
@@ -90,7 +89,7 @@ class ReceiptFormTest {
         assertEquals("cash", manual.accountId)
         assertEquals("MDL", manual.currency)
         assertEquals("1", manual.fxRate)
-        assertEquals(LocalDate.now().toString(), manual.date)
+        assertEquals(accountingToday().toString(), manual.date)
         assertEquals(1, manual.items.size)
         assertEquals("", manual.merchant)
         val foreign = ReceiptForm.manual(accounts, "eur")

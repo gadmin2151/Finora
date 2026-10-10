@@ -109,7 +109,7 @@ data class FinanceEdit(
     val amount: String = "",
     val currency: String = "MDL",
     val accountId: String = "",
-    val date: String = LocalDate.now().toString(),
+    val date: String = accountingToday().toString(),
     val dueDate: String = "",
     val fxRate: String = "",
     val note: String = "",
@@ -229,7 +229,7 @@ data class FinanceEdit(
 
 fun financeDate(value: String, allowFuture: Boolean = false): String {
     val date = runCatching { LocalDate.parse(value.trim()) }.getOrNull()
-    require(date != null && date.year in 1990..2100 && (allowFuture || date <= LocalDate.now())) {
+    require(date != null && date.year in 1990..2100 && (allowFuture || date <= accountingToday())) {
         if (allowFuture) tr(Message.CHOOSE_A_DATE_BETWEEN_1990_AND_2100)
         else tr(Message.THE_DATE_CANNOT_BE_IN_THE_FUTURE)
     }
