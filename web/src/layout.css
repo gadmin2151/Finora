@@ -524,6 +524,7 @@ body:has(.chat-expanded) .assistant-launch-controls {
 .chat-actions h3 {
   font-size: 15px;
   margin: 0 0 5px;
+  overflow-wrap: anywhere;
 }
 .chat-actions p {
   margin: 5px 0;
