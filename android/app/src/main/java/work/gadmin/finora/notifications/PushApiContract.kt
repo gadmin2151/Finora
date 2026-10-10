@@ -91,14 +91,19 @@ class PushApiContract(
         transport.write(scope, "/api/push/devices/${validId(registration.id)}", "DELETE", null)
     }
 
-    override suspend fun preferences(scope: PushScope): PushPreferences =
-        decodePreferences(scope, transport.get(scope, "/api/push/preferences"))
+    override suspend fun preferences(scope: PushScope): PushPreferences {
+        if (!updateSupport.containsKey(scope)) deliveryConfigured(scope)
+        return decodePreferences(scope, transport.get(scope, "/api/push/preferences"))
+    }
 
     override suspend fun savePreferences(
         scope: PushScope,
         preferences: PushPreferences,
-    ): PushPreferences =
-        decodePreferences(
+    ): PushPreferences {
+        // Preference fencing rotates the local generation. Never serialize optional fields using
+        // capabilities from another generation, or silently drop a saved updates preference.
+        if (!updateSupport.containsKey(scope)) deliveryConfigured(scope)
+        return decodePreferences(
             scope,
             transport.write(
                 scope,
@@ -118,6 +123,7 @@ class PushApiContract(
                 },
             ),
         )
+    }
 
     private fun decodePreferences(scope: PushScope, response: JsonObject) =
         PushPreferences(

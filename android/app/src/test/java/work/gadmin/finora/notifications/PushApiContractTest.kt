@@ -11,6 +11,50 @@ class PushApiContractTest {
     private val scope = PushScope("https://finora.example", "user", "local-generation", "org")
     private val nav = NavigationScope("org", "2026-10", "user@server")
 
+    @Test
+    fun fencedGenerationRefreshesCapabilitiesAndPreservesUpdatesAcrossCategoryWrites() =
+        runBlocking {
+            var persisted = buildJsonObject {
+                put("enabled", true)
+                put("updates", true)
+            }
+            val fetched = mutableListOf<PushScope>()
+            val transport =
+                object : PushTransport {
+                    override suspend fun get(scope: PushScope, path: String): JsonObject =
+                        if (path.endsWith("capabilities")) {
+                            fetched += scope
+                            buildJsonObject {
+                                put("schema_version", 1)
+                                put("provider", "fcm")
+                                put("delivery_configured", true)
+                                put("update_notifications", true)
+                            }
+                        } else persisted
+
+                    override suspend fun write(
+                        scope: PushScope,
+                        path: String,
+                        method: String,
+                        body: JsonObject?,
+                    ): JsonObject {
+                        persisted = requireNotNull(body)
+                        return persisted
+                    }
+                }
+            val api = PushApiContract(transport) { nav }
+            api.deliveryConfigured(scope)
+            val fenced = scope.copy(sessionKey = "fresh-generation")
+            assertFalse(api.supportsUpdateNotifications(fenced))
+            val loaded = api.preferences(fenced)
+            assertTrue(loaded.updates)
+            assertTrue(api.supportsUpdateNotifications(fenced))
+            api.savePreferences(fenced, loaded.copy(payments = true))
+            assertTrue(persisted["updates"]!!.jsonPrimitive.boolean)
+            assertEquals(listOf(scope, fenced), fetched)
+            assertTrue(PushApiContract(transport) { nav }.preferences(fenced).updates)
+        }
+
     private class Transport : PushTransport {
         var response = buildJsonObject {}
         var path = ""

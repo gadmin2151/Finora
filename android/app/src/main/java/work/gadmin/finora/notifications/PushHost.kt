@@ -34,10 +34,13 @@ class PushHost(
     private val notice: (String) -> Unit,
     private val onOpenUpdater: (() -> Unit)? = null,
     private val onOpenReceiptOrganization: ((String, String) -> Unit)? = null,
+    private val transportOverride: PushTransport? = null,
+    private val providerOverride: PushProvider? = null,
+    private val permissionOverride: (() -> PushPermission)? = null,
 ) {
     private val store = PushInstallationStore(application)
     private val sessions = PushSessionStore(application)
-    private val provider = FirebasePushProvider()
+    private val provider = providerOverride ?: FirebasePushProvider()
     private val notifications =
         PushNotifications(application, MainActivity::class.java, R.mipmap.ic_launcher)
     private val clients = ConcurrentHashMap<PushScope, ApiClient>()
@@ -74,7 +77,7 @@ class PushHost(
                     .pushWrite(path, scope.organizationId, method, body)
         }
     private val mappedTransport =
-        MappedPushTransport(transport, ::currentScope) {
+        MappedPushTransport(transportOverride ?: transport, ::currentScope) {
             onAuthError(ApiException(401, "Session expired"))
         }
     private val installationId = runCatching { store.installationId() }.getOrNull()
@@ -189,6 +192,9 @@ class PushHost(
         }
     }
 
+    private fun notificationPermission() =
+        permissionOverride?.invoke() ?: notifications.permission()
+
     fun synchronize(token: PushToken? = null) {
         coroutines.launch {
             operations.withLock {
@@ -200,7 +206,7 @@ class PushHost(
                     return@withLock
                 }
                 try {
-                    withTimeout(30000) { controller.synchronize(notifications.permission(), token) }
+                    withTimeout(30000) { controller.synchronize(notificationPermission(), token) }
                     publish(before)
                 } catch (_: TimeoutCancellationException) {
                     disableGate()
@@ -219,8 +225,21 @@ class PushHost(
         var status = controller.state
         val preferences =
             if (expected != null && status !in setOf(PushState.UNCONFIGURED, PushState.SIGNED_OUT))
-                runCatching { api.preferences(expected) }.getOrDefault(mutable.value.preferences)
+                try {
+                    api.preferences(expected)
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (_: Exception) {
+                    status = PushState.ERROR
+                    mutable.value.preferences
+                }
             else PushPreferences()
+        // Authenticated reads suspend: logout or an organization switch may fence the scope
+        // while fetching preferences. Never reopen an old gate or publish its checked values.
+        if (expected != currentScope()) {
+            disableGate()
+            return
+        }
         if (status == PushState.READY && expected != null) {
             try {
                 store.enable(expected)
@@ -229,6 +248,10 @@ class PushHost(
                 status = PushState.ERROR
             }
         } else disableGate()
+        if (expected != currentScope()) {
+            disableGate()
+            return
+        }
         mutable.value =
             PushHostState(
                 status,
@@ -239,41 +262,53 @@ class PushHost(
             )
     }
 
-    private fun fencePreferences() {
-        val scope = currentScope() ?: return
+    private fun fencePreferences(): PushScope? {
+        val scope = currentScope() ?: return null
         disableGate()
         sessions.begin(scope.server, scope.userId, true)
         sessions.workspace(scope.server, scope.userId, scope.organizationId)
+        return currentScope()
     }
 
     fun setEnabled(enabled: Boolean) {
-        fencePreferences()
+        val before = fencePreferences() ?: return
         coroutines.launch {
             operations.withLock {
-                val before = currentScope()
+                if (currentScope() != before) return@withLock
                 mutable.value = mutable.value.copy(status = PushState.REGISTERING)
-                controller.setEnabled(enabled, notifications.permission())
+                controller.setEnabled(enabled, notificationPermission())
                 publish(before)
             }
         }
     }
 
     fun setCategories(payments: Boolean, receipts: Boolean, important: Boolean) {
-        fencePreferences()
+        val before = fencePreferences() ?: return
         coroutines.launch {
             operations.withLock {
-                val before = currentScope() ?: return@withLock
+                if (currentScope() != before) return@withLock
+                mutable.value = mutable.value.copy(status = PushState.REGISTERING)
                 try {
-                    api.savePreferences(
-                        before,
-                        api.preferences(before)
-                            .copy(payments = payments, receipts = receipts, important = important),
-                    )
+                    val saved =
+                        api.savePreferences(
+                            before,
+                            api.preferences(before)
+                                .copy(
+                                    payments = payments,
+                                    receipts = receipts,
+                                    important = important,
+                                ),
+                        )
+                    if (currentScope() != before) throw PushRevokedException()
+                    mutable.value = mutable.value.copy(preferences = saved)
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
                 } catch (_: Exception) {
-                    mutable.value = mutable.value.copy(status = PushState.ERROR)
+                    if (currentScope() == before)
+                        mutable.value = mutable.value.copy(status = PushState.ERROR)
                     return@withLock
                 }
-                controller.synchronize(notifications.permission())
+                controller.synchronize(notificationPermission())
                 publish(before)
             }
         }
@@ -302,19 +337,29 @@ class PushHost(
     }
 
     fun setUpdates(enabled: Boolean) {
-        fencePreferences()
+        val before = fencePreferences() ?: return
         coroutines.launch {
             operations.withLock {
-                val before = currentScope() ?: return@withLock
-                if (!api.supportsUpdateNotifications(before)) return@withLock
+                if (currentScope() != before) return@withLock
+                mutable.value = mutable.value.copy(status = PushState.REGISTERING)
                 try {
-                    api.savePreferences(before, api.preferences(before).copy(updates = enabled))
-                    controller.synchronize(notifications.permission())
+                    api.deliveryConfigured(before)
+                    if (currentScope() != before) throw PushRevokedException()
+                    if (!api.supportsUpdateNotifications(before)) {
+                        publish(before)
+                        return@withLock
+                    }
+                    val saved =
+                        api.savePreferences(before, api.preferences(before).copy(updates = enabled))
+                    if (currentScope() != before) throw PushRevokedException()
+                    mutable.value = mutable.value.copy(preferences = saved)
+                    controller.synchronize(notificationPermission())
                     publish(before)
                 } catch (cancelled: CancellationException) {
                     throw cancelled
                 } catch (_: Exception) {
-                    mutable.value = mutable.value.copy(status = PushState.ERROR)
+                    if (currentScope() == before)
+                        mutable.value = mutable.value.copy(status = PushState.ERROR)
                 }
             }
         }
