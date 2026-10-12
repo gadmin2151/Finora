@@ -2,6 +2,15 @@
 
 [← Back to Finora](../README.md) · [Русская инструкция](../README.ru.md)
 
+## Current deployment · 12 October 2026
+
+The debt-history website/API from source `44fbe34` and Android 1.21.0 are published.
+Schema `d81ac57e09f2` is unchanged. The accepted image overlay is
+`/opt/finora-debt-history-20261012/compose.accepted-image.yaml`; preserve the preceding
+Compose overlays listed by the running containers. The matching release directory
+contains `START-AND-ROLLBACK.txt` and the previous image overlay. The older server
+checkout is not the running source. [Verified release and recovery evidence](DEBT-HISTORY-121.md).
+
 ## Install Finora
 
 ### Debian 12 / 13 server

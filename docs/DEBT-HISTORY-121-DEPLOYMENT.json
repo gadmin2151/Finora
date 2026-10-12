@@ -1,0 +1,53 @@
+{
+  "sourceCommit": "44fbe34fb5001bd34aa3d903ac5b49c6a2e5dca4",
+  "image": "sha256:77f5f26568f9e09df8607e170051cece7a5f0071944e3e4ebaab2c248ec80d17",
+  "approvedConfigDigest": "sha256:54aef54bd4cd989da3cd81fff85abcca97965e79147318fda5af09899b3a4cc4",
+  "sourceArchive": "3b9c8867c0eed2b6109075dbb90dcab35e5c66a44ec08db4c1c4a249b4e761eb",
+  "schema": "d81ac57e09f2",
+  "backup": {
+    "path": "/opt/finora-cutover-debt-history-20261012T172444Z/database-and-documents.tar.age",
+    "bytes": 29939016,
+    "sha256": "c10f5d3950d32df3f3a0b2dedb176178b047ea7fb46f78ca18e6c2365f95659f",
+    "consistent": true,
+    "decryptionHashVerified": true
+  },
+  "acceptedOverride": "/opt/finora-debt-history-20261012/compose.accepted-image.yaml",
+  "rollbackOverride": "/opt/finora-debt-history-20261012/compose.rollback-image.yaml",
+  "baselineFinancialRowsPreserved": true,
+  "currencyDigestPreserved": true,
+  "documentBytesPreserved": true,
+  "databaseTunnelNetworkVolumesUnchanged": true,
+  "privateConfigurationUnchanged": true,
+  "apiHealthy": true,
+  "workerRunning": true,
+  "releaseDate": "2026-10-12",
+  "schemaChanged": false,
+  "runtimeStaticFilesMatch": 33,
+  "publicStaticFilesMatch": 29,
+  "readOnlyHistoryReconciled": true,
+  "unauthenticatedHistory": 401,
+  "apk": {
+    "versionName": "1.21.0",
+    "versionCode": 35,
+    "sha256": "888bf4814ad27571d3acb9f39aa0de960a7e8242db0d94584718494ccf3b4903",
+    "bytes": 172682067,
+    "fullPublicApkGet": true,
+    "publicManifestMatches": true,
+    "previousApkPreserved": true,
+    "noProviderSends": true
+  },
+  "checks": {
+    "postgresPassed": 613,
+    "postgresSkipped": 1,
+    "webTestsPassed": 37,
+    "androidUnitTestsPassed": 243,
+    "androidUiScenarios": 2,
+    "androidFontScales": [
+      1.0,
+      1.8
+    ],
+    "signedUpgrade": "1.20.0 to 1.21.0",
+    "offlineLaunch": true,
+    "physicalPhone": false
+  }
+}

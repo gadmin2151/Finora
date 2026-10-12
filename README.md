@@ -23,7 +23,11 @@
 
 ---
 
-## Release checkpoint · 10 October 2026
+## Debt history · 12 October 2026
+
+**The website and Android 1.21.0 (`versionCode 35`) are published.** Each debt now has its advances and repayments, with the remaining balance after every entry; history remains available after payoff. [Download the signed APK](https://finora.gadmin.work/assets/mobile/finora-1.21.0.apk) · [Verification and deployment](docs/DEBT-HISTORY-121.md). Existing financial records and the database schema were preserved.
+
+## Previous release checkpoint · 10 October 2026
 
 **Android 1.20.0 (`versionCode 34`) is published**, and API/worker now run the system-settings source `b3ee1e95c120a3a8f76a13997c938f9fc86f8a07` built on the 1.18 baseline. [Download the signed APK](https://finora.gadmin.work/assets/mobile/finora-1.20.0.apk). A full HTTPS GET verified SHA-256 `5ec789d5d5b4de81b54156b86dfb733052586c8ce57f0f11f74927ccaba400e5`. The existing signer and previous APKs are retained.
 
@@ -43,7 +47,7 @@ The **current wallet** includes debt repayments and shows balances separately fr
 
 **Know who added each receipt.** Filter receipts and purchases by their author, and compare category spending for each participant. Missing item categories are assigned when you confirm a manual or corrected receipt; your explicit category choices stay intact. [Receipt authors and categories →](docs/RECEIPT-AUTHORS.md)
 
-**Debt history — prepared update.** Open **Debts → Debt history** on the web or **Finance → Debts → Debt history** on Android to see each advance and partial/full repayment, its account, date, note and remaining balance. History remains available for closed debts; reversed entries stay visible without affecting totals. This reads the existing ledger and needs no migration. The new server endpoint and client updates must be deployed together; publication is recorded separately. [History behavior and compatibility →](docs/MOBILE-FINANCE.md#история-каждого-долга--подготовленное-обновление)
+**Debt history · 1.21.** Open **Debts → Debt history** on the web or **Finance → Debts → Debt history** on Android to see each advance and partial/full repayment, its account, date, note and remaining balance. History remains available for closed debts; reversed entries stay visible without affecting totals. This reads the existing ledger and needs no migration. The website and APK were updated together. [History behavior and compatibility →](docs/DEBT-HISTORY-121.md)
 
 ## Cash and cards: your choice
 
