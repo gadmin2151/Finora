@@ -38,13 +38,22 @@ class FinanceController(
     private val write: (suspend () -> Unit) -> Unit,
     private val onError: (Exception) -> Unit,
     private val onSaved: (String) -> Unit,
+    private val owner: () -> String = { "" },
 ) {
     private val mutable = MutableStateFlow(FinanceState())
     val state = mutable.asStateFlow()
     private var loading: Job? = null
     private var matching: Job? = null
+    val debtHistory =
+        DebtHistoryController(
+            scope,
+            { org, debt, offset -> client().debtHistory(org, debt, offset) },
+            { organization()?.let { NavigationScope(it.id, month(), owner()) } },
+            onError,
+        )
 
     fun reset() {
+        debtHistory.close()
         loading?.cancel()
         matching?.cancel()
         mutable.value = FinanceState()
@@ -57,8 +66,10 @@ class FinanceController(
     fun load() {
         organization() ?: return
         loading?.cancel()
-        if (mutable.value.month != month())
+        if (mutable.value.month != month()) {
+            debtHistory.close()
             mutable.update { FinanceState(month = month(), tab = it.tab) }
+        }
         loading = scope.launch {
             mutable.update { it.copy(loading = true, loadingMore = false, error = null) }
             try {

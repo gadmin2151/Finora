@@ -545,7 +545,9 @@ def test_payment_cancelled_after_enqueue_is_not_delivered(context):
     assert provider.sent == []
 
 
-def test_api_event_resolves_only_owner_scope_and_not_after_revoke(client, context):
+def test_api_event_resolves_only_owner_scope_and_not_after_revoke(client, context, monkeypatch):
+    # Queue fixtures use NOW; event authorization must use the same clock after its fixed TTL.
+    monkeypatch.setattr(m, "now", lambda: NOW)
     event_id = queue(context)
     app = FastAPI()
     app.include_router(router)

@@ -19,7 +19,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy import delete, func, or_, select
 from sqlalchemy.orm import Session
 
-from . import accounting, ai, budgets, ledger
+from . import accounting, ai, budgets, debt_history, ledger
 from . import models as m
 from . import schemas as s
 from .category_refresh import install_daily_categories, refresh_receipt_categories
@@ -496,6 +496,17 @@ def void_transaction(key: str, version: int, user: m.Organization = SCOPE, db: S
 @router.get("/debts")
 def debts(user: m.Organization = SCOPE, db: Session = DB):
     return debt_list(db, user.id)
+
+
+@router.get("/debts/{key}/history")
+def get_debt_history(
+    key: str,
+    offset: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
+    user: m.Organization = SCOPE,
+    db: Session = DB,
+):
+    return debt_history.history(db, user.id, key, offset=offset, limit=limit)
 
 
 @router.post("/debts")

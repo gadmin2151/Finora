@@ -232,6 +232,7 @@ class FinoraViewModel(application: Application) : AndroidViewModel(application) 
                 mutable.update { it.copy(notice = notice) }
                 loadDashboard()
             },
+            owner = { "${mutable.value.user?.id}@${mutable.value.server}" },
         )
 
     val accountManagement =

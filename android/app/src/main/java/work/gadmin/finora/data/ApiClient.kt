@@ -400,6 +400,19 @@ class ApiClient(val server: String, savedCookie: String? = null) {
 
     suspend fun debts(org: String): List<Debt> = get("/api/debts", org)
 
+    suspend fun debtHistory(org: String, debtId: String, offset: Int): DebtHistory {
+        val url =
+            origin
+                .newBuilder()
+                .addPathSegments("api/debts")
+                .addPathSegment(debtId)
+                .addPathSegment("history")
+                .addQueryParameter("offset", offset.toString())
+                .addQueryParameter("limit", "50")
+                .build()
+        return get(url.encodedPath + "?" + url.encodedQuery, org)
+    }
+
     suspend fun incomeHistory(
         org: String,
         month: String,

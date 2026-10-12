@@ -61,6 +61,30 @@ export type Debt = {
   due_date: string | null;
   note: string;
 };
+export type DebtHistoryEntry = {
+  id: string;
+  kind:
+    "debt_lend" | "debt_borrow" | "debt_repayment_in" | "debt_repayment_out";
+  operation: "initial" | "increase" | "repayment";
+  occurred_on: string;
+  created_at: string;
+  amount_minor: number;
+  balance_after_minor: number;
+  account_id: string;
+  account_name: string | null;
+  note: string;
+  voided: boolean;
+};
+export type DebtHistory = {
+  debt_id: string;
+  currency: Currency;
+  initial_minor: number;
+  remaining_minor: number;
+  increased_minor: number;
+  repaid_minor: number;
+  items: DebtHistoryEntry[];
+  total: number;
+};
 export type Bill = {
   id: string;
   bill_id: string;

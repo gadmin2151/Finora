@@ -64,7 +64,15 @@ The organization-scoped admin endpoints are `POST /api/categories/daily` and `PO
 
 Bank payment confirmations can also be uploaded as photos or screenshots. Recognition distinguishes the charged amount/currency from the original transaction currency, extracts the payee/date/status, and represents the payment as one line. It never counts both currencies as expenses or invents purchased products. Bank confirmations always require review, including pending or declined payments; existing manually posted records are not reprocessed.
 
-## Nightly recovery checkpoint, 2026-10-10
+## Historical nightly recovery checkpoint, 2026-10-10
+
+This section records the early recovery checkpoint, not the current runtime state.
+The later [system-settings deployment evidence](SYSTEM-SETTINGS-DEPLOYMENT.json)
+and [runtime/rollback notes](SYSTEM-SETTINGS.md#production-deployment--10-october-2026)
+supersede its deployment status. That deployment applied schema `d81ac57e09f2`
+and used a verified image with preserved Compose overlays; the server checkout
+remained older than the runtime. Check those image/configuration bindings before
+an update instead of treating the checkout or inherited image labels as authoritative.
 
 The private encrypted recovery bundle created before the nightly work includes
 application/configuration files, receipt originals, a consistent PostgreSQL dump,
@@ -75,9 +83,9 @@ passed. A complete application restore on a second host has not been performed.
 The bundle is on the production host, so it does not protect against losing that
 host or disk; a separately authorized secure copy is still useful.
 
-The prepared server image has not been deployed. New Docker containers currently
-fail before application startup inside LXC. Keep running production containers
-alive until the infrastructure owner resolves that issue. The prepared image
+At this earlier checkpoint, the prepared server image had not been deployed:
+new Docker containers failed before application startup inside LXC. Running
+containers were preserved pending infrastructure recovery. The prepared image
 rollback only selects the prior API/worker image; it does not restore the database,
 receipt files or configuration. Any complete recovery must use an isolated target,
 verify the existing recovery identity and data checksums, restore into empty test

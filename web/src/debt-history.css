@@ -1,0 +1,94 @@
+.debt-history-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 0 0 20px;
+}
+.debt-history-summary > div,
+.debt-history-opening {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.debt-history dt,
+.debt-history time,
+.debt-history-order,
+.debt-history-opening p {
+  color: var(--ink-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.debt-history dd {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+}
+.debt-history-summary dd {
+  font-size: 21px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.debt-history-opening p {
+  margin-top: 6px;
+}
+.debt-history-order {
+  margin: 14px 0;
+}
+.debt-history-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.debt-history-list > li {
+  padding: 18px 0;
+  border-top: 1px solid var(--border);
+}
+.debt-history-entry-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+.debt-history-entry-heading > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  overflow-wrap: anywhere;
+}
+.debt-history-amount {
+  text-align: right;
+  align-items: flex-end;
+}
+.debt-history-voided .debt-history-amount > strong {
+  text-decoration: line-through;
+  color: var(--ink-muted);
+}
+.debt-history-entry-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 14px 0 0;
+}
+.debt-history-note {
+  margin-top: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 600px) {
+  .debt-history-summary {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .debt-history-summary > div {
+    padding: 12px;
+  }
+  .debt-history-entry-details {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .debt-history .pagination {
+    padding-inline: 0;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+}

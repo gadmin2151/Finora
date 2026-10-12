@@ -7,6 +7,7 @@ import {
   CalendarClock,
   Check,
   CirclePause,
+  History,
   Plus,
   Target,
   Users,
@@ -16,6 +17,7 @@ import {
 } from "lucide-react";
 import { categoryPurchasesHash } from "../purchaseNavigation";
 import { debtIsOverdue, filterDebts } from "../debtFilters";
+import DebtHistoryDialog from "../DebtHistory";
 import { api, ApiError, send, useAction } from "../api";
 import { useApp } from "../context";
 import type {
@@ -440,6 +442,7 @@ export function Debts() {
     queryFn: () => api<Debt[]>("/debts"),
   });
   const [creating, setCreating] = useState(false);
+  const [history, setHistory] = useState<Debt | null>(null);
   const [movement, setMovement] = useState<{
     debt: Debt;
     mode: DebtMovementMode;
@@ -579,34 +582,47 @@ export function Debts() {
                         : t("Открыт")}
                   </Badge>
                 </div>
-                {isAdmin && (
-                  <div className="debt-actions">
-                    {d.remaining_minor > 0 && (
-                      <>
-                        <button
-                          className="button secondary"
-                          onClick={() =>
-                            setMovement({ debt: d, mode: "partial" })
-                          }
-                        >
-                          {t("Погасить частично")}
-                        </button>
-                        <button
-                          className="button secondary"
-                          onClick={() => setMovement({ debt: d, mode: "full" })}
-                        >
-                          <Check size={16} /> {t("Погасить полностью")}
-                        </button>
-                      </>
-                    )}
-                    <button
-                      className="text-button"
-                      onClick={() => setMovement({ debt: d, mode: "increase" })}
-                    >
-                      <Plus size={16} /> {t("Увеличить долг")}
-                    </button>
-                  </div>
-                )}
+                <div className="debt-actions">
+                  <button
+                    className="button secondary"
+                    aria-label={t("История долга: {0}", d.person)}
+                    onClick={() => setHistory(d)}
+                  >
+                    <History size={16} /> {t("История долга")}
+                  </button>
+                  {isAdmin && (
+                    <>
+                      {d.remaining_minor > 0 && (
+                        <>
+                          <button
+                            className="button secondary"
+                            onClick={() =>
+                              setMovement({ debt: d, mode: "partial" })
+                            }
+                          >
+                            {t("Погасить частично")}
+                          </button>
+                          <button
+                            className="button secondary"
+                            onClick={() =>
+                              setMovement({ debt: d, mode: "full" })
+                            }
+                          >
+                            <Check size={16} /> {t("Погасить полностью")}
+                          </button>
+                        </>
+                      )}
+                      <button
+                        className="text-button"
+                        onClick={() =>
+                          setMovement({ debt: d, mode: "increase" })
+                        }
+                      >
+                        <Plus size={16} /> {t("Увеличить долг")}
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -639,6 +655,13 @@ export function Debts() {
           />
         )}
       </section>
+      {history && (
+        <DebtHistoryDialog
+          key={history.id}
+          debt={history}
+          onClose={() => setHistory(null)}
+        />
+      )}
       {creating && (
         <DebtForm
           onClose={() => setCreating(false)}

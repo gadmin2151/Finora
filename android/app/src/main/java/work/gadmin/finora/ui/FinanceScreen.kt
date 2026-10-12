@@ -134,6 +134,7 @@ fun FinanceContent(
     openPlanning: ((ChatDestination) -> Unit)? = null,
     showTabSelector: Boolean = true,
 ) {
+    val debtHistory by actions.debtHistory.state.collectAsStateWithLifecycle()
     var incomeSection by rememberSaveable { mutableStateOf("schedule") }
     var direction by rememberSaveable { mutableStateOf("all") }
     var closed by rememberSaveable { mutableStateOf(false) }
@@ -586,6 +587,13 @@ fun FinanceContent(
                     )
                     if (debt.note.isNotBlank())
                         Text(debt.note, style = MaterialTheme.typography.bodySmall)
+                    OutlinedButton(
+                        { actions.debtHistory.open(debt) },
+                        Modifier.fillMaxWidth().testTag("debt-history-open-${debt.id}"),
+                        enabled = !busy,
+                    ) {
+                        Text(tr(Message.DEBT_HISTORY))
+                    }
                     if (admin) {
                         fun openMovement(increase: Boolean = false, full: Boolean = false) {
                             actions.open(
@@ -633,6 +641,12 @@ fun FinanceContent(
             }
         }
     }
+    DebtHistoryDialog(
+        debtHistory,
+        actions.debtHistory::more,
+        actions.debtHistory::retry,
+        actions.debtHistory::close,
+    )
     cancelling?.let { tx ->
         AlertDialog(
             onDismissRequest = { if (!busy) cancelling = null },
