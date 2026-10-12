@@ -1,0 +1,67 @@
+{
+  "sourceCommit": "16335b486dc14fccf6a7426c2b4a5582ebb85877",
+  "image": "sha256:4d086715e6ddc6222c5803aa6190273039850ddd8af19b20dd8cb4666b734be3",
+  "approvedConfigDigest": "sha256:cd2e7f7ea6b03907103b8d0d1cc0732d15b40ea9a1c8075d685e64c139a3609c",
+  "sourceArchive": "d013984a47e55f290b0ffbcefd6d5400e0203875ba3487c53edc54089142ad1b",
+  "schema": "d81ac57e09f2",
+  "backup": {
+    "path": "/opt/finora-cutover-mandatory-debt-122-20261012T180341Z/database-and-documents.tar.age",
+    "bytes": 30717448,
+    "sha256": "5957e6da676bd994d625309124b6089a76d777a86e808bcb9237cd61aba08f64",
+    "consistent": true,
+    "decryptionHashVerified": true
+  },
+  "acceptedOverride": "/opt/finora-mandatory-debt-122-20261012/compose.accepted-image.yaml",
+  "rollbackOverride": "/opt/finora-mandatory-debt-122-20261012/compose.rollback-image.yaml",
+  "currencyDigestPreserved": true,
+  "documentBytesPreserved": true,
+  "databaseTunnelNetworkVolumesUnchanged": true,
+  "privateConfigurationUnchanged": true,
+  "apiHealthy": true,
+  "workerRunning": true,
+  "releaseDate": "2026-10-12",
+  "schemaChanged": false,
+  "mandatoryReceiptBackfill": {
+    "historicalPaidExpensesIncluded": true,
+    "financialFieldsAndPostingsIdentical": true,
+    "existingReceiptContentPreserved": true,
+    "idempotenceVerified": true,
+    "noHistoricalPushes": true
+  },
+  "requiredExpenseReconciliation": {
+    "paid_receipt_links_valid": true,
+    "generated_items_match_categories": true
+  },
+  "runtimeStaticFilesMatch": 33,
+  "publicStaticFilesMatch": 29,
+  "publicHealth": true,
+  "readOnlyDebtHistoryReconciled": true,
+  "unauthenticatedHistory": 401,
+  "apk": {
+    "versionName": "1.22.0",
+    "versionCode": 36,
+    "sha256": "66e554e25594c08fdb97067879fa66308ccb1560a2670cc4af212f0cad59e138",
+    "bytes": 172698451,
+    "fullPublicApkGet": true,
+    "publicManifestMatches": true,
+    "previousApkPreserved": true,
+    "noProviderSends": true
+  },
+  "checks": {
+    "postgresPassed": 621,
+    "postgresSkipped": 1,
+    "subtestsPassed": 11,
+    "imagePassed": 41,
+    "imagePostgresOnlySkipped": 3,
+    "webPassed": 39,
+    "androidUnitsPassed": 251,
+    "androidUiScenarios": 6,
+    "androidFontScales": [
+      1.0,
+      1.8
+    ],
+    "signedUpgrade": "1.21.0 to 1.22.0",
+    "offlineColdStart": true,
+    "physicalPhone": false
+  }
+}

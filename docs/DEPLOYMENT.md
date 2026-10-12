@@ -4,12 +4,15 @@
 
 ## Current deployment · 12 October 2026
 
-The debt-history website/API from source `44fbe34` and Android 1.21.0 are published.
-Schema `d81ac57e09f2` is unchanged. The accepted image overlay is
-`/opt/finora-debt-history-20261012/compose.accepted-image.yaml`; preserve the preceding
-Compose overlays listed by the running containers. The matching release directory
-contains `START-AND-ROLLBACK.txt` and the previous image overlay. The older server
-checkout is not the running source. [Verified release and recovery evidence](DEBT-HISTORY-121.md).
+The required-expense receipts and debt-card website/API from source `16335b4` and
+Android 1.22.0 are published. Schema `d81ac57e09f2` is unchanged. Historical paid
+expenses were backfilled into linked receipts after a verified encrypted backup;
+financial amounts, postings, allocations and original documents were preserved.
+The accepted overlay is `/opt/finora-mandatory-debt-122-20261012/compose.accepted-image.yaml`;
+preserve all preceding Compose overlays. The release directory contains
+`START-AND-ROLLBACK.txt`, rollback overlay and prior APK manifest. Image rollback
+retains new receipts; read its cancellation-compatibility note before reverting.
+The old server checkout is not the running source. [Verification and recovery](REQUIRED-EXPENSES-DEBT-122.md).
 
 ## Install Finora
 

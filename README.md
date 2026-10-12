@@ -23,7 +23,11 @@
 
 ---
 
-## Debt history · 12 October 2026
+## Required expenses and debt cards · 12 October 2026
+
+**The website and Android 1.22.0 (`versionCode 36`) are published.** Paid recurring expenses now appear as marked manual receipts in category details and purchase statistics, including historical payments without charging them again. Open a debt card to view receipt-style movements with amounts, times and comments, and add a comment when increasing or repaying it. [Download APK](https://finora.gadmin.work/assets/mobile/finora-1.22.0.apk) · [Checks and deployment](docs/REQUIRED-EXPENSES-DEBT-122.md).
+
+## Previous debt-history release · 12 October 2026
 
 **The website and Android 1.21.0 (`versionCode 35`) are published.** Each debt now has its advances and repayments, with the remaining balance after every entry; history remains available after payoff. [Download the signed APK](https://finora.gadmin.work/assets/mobile/finora-1.21.0.apk) · [Verification and deployment](docs/DEBT-HISTORY-121.md). Existing financial records and the database schema were preserved.
 
@@ -47,7 +51,7 @@ The **current wallet** includes debt repayments and shows balances separately fr
 
 **Know who added each receipt.** Filter receipts and purchases by their author, and compare category spending for each participant. Missing item categories are assigned when you confirm a manual or corrected receipt; your explicit category choices stay intact. [Receipt authors and categories →](docs/RECEIPT-AUTHORS.md)
 
-**Debt history · 1.21.** Open **Debts → Debt history** on the web or **Finance → Debts → Debt history** on Android to see each advance and partial/full repayment, its account, date, note and remaining balance. History remains available for closed debts; reversed entries stay visible without affecting totals. This reads the existing ledger and needs no migration. The website and APK were updated together. [History behavior and compatibility →](docs/DEBT-HISTORY-121.md)
+**Debt cards · 1.22.** Open a debt to see its advances and repayments, recorded time, comments and running balance. Repay or increase the debt directly inside its card; closed debts retain their history. [Behavior and compatibility →](docs/REQUIRED-EXPENSES-DEBT-122.md)
 
 ## Cash and cards: your choice
 
