@@ -83,6 +83,7 @@ fun NativeAnalyticsScreen(
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         Text(item.name, style = MaterialTheme.typography.titleMedium)
+                        MandatoryPaymentBadge(item.mandatory_payment)
                         Text(
                             "${item.quantity} ${unitLabel(item.unit)} · ${money(item.total_minor, item.currency)}"
                         )

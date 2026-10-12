@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -309,9 +310,20 @@ fun FinanceEditor(
                     OutlinedTextField(
                         form.note,
                         { change(form.copy(note = it.take(3000))) },
-                        Modifier.fillMaxWidth(),
+                        Modifier.fillMaxWidth().testTag("finance-operation-comment"),
                         enabled = enabled,
-                        label = { Text(tr(Message.NOTE)) },
+                        label = {
+                            Text(
+                                tr(
+                                    if (
+                                        form.kind == FinanceEditKind.REPAY ||
+                                            form.kind == FinanceEditKind.INCREASE_DEBT
+                                    )
+                                        Message.DEBT_MOVEMENT_COMMENT
+                                    else Message.NOTE
+                                )
+                            )
+                        },
                         minLines = 2,
                         maxLines = 5,
                         shape = RoundedCornerShape(16.dp),

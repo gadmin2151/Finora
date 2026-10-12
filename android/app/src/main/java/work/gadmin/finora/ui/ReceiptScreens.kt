@@ -126,6 +126,7 @@ fun ReceiptsScreen(state: AppState, vm: FinoraViewModel) {
                             fontWeight = FontWeight.SemiBold,
                         )
                     }
+                    MandatoryPaymentBadge(receipt.mandatory_payment)
                     ReceiptAuthorLabel(receipt.creator)
                 }
             }
@@ -194,6 +195,10 @@ fun ReceiptDetailScreen(state: AppState, vm: FinoraViewModel) {
             item {
                 StatusBadge(receipt.status)
                 Spacer(Modifier.height(12.dp))
+                if (receipt.mandatory_payment != null) {
+                    MandatoryPaymentBadge(receipt.mandatory_payment)
+                    Spacer(Modifier.height(12.dp))
+                }
                 Text(receipt.title, style = MaterialTheme.typography.headlineMedium)
                 if (receipt.merchant_address.isNotBlank()) {
                     Spacer(Modifier.height(6.dp))

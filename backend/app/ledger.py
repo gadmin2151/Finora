@@ -249,6 +249,8 @@ def _debt_movement(
 
 
 def pay_bill(db, organization_id: str, occurrence_id: str, data: BillPayment):
+    from .payment_receipts import attach_receipt
+
     lock_organization(db, organization_id)
     occurrence = owned(db, m.Occurrence, occurrence_id, organization_id, True)
     bill = owned(db, m.Bill, occurrence.bill_id, organization_id)
@@ -261,6 +263,7 @@ def pay_bill(db, organization_id: str, occurrence_id: str, data: BillPayment):
     )
     if existing:
         validate_occurrence_retry(db, organization_id, existing, data)
+        attach_receipt(db, existing, occurrence, bill)
         return existing
     account = payment_account(db, organization_id, data.account_id)
     if account.currency != occurrence.currency:
@@ -294,6 +297,7 @@ def pay_bill(db, organization_id: str, occurrence_id: str, data: BillPayment):
             occurrence_id=occurrence.id,
         )
     occurrence.skipped = False
+    attach_receipt(db, tx, occurrence, bill, increment_version=False)
     audit(db, organization_id, "bill.paid", occurrence.id)
     return tx
 
@@ -317,7 +321,18 @@ def void_transaction(db, organization_id: str, tx_id: str, version: int):
             fail("Сначала отмените возвраты по этому долгу")
     if tx.receipt_id:
         receipt = owned(db, m.Receipt, tx.receipt_id, organization_id)
-        receipt.status, receipt.version = "review", receipt.version + 1
+        receipt.version += 1
+        if receipt.original.get("generated_payment_receipt"):
+            # A generated bill document is only a view of this posting, not a new draft to post.
+            receipt.deleted_at, receipt.status = m.now(), "deleted"
+        else:
+            receipt.status = "review"
+            if "mandatory_payment" in receipt.original:
+                receipt.original = {
+                    key: value
+                    for key, value in receipt.original.items()
+                    if key != "mandatory_payment"
+                }
         tx.receipt_id = None
     tx.occurrence_id = None
     tx.voided, tx.version = True, tx.version + 1

@@ -7,7 +7,7 @@ import { Search, SlidersHorizontal, ArrowUpRight } from "lucide-react";
 import { api, useAction } from "../api";
 import { useApp } from "../context";
 import { ReceiptAuthor, ReceiptAuthorFilter } from "../ReceiptAuthor";
-import type { Receipt, ReceiptCreator } from "../types";
+import type { MandatoryPayment, Receipt, ReceiptCreator } from "../types";
 import {
   Empty,
   ErrorBox,
@@ -32,6 +32,7 @@ type Purchase = {
   currency: string;
   purchased_on: string;
   creator?: ReceiptCreator;
+  mandatory_payment?: MandatoryPayment | null;
 };
 type Result = {
   items: Purchase[];
@@ -299,6 +300,11 @@ export default function Purchases() {
                           <tr key={item.id}>
                             <td>
                               <strong>{item.name}</strong>
+                              {item.mandatory_payment && (
+                                <span className="badge">
+                                  {t("Обязательный расход")}
+                                </span>
+                              )}
                               <small className="block muted">
                                 {item.merchant}
                               </small>

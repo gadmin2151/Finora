@@ -387,6 +387,9 @@ export default function Overview() {
                       {dateLabel(tx.occurred_on)} ·{" "}
                       {accounts.find((a) => a.id === tx.account_id)?.name}
                     </span>
+                    {tx.is_mandatory && (
+                      <span className="badge">{t("Обязательный расход")}</span>
+                    )}
                   </div>
                   <b
                     className={

@@ -157,6 +157,42 @@ class DebtHistoryControllerTest {
     }
 
     @Test
+    fun savedMovementRefreshesCardFromFirstPageAndUpdatesActionBalance() {
+        var requests = 0
+        test({ _, _, offset ->
+            assertEquals(0, offset)
+            requests++
+            page(entry("$requests"), repaid = if (requests == 1) 250 else 750)
+        }) { controller ->
+            controller.open(debt)
+            assertEquals(500L, controller.state.value.debt!!.remaining_minor)
+            controller.refresh()
+            assertEquals(2, requests)
+            assertEquals(listOf("2"), controller.state.value.page!!.items.map { it.id })
+            assertEquals(0L, controller.state.value.debt!!.remaining_minor)
+        }
+    }
+
+    @Test
+    fun refreshDoesNotReopenCardAfterScopeChanged() {
+        var current = navigation
+        var requests = 0
+        test(
+            { _, _, _ ->
+                requests++
+                page(entry("1"))
+            },
+            current = { current },
+        ) { controller ->
+            controller.open(debt)
+            current = navigation.copy(organizationId = "other")
+            controller.refresh()
+            assertEquals(1, requests)
+            assertNull(controller.state.value.debt)
+        }
+    }
+
+    @Test
     fun expiredSessionClosesHistoryAndUsesExistingAuthenticationHandler() {
         var authErrors = 0
         test({ _, _, _ -> throw ApiException(401, "Expired") }, auth = { authErrors++ }) {

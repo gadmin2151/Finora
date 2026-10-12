@@ -1,5 +1,10 @@
 package work.gadmin.finora.data
 
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -15,7 +20,15 @@ data class DebtHistoryEntry(
     val account_name: String? = null,
     val note: String = "",
     val voided: Boolean = false,
-)
+) {
+    /** Server timestamps are UTC; legacy SQLite responses omit the offset. */
+    fun recordedAt(zone: ZoneId = accountingZone): ZonedDateTime? = runCatching {
+        Instant.parse(created_at)
+    }
+        .recoverCatching { LocalDateTime.parse(created_at).toInstant(ZoneOffset.UTC) }
+        .getOrNull()
+        ?.atZone(zone)
+}
 
 @Serializable
 data class DebtHistory(

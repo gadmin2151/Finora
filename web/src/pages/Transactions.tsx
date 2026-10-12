@@ -190,6 +190,11 @@ export default function Transactions() {
                                 {kinds[tx.kind]}
                                 {tx.note ? ` · ${tx.note}` : ""}
                               </small>
+                              {tx.is_mandatory && (
+                                <span className="badge">
+                                  {t("Обязательный расход")}
+                                </span>
+                              )}
                               {tx.receipt_id && (
                                 <button
                                   className="receipt-link"

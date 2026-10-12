@@ -162,6 +162,7 @@ def test_reports_and_csv_translate_labels_without_changing_user_data(client, acc
         "value": "15.20 MDL",
         "detail": "Transactions: 1",
         "receipt_id": None,
+        "is_mandatory": False,
     }
     assert [metric["value"] for metric in en["metrics"]] == [
         metric["value"] for metric in ru["metrics"]

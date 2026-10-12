@@ -51,6 +51,7 @@ def history(db, organization_id: str, filters: PurchaseFilters):
             receipt.currency,
             receipt.purchased_on,
             receipt.created_by,
+            receipt.original["mandatory_payment"].label("mandatory_payment"),
             tx.account_id,
         )
         .join(receipt, receipt.id == item.receipt_id)

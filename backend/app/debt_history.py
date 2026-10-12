@@ -1,5 +1,7 @@
 """Read debt movements from the existing ledger without changing their financial effect."""
 
+from datetime import UTC
+
 from sqlalchemy import and_, case, func, select, true
 from sqlalchemy.orm import Session
 
@@ -106,7 +108,11 @@ def history(db: Session, organization_id: str, debt_id: str, *, offset: int, lim
             "kind": row["kind"],
             "operation": row["operation"],
             "occurred_on": row["occurred_on"].isoformat(),
-            "created_at": row["created_at"].isoformat(),
+            "created_at": (
+                row["created_at"].replace(tzinfo=UTC)
+                if row["created_at"].tzinfo is None
+                else row["created_at"].astimezone(UTC)
+            ).isoformat(),
             "amount_minor": int(row["amount_minor"]),
             "balance_after_minor": int(row["balance_after_minor"]),
             "account_id": row["account_id"],

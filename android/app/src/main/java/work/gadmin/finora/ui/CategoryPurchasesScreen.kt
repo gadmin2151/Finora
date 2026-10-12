@@ -62,6 +62,7 @@ fun CategoryPurchasesScreen(vm: FinoraViewModel) {
                     verticalArrangement = Arrangement.spacedBy(7.dp),
                 ) {
                     Text(item.name, fontWeight = FontWeight.SemiBold)
+                    MandatoryPaymentBadge(item.mandatory_payment)
                     Text(
                         "${item.quantity} ${unitLabel(item.unit)} · ${money(item.total_minor, item.currency)}",
                         color = Green,

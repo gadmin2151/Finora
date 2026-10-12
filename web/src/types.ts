@@ -48,6 +48,7 @@ export type Transaction = {
   receipt_id: string | null;
   debt_id: string | null;
   occurrence_id: string | null;
+  is_mandatory?: boolean;
   refund_of: string | null;
   splits: { category_id: string | null; amount_minor: number }[];
 };
@@ -61,6 +62,7 @@ export type Debt = {
   due_date: string | null;
   note: string;
 };
+export type DebtMovementMode = "partial" | "full" | "increase";
 export type DebtHistoryEntry = {
   id: string;
   kind:
@@ -149,11 +151,17 @@ export type CreatorCategory = {
   total_minor: number;
   receipt_count: number;
 };
+export type MandatoryPayment = {
+  bill_id: string;
+  occurrence_id: string;
+  due_date: string;
+};
 export type Receipt = {
   id: string;
   created_by?: string | null;
   creator?: ReceiptCreator;
   source: string;
+  mandatory_payment?: MandatoryPayment | null;
   source_url: string | null;
   merchant: string;
   merchant_address?: string;
@@ -246,6 +254,7 @@ export type AnalyticsReport = {
     value: string;
     detail: string;
     receipt_id: string | null;
+    is_mandatory?: boolean;
   }[];
   total_rows: number;
   notices: string[];

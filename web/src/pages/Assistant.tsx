@@ -732,11 +732,13 @@ export function Receipts() {
                     ? dateLabel(receipt.purchased_on)
                     : t("Дата ещё не распознана")}{" "}
                   ·{" "}
-                  {receipt.source === "manual"
-                    ? t("Ручной чек")
-                    : receipt.source === "mev"
-                      ? "MEV"
-                      : t("Фото чека")}
+                  {receipt.mandatory_payment
+                    ? t("Обязательный расход")
+                    : receipt.source === "manual"
+                      ? t("Ручной чек")
+                      : receipt.source === "mev"
+                        ? "MEV"
+                        : t("Фото чека")}
                 </p>
                 <ReceiptAuthor creator={receipt.creator} />
                 <div className="receipt-card-lines">

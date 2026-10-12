@@ -1517,10 +1517,19 @@ tbody tr:hover {
 }
 .receipt-status {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 20px;
+  gap: 8px 10px;
   margin-bottom: 15px;
   font-size: 14px;
+}
+.receipt-status > * {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.receipt-status .badge {
+  white-space: normal;
 }
 .receipt-layout {
   display: grid;

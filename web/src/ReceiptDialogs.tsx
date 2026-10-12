@@ -907,6 +907,9 @@ function ReceiptForm({
         {receipt.source === "manual" && (
           <span className="badge">{t("Ручной чек")}</span>
         )}
+        {receipt.mandatory_payment && (
+          <span className="badge">{t("Обязательный расход")}</span>
+        )}
         {receipt.source_url && (
           <a href={receipt.source_url} target="_blank" rel="noreferrer">
             {t("Открыть сайт чека ↗")}

@@ -1,6 +1,7 @@
 package work.gadmin.finora.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -560,7 +561,14 @@ fun FinanceContent(
                     )
                 }
             items(shown, key = { it.id }) { debt ->
-                FinanceCard {
+                FinanceCard(
+                    Modifier.testTag("debt-history-open-${debt.id}").clickable(
+                        enabled = !busy,
+                        onClickLabel = tr(Message.DEBT_OPEN_CARD),
+                    ) {
+                        actions.debtHistory.open(debt)
+                    }
+                ) {
                     Text(debt.person, style = MaterialTheme.typography.titleMedium)
                     Text(
                         if (debt.direction == "lent") tr(Message.OWED_TO_ME) else tr(Message.I_OWE),
@@ -587,66 +595,38 @@ fun FinanceContent(
                     )
                     if (debt.note.isNotBlank())
                         Text(debt.note, style = MaterialTheme.typography.bodySmall)
-                    OutlinedButton(
-                        { actions.debtHistory.open(debt) },
-                        Modifier.fillMaxWidth().testTag("debt-history-open-${debt.id}"),
-                        enabled = !busy,
-                    ) {
-                        Text(tr(Message.DEBT_HISTORY))
-                    }
-                    if (admin) {
-                        fun openMovement(increase: Boolean = false, full: Boolean = false) {
-                            actions.open(
-                                FinanceEdit(
-                                    if (increase) FinanceEditKind.INCREASE_DEBT
-                                    else FinanceEditKind.REPAY,
-                                    id = debt.id,
-                                    name = debt.person,
-                                    amount = if (full) editableMoney(debt.remaining_minor) else "",
-                                    currency = debt.currency,
-                                    accountId = validFinanceAccount(data.accounts, debt.currency),
-                                    direction = debt.direction,
-                                    remainingMinor = debt.remaining_minor,
-                                    fullRepayment = full,
-                                )
-                            )
-                        }
-                        if (debt.remaining_minor > 0) {
-                            OutlinedButton(
-                                { openMovement() },
-                                Modifier.fillMaxWidth(),
-                                enabled = !busy,
-                            ) {
-                                Text(tr(Message.REPAY_PART))
-                            }
-                            OutlinedButton(
-                                { openMovement(full = true) },
-                                Modifier.fillMaxWidth(),
-                                enabled = !busy,
-                            ) {
-                                Text(tr(Message.REPAY_IN_FULL))
-                            }
-                        }
-                        TextButton(
-                            { openMovement(increase = true) },
-                            Modifier.fillMaxWidth(),
-                            enabled = !busy,
-                        ) {
-                            LineIcon(Glyph.PLUS)
-                            Spacer(Modifier.width(8.dp))
-                            Text(tr(Message.INCREASE_DEBT))
-                        }
-                    }
+                    Text(tr(Message.DEBT_OPEN_CARD), color = Green)
                 }
             }
         }
     }
-    DebtHistoryDialog(
-        debtHistory,
-        actions.debtHistory::more,
-        actions.debtHistory::retry,
-        actions.debtHistory::close,
-    )
+    if (data.editor == null)
+        DebtHistoryDialog(
+            debtHistory,
+            actions.debtHistory::more,
+            actions.debtHistory::retry,
+            actions.debtHistory::close,
+            busy,
+            openMovement =
+                if (!admin) null
+                else
+                    { debt, increase, full ->
+                        actions.open(
+                            FinanceEdit(
+                                if (increase) FinanceEditKind.INCREASE_DEBT
+                                else FinanceEditKind.REPAY,
+                                id = debt.id,
+                                name = debt.person,
+                                amount = if (full) editableMoney(debt.remaining_minor) else "",
+                                currency = debt.currency,
+                                accountId = validFinanceAccount(data.accounts, debt.currency),
+                                direction = debt.direction,
+                                remainingMinor = debt.remaining_minor,
+                                fullRepayment = full,
+                            )
+                        )
+                    },
+        )
     cancelling?.let { tx ->
         AlertDialog(
             onDismissRequest = { if (!busy) cancelling = null },
@@ -711,8 +691,16 @@ fun FinancePlanningLinks(admin: Boolean, busy: Boolean, open: (ChatDestination) 
 }
 
 @Composable
-private fun FinanceCard(content: @Composable ColumnScope.() -> Unit) {
-    Surface(color = SurfaceColor, shape = RoundedCornerShape(22.dp), tonalElevation = 1.dp) {
+private fun FinanceCard(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Surface(
+        modifier = modifier,
+        color = SurfaceColor,
+        shape = RoundedCornerShape(22.dp),
+        tonalElevation = 1.dp,
+    ) {
         Column(
             Modifier.fillMaxWidth().padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),

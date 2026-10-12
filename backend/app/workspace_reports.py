@@ -219,6 +219,7 @@ def transactions(db: Session, org: str, q: ReportQuery) -> Report:
                 if v
             ),
             receipt_id=tx.receipt_id,
+            is_mandatory=tx.kind == "expense" and tx.occurrence_id is not None,
         )
         for tx, _, author, account in db.execute(
             source.order_by(
@@ -412,6 +413,7 @@ def select_receipt(db: Session, org: str, q: ReportQuery, order: str) -> Report:
                     str(v) for v in [receipt.purchased_on or receipt.created_at.date(), author] if v
                 ),
                 receipt_id=receipt.id,
+                is_mandatory=bool(receipt.original.get("mandatory_payment")),
             )
         )
     else:
@@ -475,6 +477,7 @@ def receipts(db: Session, org: str, q: ReportQuery) -> Report:
                 if v
             ),
             receipt_id=r.id,
+            is_mandatory=bool(r.original.get("mandatory_payment")),
         )
         for r, author in chosen
     ]

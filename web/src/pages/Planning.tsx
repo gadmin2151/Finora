@@ -7,7 +7,6 @@ import {
   CalendarClock,
   Check,
   CirclePause,
-  History,
   Plus,
   Target,
   Users,
@@ -25,6 +24,7 @@ import type {
   BillTemplate,
   Dashboard,
   Debt,
+  DebtMovementMode,
   Transaction,
 } from "../types";
 import {
@@ -551,19 +551,24 @@ export function Debts() {
         ) : shown?.length ? (
           <div className="debt-list">
             {shown.map((d) => (
-              <div className="debt-row" key={d.id}>
+              <button
+                className="debt-row debt-open"
+                key={d.id}
+                aria-label={t("Открыть долг: {0}", d.person)}
+                onClick={() => setHistory(d)}
+              >
                 <span className={`person-avatar ${d.direction}`}>
                   {d.person.slice(0, 2).toUpperCase()}
                 </span>
-                <div className="grow">
+                <span className="grow">
                   <strong>{d.person}</strong>
-                  <p>
+                  <span className="debt-person-detail">
                     {d.direction === "lent" ? t("Вам должны") : t("Вы должны")}
                     {d.due_date ? t(" · до {0}", dateLabel(d.due_date)) : ""}
-                  </p>
+                  </span>
                   {d.note && <small>{d.note}</small>}
-                </div>
-                <div className="debt-value">
+                </span>
+                <span className="debt-value">
                   <small>{t("Остаток долга")}</small>
                   <strong>{amount(d.remaining_minor, d.currency)}</strong>
                   <Badge
@@ -581,49 +586,13 @@ export function Debts() {
                         ? t("Срок прошёл")
                         : t("Открыт")}
                   </Badge>
-                </div>
-                <div className="debt-actions">
-                  <button
-                    className="button secondary"
-                    aria-label={t("История долга: {0}", d.person)}
-                    onClick={() => setHistory(d)}
-                  >
-                    <History size={16} /> {t("История долга")}
-                  </button>
-                  {isAdmin && (
-                    <>
-                      {d.remaining_minor > 0 && (
-                        <>
-                          <button
-                            className="button secondary"
-                            onClick={() =>
-                              setMovement({ debt: d, mode: "partial" })
-                            }
-                          >
-                            {t("Погасить частично")}
-                          </button>
-                          <button
-                            className="button secondary"
-                            onClick={() =>
-                              setMovement({ debt: d, mode: "full" })
-                            }
-                          >
-                            <Check size={16} /> {t("Погасить полностью")}
-                          </button>
-                        </>
-                      )}
-                      <button
-                        className="text-button"
-                        onClick={() =>
-                          setMovement({ debt: d, mode: "increase" })
-                        }
-                      >
-                        <Plus size={16} /> {t("Увеличить долг")}
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
+                </span>
+                <ChevronRight
+                  className="debt-open-chevron"
+                  size={20}
+                  aria-hidden="true"
+                />
+              </button>
             ))}
           </div>
         ) : (
@@ -655,11 +624,20 @@ export function Debts() {
           />
         )}
       </section>
-      {history && (
+      {history && !movement && (
         <DebtHistoryDialog
           key={history.id}
-          debt={history}
+          debt={query.data?.find((debt) => debt.id === history.id) ?? history}
           onClose={() => setHistory(null)}
+          onMovement={
+            isAdmin
+              ? (mode, remaining) =>
+                  setMovement({
+                    debt: { ...history, remaining_minor: remaining },
+                    mode,
+                  })
+              : undefined
+          }
         />
       )}
       {creating && (
@@ -838,8 +816,6 @@ function DebtForm({
   );
 }
 
-type DebtMovementMode = "partial" | "full" | "increase";
-
 function DebtMovementForm({
   debt,
   mode,
@@ -942,12 +918,13 @@ function DebtMovementForm({
               />
             </Field>
           )}
-          <Field label={t("Примечание · необязательно")} wide>
+          <Field label={t("Комментарий · необязательно")} wide>
             <textarea
               rows={2}
               value={note}
               onChange={(e) => setNote(e.target.value)}
               maxLength={3000}
+              placeholder={t("За что переданы или возвращены деньги")}
             />
           </Field>
         </div>

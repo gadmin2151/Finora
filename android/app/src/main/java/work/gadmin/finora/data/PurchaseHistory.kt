@@ -20,6 +20,7 @@ data class PurchaseItem(
     val category_id: String? = null,
     val created_by: String? = null,
     val creator: ReceiptAuthor? = null,
+    val mandatory_payment: MandatoryPayment? = null,
 )
 
 @Serializable data class CurrencyTotal(val currency: String, val total_minor: Long)

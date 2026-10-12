@@ -65,6 +65,13 @@ data class ReceiptAuthorPage(
 )
 
 @Serializable
+data class MandatoryPayment(
+    val bill_id: String,
+    val occurrence_id: String,
+    val due_date: String,
+)
+
+@Serializable
 data class Receipt(
     val id: String,
     val source: String,
@@ -87,6 +94,7 @@ data class Receipt(
     val files: List<String> = emptyList(),
     val created_at: String,
     val items: List<ReceiptItem> = emptyList(),
+    val mandatory_payment: MandatoryPayment? = null,
 ) {
     val isProcessing: Boolean
         get() = status == "queued" || status == "processing"

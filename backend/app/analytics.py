@@ -96,6 +96,7 @@ class ReportRow(Strict):
     value: str
     detail: str = ""
     receipt_id: str | None = None
+    is_mandatory: bool = False
 
 
 class Report(Strict):
@@ -174,6 +175,7 @@ def _purchase_report(db, organization_id: str, query: ReportQuery) -> Report:
             value=currency_value(p["total_minor"], p["currency"]),
             detail=f"{p['purchased_on']} · {p['merchant']} · {format(Decimal(p['quantity']).normalize(), 'f')} {unit_label(p['unit'])} × {currency_value(p['unit_minor'], p['currency'])}",
             receipt_id=p["receipt_id"],
+            is_mandatory=bool(p.get("mandatory_payment")),
         )
         for p in result["items"]
     ]

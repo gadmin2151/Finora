@@ -89,6 +89,9 @@ export function ReportCard({
             <div className="report-row" key={`${row.label}-${i}`}>
               <div>
                 <strong>{row.label}</strong>
+                {row.is_mandatory && (
+                  <span className="badge">{t("Обязательный расход")}</span>
+                )}
                 {row.detail && <small>{row.detail}</small>}
                 {maximum > 0 && (
                   <div

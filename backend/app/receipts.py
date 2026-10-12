@@ -829,6 +829,7 @@ def receipt_dict(db, receipt: m.Receipt, preloaded=None):
         "merchant": receipt.merchant,
         "merchant_address": receipt.original.get("merchant_address", ""),
         "document_type": receipt.original.get("document_type", "fiscal_receipt"),
+        "mandatory_payment": receipt.original.get("mandatory_payment"),
         "payment_status": receipt.original.get("payment_status", ""),
         "purchased_on": receipt.purchased_on.isoformat() if receipt.purchased_on else None,
         "currency": receipt.currency,

@@ -41,6 +41,15 @@ class DebtHistoryController(
         mutable.value = DebtHistoryState()
     }
 
+    /** After a saved movement, discard the old balances before loading this card again. */
+    fun refresh() {
+        if (openedScope != currentScope()) {
+            close()
+            return
+        }
+        mutable.value.debt?.let(::open)
+    }
+
     fun more() {
         val before = mutable.value
         if (before.loading || before.nextOffset >= (before.page?.total ?: 0)) return
@@ -81,6 +90,7 @@ class DebtHistoryController(
                 require(result.debt_id == debt.id && result.currency == debt.currency)
                 mutable.update {
                     it.copy(
+                        debt = debt.copy(remaining_minor = result.remaining_minor),
                         page =
                             result.copy(
                                 items =

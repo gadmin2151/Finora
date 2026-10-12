@@ -7,6 +7,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import java.io.File
 import java.io.IOException
 import kotlinx.coroutines.*
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
@@ -58,7 +59,7 @@ class DebtHistoryAcceptanceTest {
                 .assertIsDisplayed()
             rule.onNodeWithText("Повторить").assertIsDisplayed()
             rule.onNodeWithText("Увеличить долг").assertDoesNotExist()
-            rule.onNodeWithText("Закрыть").performClick()
+            rule.onNodeWithContentDescription("Закрыть").performClick()
             rule.onNodeWithTag("debt-history-list").assertDoesNotExist()
         } finally {
             scope.cancel()
@@ -94,6 +95,11 @@ class DebtHistoryAcceptanceTest {
         val list = rule.onNodeWithTag("debt-history-list")
         list.performScrollToNode(hasText("Final part"))
         rule.onNodeWithText("Final part").assertIsDisplayed()
+        list.performScrollToNode(hasTestTag("debt-recorded-at-repayment"))
+        rule
+            .onNodeWithTag("debt-recorded-at-repayment")
+            .assertTextContains("13:00", substring = true)
+        snapshot("debt-card-operation")
         list.performScrollToNode(hasText("Отменено · не влияет на остаток"))
         rule.onNodeWithText("Отменено · не влияет на остаток").assertIsDisplayed()
         snapshot("debt-history-reversal")
@@ -105,6 +111,78 @@ class DebtHistoryAcceptanceTest {
     }
 
     private fun debt() = Debt("debt", "Synthetic person", "lent", "MDL", 0, 500)
+
+    @Test
+    fun administratorCanChoosePartialFullAndIncreaseFromTheCard() {
+        val chosen = mutableListOf<Pair<Boolean, Boolean>>()
+        val openDebt = debt().copy(remaining_minor = 500)
+        rule.setContent {
+            FinoraTheme {
+                DebtHistoryDialog(
+                    DebtHistoryState(
+                        debt = openDebt,
+                        page = DebtHistory("debt", "MDL", 500, 500, 0, 0, emptyList(), 0),
+                    ),
+                    {},
+                    {},
+                    {},
+                    openMovement = { selected, increase, full ->
+                        assertEquals(openDebt, selected)
+                        chosen += increase to full
+                    },
+                )
+            }
+        }
+        for (tag in listOf("debt-card-repay", "debt-card-repay-full", "debt-card-increase")) {
+            rule.onNodeWithTag("debt-history-list").performScrollToNode(hasTestTag(tag))
+            rule.onNodeWithTag(tag).assertIsEnabled().performClick()
+        }
+        snapshot("debt-card-actions")
+        rule.runOnIdle {
+            assertEquals(listOf(false to false, false to true, true to false), chosen)
+        }
+    }
+
+    @Test
+    fun repaymentAndIncreaseHaveEditableCommentsIncludedInTheExistingCommand() {
+        val accounts = listOf(Account("account", "Cash", "MDL"))
+        val form =
+            androidx.compose.runtime.mutableStateOf(
+                FinanceEdit(
+                    FinanceEditKind.REPAY,
+                    id = "debt",
+                    name = "Synthetic person",
+                    amount = "1",
+                    accountId = "account",
+                    remainingMinor = 500,
+                )
+            )
+        rule.setContent {
+            FinoraTheme {
+                FinanceEditor(
+                    form.value,
+                    FinanceState(accounts = accounts),
+                    "Synthetic",
+                    false,
+                    { form.value = it },
+                    { fail("Fixture must not post money") },
+                    {},
+                    {},
+                )
+            }
+        }
+        for (kind in listOf(FinanceEditKind.REPAY, FinanceEditKind.INCREASE_DEBT)) {
+            rule.runOnIdle { form.value = form.value.copy(kind = kind, note = "") }
+            val input = rule.onNodeWithTag("finance-operation-comment")
+            input.performScrollTo().assertIsEnabled().performTextReplacement("Комментарий $kind")
+            rule.runOnIdle {
+                assertEquals(
+                    "Комментарий $kind",
+                    form.value.command(accounts).body!!.getValue("note").jsonPrimitive.content,
+                )
+            }
+        }
+    }
 
     private fun snapshot(name: String) {
         val instrumentation = InstrumentationRegistry.getInstrumentation()

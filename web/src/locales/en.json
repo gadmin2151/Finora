@@ -1244,5 +1244,17 @@
   "Остаток после операции": "Balance after transaction",
   "Отменённая операция не влияет на остаток долга.": "This canceled transaction does not affect the debt balance.",
   "Операций пока нет": "No transactions yet",
-  "Здесь появятся увеличение долга и каждый частичный или полный возврат.": "Debt increases and every partial or full repayment will appear here."
+  "Здесь появятся увеличение долга и каждый частичный или полный возврат.": "Debt increases and every partial or full repayment will appear here.",
+  "Открыть долг: {0}": "Open debt: {0}",
+  "Долг: {0}": "Debt: {0}",
+  "Вернуть до: {0}": "Due by: {0}",
+  "Действия с долгом": "Debt actions",
+  "Комментарий · необязательно": "Comment · optional",
+  "За что переданы или возвращены деньги": "What the money was lent or repaid for",
+  "Без комментария": "No comment",
+  "Сначала последние операции. Время указано по Кишинёву.": "Latest transactions first. Times are shown in Chisinau time.",
+  "Время записи недоступно": "Recorded time unavailable",
+  "Дата операции: {0}": "Transaction date: {0}",
+  "Обязательный расход": "Mandatory expense",
+  "Записано: {0}": "Recorded: {0}"
 }

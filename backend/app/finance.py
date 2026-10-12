@@ -412,6 +412,7 @@ def transaction_dict(tx: m.Transaction):
     ]
     return {
         **{key: getattr(tx, key) for key in fields},
+        "is_mandatory": tx.kind == "expense" and tx.occurrence_id is not None,
         "occurred_on": tx.occurred_on.isoformat(),
         "fx_rate": str(tx.fx_rate),
     }

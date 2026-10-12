@@ -337,6 +337,7 @@ class FinanceController(
                 return@write
             }
             matching?.cancel()
+            debtHistory.refresh()
             mutable.update {
                 it.copy(
                     editor = null,

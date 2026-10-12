@@ -588,7 +588,12 @@ def toggle_bill(key: str, user: m.Organization = SCOPE, db: Session = DB):
 
 @router.post("/occurrences/{key}/pay")
 def pay_bill(key: str, data: s.BillPayment, user: m.Organization = SCOPE, db: Session = DB):
-    tx = ledger.pay_bill(db, user.id, key, data)
+    from .payment_receipts import PaymentReceiptError
+
+    try:
+        tx = ledger.pay_bill(db, user.id, key, data)
+    except PaymentReceiptError:
+        fail("Не удалось связать чек с оплатой. Обновите данные и проверьте исходный расход", 409)
     db.commit()
     return transaction_dict(tx)
 
